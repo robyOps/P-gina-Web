@@ -33,6 +33,7 @@ import csv
 
 # --- Third-party ---
 from xhtml2pdf import pisa
+from openpyxl import Workbook
 
 # --- Auth / models ---
 from django.contrib.auth import get_user_model
@@ -829,6 +830,90 @@ def reports_export_csv(request):
             t.resolved_at.strftime("%Y-%m-%d %H:%M") if t.resolved_at else "",
             t.closed_at.strftime("%Y-%m-%d %H:%M") if t.closed_at else "",
         ])
+    return resp
+
+
+@login_required
+def reports_export_excel(request):
+    """Exporta a Excel (.xlsx) los tickets visibles para el usuario."""
+    u = request.user
+    qs = Ticket.objects.select_related(
+        "category", "priority", "area", "requester", "assigned_to"
+    ).order_by("-created_at")
+
+    if is_admin(u):
+        pass
+    elif is_tech(u):
+        qs = qs.filter(assigned_to=u)
+    else:
+        qs = qs.filter(requester=u)
+
+    dfrom = _parse_date_param(request.GET.get("from"))
+    dto = _parse_date_param(request.GET.get("to"))
+    if dfrom:
+        qs = qs.filter(created_at__date__gte=dfrom)
+    if dto:
+        qs = qs.filter(created_at__date__lte=dto)
+
+    status = (request.GET.get("status") or "").strip()
+    category = (request.GET.get("category") or "").strip()
+    priority = (request.GET.get("priority") or "").strip()
+    q = (request.GET.get("q") or "").strip()
+
+    if status:
+        qs = qs.filter(status=status)
+    if category:
+        qs = qs.filter(category_id=category)
+    if priority:
+        qs = qs.filter(priority_id=priority)
+    if q:
+        qs = qs.filter(
+            Q(code__icontains=q)
+            | Q(title__icontains=q)
+            | Q(description__icontains=q)
+        )
+
+    wb = Workbook()
+    ws = wb.active
+    ws.append(
+        [
+            "code",
+            "title",
+            "status",
+            "category",
+            "priority",
+            "area",
+            "requester",
+            "assigned_to",
+            "created_at",
+            "resolved_at",
+            "closed_at",
+        ]
+    )
+    for t in qs:
+        ws.append(
+            [
+                t.code,
+                t.title,
+                t.status,
+                getattr(t.category, "name", ""),
+                getattr(t.priority, "key", ""),
+                getattr(t.area, "name", ""),
+                getattr(t.requester, "username", ""),
+                getattr(t.assigned_to, "username", ""),
+                t.created_at.strftime("%Y-%m-%d %H:%M"),
+                t.resolved_at.strftime("%Y-%m-%d %H:%M") if t.resolved_at else "",
+                t.closed_at.strftime("%Y-%m-%d %H:%M") if t.closed_at else "",
+            ]
+        )
+
+    out = BytesIO()
+    wb.save(out)
+    resp = HttpResponse(
+        out.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    resp["Content-Disposition"] = 'attachment; filename="tickets_export.xlsx"'
     return resp
 
 @login_required

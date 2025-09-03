@@ -28,6 +28,10 @@
       class="bg-slate-700 text-white px-3 py-1.5 rounded text-sm">
       Exportar PDF
     </a>
+    <a href="{% url 'reports_export_excel' %}?from={{ from }}&to={{ to }}"
+      class="bg-indigo-600 text-white px-3 py-1.5 rounded text-sm">
+      Exportar Excel
+    </a>
   </div>
 </form>
 
