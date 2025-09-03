@@ -29,7 +29,7 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
   <!-- Datos -->
   <div class="bg-white rounded-xl shadow p-4 space-y-1">
-    <div><span class="font-medium">Estado:</span> {{ t.status }}</div>
+    <div><span class="font-medium">Estado:</span> {{ t.get_status_display }}</div>
     <div><span class="font-medium">Categoría:</span> {{ t.category.name }}</div>
     <div><span class="font-medium">Prioridad:</span> {{ t.priority.name }}</div>
     {% if t.area %}<div><span class="font-medium">Área:</span> {{ t.area.name }}</div>{% endif %}
@@ -74,7 +74,7 @@
             </select>
             <label class="block text-sm mt-2">Motivo (opcional)</label>
             <input type="text" name="reason" class="w-full border rounded px-3 py-2 text-sm" placeholder="Reasignación" />
-            <button class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm mt-2">Asignar</button>
+            <button class="btn bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm mt-2 shadow">Asignar</button>
 
           {% elif is_tech_u %}
             {% if t.assigned_to_id == request.user.id %}
@@ -83,7 +83,7 @@
               <input type="hidden" name="to_user_id" value="{{ request.user.id }}">
               <label class="block text-sm">Motivo (opcional)</label>
               <input type="text" name="reason" class="w-full border rounded px-3 py-2 text-sm" placeholder="Auto-asignación" />
-              <button class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm mt-2">Auto-asignarme</button>
+              <button class="btn bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm mt-2 shadow">Auto-asignarme</button>
             {% endif %}
           {% endif %}
         </form>
@@ -98,8 +98,8 @@
         {% csrf_token %}
         <label class="block text-sm">Nuevo estado</label>
         <select name="next_status" class="w-full border rounded px-3 py-2 text-sm" required>
-          {% for st in allowed_transitions %}
-            <option value="{{ st }}">{{ st }}</option>
+          {% for key, label in allowed_transitions %}
+            <option value="{{ key }}">{{ label }}</option>
           {% endfor %}
         </select>
         <label class="block text-sm">Comentario (opcional)</label>
@@ -107,7 +107,7 @@
         <label class="text-sm inline-flex items-center gap-2">
           <input type="checkbox" name="is_internal"> Interno
         </label>
-        <button class="bg-green-600 text-white px-3 py-1.5 rounded text-sm">Actualizar estado</button>
+        <button class="btn bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-sm shadow">Actualizar estado</button>
       </form>
     </div>
     {% endif %}
@@ -132,7 +132,7 @@
         <label class="text-sm inline-flex items-center gap-2">
           <input type="checkbox" name="is_internal"> Interno
         </label>
-        <button class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">Agregar</button>
+        <button class="btn bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm shadow">Agregar</button>
       </div>
     </form>
   </div>
@@ -152,7 +152,7 @@
           hx-post="{% url 'add_attachment' t.id %}" hx-target="#attachments" hx-swap="innerHTML">
       {% csrf_token %}
       <input type="file" name="file" class="text-sm" required />
-      <button class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">Subir</button>
+      <button class="btn bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm shadow">Subir</button>
     </form>
   </div>
 

@@ -4,7 +4,7 @@
 <h1 class="text-xl font-semibold mb-4">Mis tickets</h1>
 
 <div class="mb-3 flex items-center gap-2">
-  <a href="{% url 'ticket_create' %}" class="bg-blue-600 text-white px-4 py-2 rounded text-sm">Nuevo ticket</a>
+  <a href="{% url 'ticket_create' %}" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm shadow">Nuevo ticket</a>
 </div>
 
 <form method="get" class="mb-3 flex flex-wrap items-end gap-3 text-sm">
@@ -16,8 +16,8 @@
     <label class="block text-xs">Estado</label>
     <select name="status" class="border rounded px-2 py-1">
       <option value="" {% if not filters.status %}selected{% endif %}>(Todos)</option>
-      {% for st in statuses %}
-        <option value="{{ st }}" {% if filters.status == st %}selected{% endif %}>{{ st }}</option>
+      {% for key, label in statuses %}
+        <option value="{{ key }}" {% if filters.status == key %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
   </div>
@@ -33,8 +33,8 @@
     <label class="block text-xs">Por página</label>
     <input name="page_size" value="{{ page_size }}" class="border rounded px-2 py-1 w-20" />
   </div>
-  <button class="bg-gray-800 text-white px-3 py-1.5 rounded">Aplicar</button>
-  <a href="{% url 'tickets_home' %}" class="px-3 py-1.5 rounded border">Limpiar</a>
+  <button class="btn bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded shadow">Aplicar</button>
+  <a href="{% url 'tickets_home' %}" class="btn px-3 py-1.5 rounded border hover:bg-gray-100">Limpiar</a>
 </form>
 
 <div class="w-full bg-white rounded-xl shadow overflow-hidden">
@@ -79,7 +79,7 @@
           <a class="text-blue-600 hover:underline" href="{% url 'ticket_detail' t.id %}">{{ t.code }}</a>
         </td>
         <td class="p-2">{{ t.title }}</td>
-        <td class="p-2">{{ t.status }}</td>
+        <td class="p-2">{{ t.get_status_display }}</td>
         <td class="p-2">{{ t.category.name }}</td>
         <td class="p-2">{{ t.priority.name }}</td>
         <td class="p-2">{% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}-{% endif %}</td>
@@ -114,15 +114,15 @@
       {# Construye querystring preservando filtros, cambiando solo page #}
       {% with qsp="q="|add:filters.q|urlencode|add:"&status="|add:filters.status|add:"&category="|add:filters.category|add:"&priority="|add:filters.priority|add:"&page_size="|add:page_size %}
         {% if page_obj.has_previous %}
-          <a class="px-2 py-1 border rounded" href="?{{ qsp }}&page=1">&laquo; Primero</a>
-          <a class="px-2 py-1 border rounded" href="?{{ qsp }}&page={{ page_obj.previous_page_number }}">Anterior</a>
+          <a class="btn px-2 py-1 border rounded hover:bg-gray-100" href="?{{ qsp }}&page=1">&laquo; Primero</a>
+          <a class="btn px-2 py-1 border rounded hover:bg-gray-100" href="?{{ qsp }}&page={{ page_obj.previous_page_number }}">Anterior</a>
         {% else %}
           <span class="px-2 py-1 border rounded text-gray-400">&laquo; Primero</span>
           <span class="px-2 py-1 border rounded text-gray-400">Anterior</span>
         {% endif %}
         {% if page_obj.has_next %}
-          <a class="px-2 py-1 border rounded" href="?{{ qsp }}&page={{ page_obj.next_page_number }}">Siguiente</a>
-          <a class="px-2 py-1 border rounded" href="?{{ qsp }}&page={{ page_obj.paginator.num_pages }}">Último &raquo;</a>
+          <a class="btn px-2 py-1 border rounded hover:bg-gray-100" href="?{{ qsp }}&page={{ page_obj.next_page_number }}">Siguiente</a>
+          <a class="btn px-2 py-1 border rounded hover:bg-gray-100" href="?{{ qsp }}&page={{ page_obj.paginator.num_pages }}">Último &raquo;</a>
         {% else %}
           <span class="px-2 py-1 border rounded text-gray-400">Siguiente</span>
           <span class="px-2 py-1 border rounded text-gray-400">Último &raquo;</span>
@@ -162,7 +162,7 @@
           <a class="text-blue-600 hover:underline" href="{% url 'ticket_detail' t.id %}">{{ t.code }}</a>
         </td>
         <td class="p-2">{{ t.title }}</td>
-        <td class="p-2">{{ t.status }}</td>
+        <td class="p-2">{{ t.get_status_display }}</td>
         <td class="p-2">{{ t.category.name }}</td>
         <td class="p-2">{{ t.priority.name }}</td>
         <td class="p-2">{% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}-{% endif %}</td>

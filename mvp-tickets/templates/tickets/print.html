@@ -77,7 +77,7 @@
   <div class="grid mb-3">
     <div class="box">
       <h3 class="mb-1">Datos</h3>
-      <div><strong>Estado:</strong> {{ t.status }}</div>
+      <div><strong>Estado:</strong> {{ t.get_status_display }}</div>
       <div><strong>Categoría:</strong> {{ t.category.name }}</div>
       <div><strong>Prioridad:</strong> {{ t.priority.name }}</div>
       {% if t.area %}<div><strong>Área:</strong> {{ t.area.name }}</div>{% endif %}
