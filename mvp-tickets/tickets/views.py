@@ -33,7 +33,6 @@ import csv
 
 # --- Third-party ---
 from xhtml2pdf import pisa
-from openpyxl import Workbook
 
 # --- Auth / models ---
 from django.contrib.auth import get_user_model
@@ -53,9 +52,8 @@ from .models import (
 
 
 from .api import is_admin, is_tech  # helpers de rol (reutilizamos)
-from .services import run_sla_check
+from .services import run_sla_check, apply_auto_assign, tickets_to_workbook
 from .validators import validate_upload, UploadValidationError
-from .services import apply_auto_assign
 
 User = get_user_model()
 
@@ -873,40 +871,7 @@ def reports_export_excel(request):
             | Q(description__icontains=q)
         )
 
-    wb = Workbook()
-    ws = wb.active
-    ws.append(
-        [
-            "code",
-            "title",
-            "status",
-            "category",
-            "priority",
-            "area",
-            "requester",
-            "assigned_to",
-            "created_at",
-            "resolved_at",
-            "closed_at",
-        ]
-    )
-    for t in qs:
-        ws.append(
-            [
-                t.code,
-                t.title,
-                t.status,
-                getattr(t.category, "name", ""),
-                getattr(t.priority, "key", ""),
-                getattr(t.area, "name", ""),
-                getattr(t.requester, "username", ""),
-                getattr(t.assigned_to, "username", ""),
-                t.created_at.strftime("%Y-%m-%d %H:%M"),
-                t.resolved_at.strftime("%Y-%m-%d %H:%M") if t.resolved_at else "",
-                t.closed_at.strftime("%Y-%m-%d %H:%M") if t.closed_at else "",
-            ]
-        )
-
+    wb = tickets_to_workbook(qs)
     out = BytesIO()
     wb.save(out)
     resp = HttpResponse(
