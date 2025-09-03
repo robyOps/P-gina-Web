@@ -1,0 +1,148 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>{{ t.code }} - Orden de Trabajo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    /* Reset breve */
+    * { box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; }
+
+    /* Página A4 */
+    .page {
+      width: 210mm; min-height: 297mm; padding: 16mm;
+      margin: 0 auto; background: #fff;
+    }
+    h1, h2, h3 { margin: 0; }
+    .muted { color: #666; font-size: 12px; }
+    .mb-1 { margin-bottom: 4mm; }
+    .mb-2 { margin-bottom: 8mm; }
+    .mb-3 { margin-bottom: 12mm; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+    .box { border: 1px solid #e5e7eb; border-radius: 8px; padding: 6mm; }
+    .row { display: flex; gap: 6mm; }
+    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+
+    /* Badges */
+    .critical { background: #dc2626; color: #fff; }
+    .warn     { background: #f59e0b; color: #111; }
+    .overdue  { background: #991b1b; color: #fff; }
+
+    /* Tabla de adjuntos y comentarios */
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 8px; font-size: 12px; text-align: left; }
+    th { background: #f3f4f6; }
+
+    /* Controles solo pantalla */
+    .screen-controls { padding: 10px 0; text-align: right; }
+    .btn { border: 1px solid #1f2937; padding: 6px 10px; border-radius: 6px; text-decoration: none; color: #fff; background: #111; font-size: 12px; }
+    .btn + .btn { margin-left: 6px; }
+
+    @media print {
+      .screen-controls { display: none; }
+      body { background: #fff; }
+      .page { margin: 0; padding: 10mm; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="screen-controls">
+  <a class="btn" href="javascript:window.print()">Imprimir</a>
+  {% if not for_pdf %}
+    <a class="btn" href="{% url 'ticket_pdf' t.id %}">Descargar PDF</a>
+  {% endif %}
+</div>
+
+<div class="page">
+  <div class="mb-3">
+    <h1>Orden de Trabajo</h1>
+    <div class="muted">Código: <strong>{{ t.code }}</strong></div>
+  </div>
+
+  <div class="row mb-2" style="justify-content:space-between; align-items:center;">
+    <h2 style="max-width:150mm;">{{ t.title }}</h2>
+    <div>
+      {% if t.is_critical %}<span class="pill critical">CRITICAL</span>{% endif %}
+      {% if t.is_overdue %}
+        <span class="pill overdue">SLA vencido</span>
+      {% elif t.is_warning %}
+        <span class="pill warn">SLA por vencer (~{{ t.remaining_hours|floatformat:0 }}h)</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="grid mb-3">
+    <div class="box">
+      <h3 class="mb-1">Datos</h3>
+      <div><strong>Estado:</strong> {{ t.status }}</div>
+      <div><strong>Categoría:</strong> {{ t.category.name }}</div>
+      <div><strong>Prioridad:</strong> {{ t.priority.key }}</div>
+      {% if t.area %}<div><strong>Área:</strong> {{ t.area.name }}</div>{% endif %}
+      <div><strong>Solicitante:</strong> {{ t.requester.username }}</div>
+      <div><strong>Asignado a:</strong> {% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}-{% endif %}</div>
+      <div class="muted" style="margin-top:6px;">
+        Creado: {{ t.created_at }}{% if t.resolved_at %} · Resuelto: {{ t.resolved_at }}{% endif %}{% if t.closed_at %} · Cerrado: {{ t.closed_at }}{% endif %}
+      </div>
+      <div style="margin-top:6px;">
+        <strong>SLA:</strong>
+        {% if t.is_overdue %}
+          Vencido ({{ t.due_at }})
+        {% else %}
+          Vence {{ t.due_at }} ({{ t.remaining_hours|floatformat:0 }} h restantes)
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="box">
+      <h3 class="mb-1">Descripción</h3>
+      <div style="white-space:pre-line; font-size: 13px;">{{ t.description }}</div>
+    </div>
+  </div>
+
+  <div class="box mb-2">
+    <h3 class="mb-1">Comentarios (públicos)</h3>
+    <table>
+      <thead>
+        <tr><th>Fecha</th><th>Autor</th><th>Comentario</th></tr>
+      </thead>
+      <tbody>
+        {% for c in t.ticketcomment_set.all %}
+          {% if not c.is_internal %}
+          <tr>
+            <td class="muted">{{ c.created_at }}</td>
+            <td>{{ c.author.username }}</td>
+            <td>{{ c.body }}</td>
+          </tr>
+          {% endif %}
+        {% empty %}
+        <tr><td colspan="3" class="muted">Sin comentarios.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="box">
+    <h3 class="mb-1">Adjuntos</h3>
+    <table>
+      <thead>
+        <tr><th>Fecha</th><th>Archivo</th><th>Tamaño</th></tr>
+      </thead>
+      <tbody>
+        {% for a in t.ticketattachment_set.all %}
+        <tr>
+          <td class="muted">{{ a.uploaded_at }}</td>
+          <td>{{ a.file.name }}</td>
+          <td>{{ a.size }} bytes</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="muted">Sin adjuntos.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>

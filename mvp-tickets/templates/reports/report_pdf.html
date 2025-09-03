@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Reporte de Tickets</title>
+<style>
+  body { font-family: DejaVu Sans, Arial, Helvetica, sans-serif; font-size: 12px; }
+  h1 { font-size: 18px; margin: 0 0 8px 0; }
+  h2 { font-size: 14px; margin: 16px 0 6px 0; }
+  .muted { color: #555; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  th, td { border: 1px solid #ccc; padding: 6px; }
+  th { background: #f0f0f0; text-align: left; }
+  .kpi { margin: 8px 0; }
+</style>
+</head>
+<body>
+  <h1>Reporte de Tickets</h1>
+  <div class="muted">
+    Generado: {{ generated_at|date:"Y-m-d H:i" }}
+    {% if from or to %} · Rango:
+      {% if from %}{{ from }}{% else %}—{% endif %} → {% if to %}{{ to }}{% else %}—{% endif %}
+    {% endif %}
+  </div>
+
+  <div class="kpi"><strong>Total:</strong> {{ total }}</div>
+  <div class="kpi"><strong>Promedio de resolución (hrs):</strong> {{ avg_hours|default:"—" }}</div>
+
+  <h2>Por estado</h2>
+  <table>
+    <thead><tr><th>Estado</th><th>Cantidad</th></tr></thead>
+    <tbody>
+      {% for k,v in by_status.items %}
+        <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+      {% empty %}
+        <tr><td colspan="2">Sin datos</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Por categoría</h2>
+  <table>
+    <thead><tr><th>Categoría</th><th>Cantidad</th></tr></thead>
+    <tbody>
+      {% for row in by_category %}
+        <tr><td>{{ row.category__name|default:"—" }}</td><td>{{ row.count }}</td></tr>
+      {% empty %}
+        <tr><td colspan="2">Sin datos</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Por prioridad</h2>
+  <table>
+    <thead><tr><th>Prioridad</th><th>Cantidad</th></tr></thead>
+    <tbody>
+      {% for row in by_priority %}
+        <tr><td>{{ row.priority__key|default:"—" }}</td><td>{{ row.count }}</td></tr>
+      {% empty %}
+        <tr><td colspan="2">Sin datos</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

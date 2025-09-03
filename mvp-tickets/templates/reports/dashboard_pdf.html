@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <title>Reporte de Tickets</title>
+  <style>
+    body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 12px; color: #111; }
+    h1 { font-size: 18px; margin: 0 0 8px 0; }
+    h2 { font-size: 14px; margin: 16px 0 6px 0; }
+    .muted { color: #555; }
+    .box { border: 1px solid #ddd; padding: 8px; border-radius: 6px; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; margin: 6px 0 12px 0; }
+    th, td { border: 1px solid #ddd; padding: 6px; }
+    th { background: #f2f2f2; text-align: left; }
+    .grid-2 { width: 100%; }
+    .col { width: 48%; display: inline-block; vertical-align: top; }
+  </style>
+</head>
+<body>
+
+  <h1>Reporte de Tickets</h1>
+  <div class="muted">
+    Generado: {{ now|date:"Y-m-d H:i" }} — Usuario: {{ user.username }}
+    {% if from or to %}<br/>Rango: {{ from|default:"(inicio)" }} → {{ to|default:"(hoy)" }}{% endif %}
+  </div>
+
+  <div class="box">
+    <strong>Total de tickets:</strong> {{ total }}<br/>
+    <strong>Promedio de resolución (horas):</strong> {{ avg_hours|default:"—" }}
+  </div>
+
+  <h2>Por estado</h2>
+  <table>
+    <thead><tr><th>Estado</th><th>Cantidad</th></tr></thead>
+    <tbody>
+      {% for k,v in by_status.items %}
+        <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+      {% empty %}
+        <tr><td colspan="2">Sin datos</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="grid-2">
+    <div class="col">
+      <h2>Por categoría</h2>
+      <table>
+        <thead><tr><th>Categoría</th><th>Cantidad</th></tr></thead>
+        <tbody>
+          {% for r in by_category %}
+            <tr><td>{{ r.category__name|default:"—" }}</td><td>{{ r.count }}</td></tr>
+          {% empty %}<tr><td colspan="2">Sin datos</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col">
+      <h2>Por prioridad</h2>
+      <table>
+        <thead><tr><th>Prioridad</th><th>Cantidad</th></tr></thead>
+        <tbody>
+          {% for r in by_priority %}
+            <tr><td>{{ r.priority__key|default:"—" }}</td><td>{{ r.count }}</td></tr>
+          {% empty %}<tr><td colspan="2">Sin datos</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2>Por técnico</h2>
+  <table>
+    <thead><tr><th>Técnico</th><th>Cantidad</th></tr></thead>
+    <tbody>
+      {% for r in by_tech %}
+        <tr><td>{{ r.assigned_to__username|default:"—" }}</td><td>{{ r.count }}</td></tr>
+      {% empty %}<tr><td colspan="2">Sin datos</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Mis tickets{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">Mis tickets</h1>
+
+<div class="mb-3 flex items-center gap-2">
+  <a href="{% url 'ticket_create' %}" class="bg-blue-600 text-white px-4 py-2 rounded text-sm">Nuevo ticket</a>
+</div>
+
+<form method="get" class="mb-3 flex flex-wrap items-end gap-3 text-sm">
+  <div>
+    <label class="block text-xs">Buscar</label>
+    <input name="q" value="{{ filters.q }}" class="border rounded px-2 py-1" placeholder="código, título o descripción" />
+  </div>
+  <div>
+    <label class="block text-xs">Estado</label>
+    <select name="status" class="border rounded px-2 py-1">
+      <option value="" {% if not filters.status %}selected{% endif %}>(Todos)</option>
+      {% for st in statuses %}
+        <option value="{{ st }}" {% if filters.status == st %}selected{% endif %}>{{ st }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="block text-xs">Categoría (id)</label>
+    <input name="category" value="{{ filters.category }}" class="border rounded px-2 py-1" placeholder="1" />
+  </div>
+  <div>
+    <label class="block text-xs">Prioridad (id)</label>
+    <input name="priority" value="{{ filters.priority }}" class="border rounded px-2 py-1" placeholder="2" />
+  </div>
+  <div>
+    <label class="block text-xs">Por página</label>
+    <input name="page_size" value="{{ page_size }}" class="border rounded px-2 py-1 w-20" />
+  </div>
+  <button class="bg-gray-800 text-white px-3 py-1.5 rounded">Aplicar</button>
+  <a href="{% url 'tickets_home' %}" class="px-3 py-1.5 rounded border">Limpiar</a>
+</form>
+
+<div class="w-full bg-white rounded-xl shadow overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="text-left p-2">Código</th>
+        <th class="text-left p-2">Título</th>
+        <th class="text-left p-2">Estado</th>
+        <th class="text-left p-2">Categoría</th>
+        <th class="text-left p-2">Prioridad</th>
+        <th class="text-left p-2">Asignado</th>
+        <th class="text-left p-2">SLA</th>
+        <th class="text-left p-2">Creado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tickets %}
+      <tr class="border-t hover:bg-gray-50">
+        <td class="p-2">
+          <a class="text-blue-600 hover:underline" href="{% url 'ticket_detail' t.id %}">{{ t.code }}</a>
+        </td>
+        <td class="p-2">{{ t.title }}</td>
+        <td class="p-2">{{ t.status }}</td>
+        <td class="p-2">{{ t.category.name }}</td>
+        <td class="p-2">{{ t.priority.key }}</td>
+        <td class="p-2">{% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}-{% endif %}</td>
+
+        {# Badges SLA (ya tenías estos flags en el queryset; si no, los calculamos en back más adelante) #}
+        <td class="p-2 space-x-1">
+          {% if t.is_overdue %}
+            <span class="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700 border border-red-200">SLA vencido</span>
+          {% elif t.is_warning %}
+            <span class="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 border border-yellow-200">
+              Por vencer (~{{ t.remaining_hours|floatformat:0 }}h)
+            </span>
+          {% endif %}
+          {% if t.is_critical %}
+            <span class="text-xs px-2 py-0.5 rounded bg-red-600 text-white">CRITICAL</span>
+          {% endif %}
+        </td>
+
+        <td class="p-2">{{ t.created_at }}</td>
+      </tr>
+      {% empty %}
+      <tr><td class="p-3" colspan="8">Sin tickets.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {# Paginación #}
+  {% if page_obj and page_obj.paginator.num_pages > 1 %}
+  <div class="flex items-center justify-between p-3 text-sm">
+    <div>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} resultados)</div>
+    <div class="space-x-1">
+      {# Construye querystring preservando filtros, cambiando solo page #}
+      {% with qsp="q="|add:filters.q|urlencode|add:"&status="|add:filters.status|add:"&category="|add:filters.category|add:"&priority="|add:filters.priority|add:"&page_size="|add:page_size %}
+        {% if page_obj.has_previous %}
+          <a class="px-2 py-1 border rounded" href="?{{ qsp }}&page=1">&laquo; Primero</a>
+          <a class="px-2 py-1 border rounded" href="?{{ qsp }}&page={{ page_obj.previous_page_number }}">Anterior</a>
+        {% else %}
+          <span class="px-2 py-1 border rounded text-gray-400">&laquo; Primero</span>
+          <span class="px-2 py-1 border rounded text-gray-400">Anterior</span>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a class="px-2 py-1 border rounded" href="?{{ qsp }}&page={{ page_obj.next_page_number }}">Siguiente</a>
+          <a class="px-2 py-1 border rounded" href="?{{ qsp }}&page={{ page_obj.paginator.num_pages }}">Último &raquo;</a>
+        {% else %}
+          <span class="px-2 py-1 border rounded text-gray-400">Siguiente</span>
+          <span class="px-2 py-1 border rounded text-gray-400">Último &raquo;</span>
+        {% endif %}
+      {% endwith %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+
+

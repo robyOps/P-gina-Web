@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Reportes{% endblock %}
+
+{% block head_extra %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">Reportes</h1>
+
+<form method="get" class="mb-4 flex flex-wrap items-end gap-3 text-sm">
+  <div>
+    <label class="block text-xs">Desde</label>
+    <input type="date" name="from" value="{{ from }}" class="border rounded px-2 py-1">
+  </div>
+  <div>
+    <label class="block text-xs">Hasta</label>
+    <input type="date" name="to" value="{{ to }}" class="border rounded px-2 py-1">
+  </div>
+  <button class="bg-gray-800 text-white px-3 py-1.5 rounded">Filtrar</button>
+  <a href="{% url 'reports_dashboard' %}" class="px-3 py-1.5 rounded border">Limpiar</a>
+  <div class="mt-2 flex flex-wrap gap-2">
+    <a href="{% url 'reports_export_csv' %}?from={{ from }}&to={{ to }}"
+      class="bg-emerald-600 text-white px-3 py-1.5 rounded text-sm">
+      Exportar CSV
+    </a>
+    <a href="{% url 'reports_export_pdf' %}?from={{ from }}&to={{ to }}"
+      class="bg-slate-700 text-white px-3 py-1.5 rounded text-sm">
+      Exportar PDF
+    </a>
+  </div>
+</form>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <div class="bg-white rounded-xl shadow p-4">
+    <div class="text-sm text-gray-500">Tickets totales</div>
+    <div class="text-2xl font-bold">{{ total }}</div>
+    <div class="mt-2 text-sm">
+      {% for k,v in by_status.items %}<div>{{ k }}: <span class="font-medium">{{ v }}</span></div>{% endfor %}
+    </div>
+  </div>
+  <div class="bg-white rounded-xl shadow p-4">
+    <div class="text-sm text-gray-500">Promedio de resolución (hrs)</div>
+    <div class="text-2xl font-bold">{{ avg_hours|default:"—" }}</div>
+  </div>
+  <div class="bg-white rounded-xl shadow p-4">
+    <div class="text-sm text-gray-500">Por prioridad</div>
+    <ul class="mt-2 text-sm space-y-1">
+      {% for row in by_priority %}<li>{{ row.priority__key }}: <span class="font-medium">{{ row.count }}</span></li>{% endfor %}
+    </ul>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+  <div class="bg-white rounded-xl shadow p-4">
+    <div class="text-sm text-gray-500 mb-2">Por categoría</div>
+    <div class="h-64"><canvas id="chartCat"></canvas></div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow p-4">
+    <div class="text-sm text-gray-500 mb-2">Por prioridad</div>
+    <div class="h-64"><canvas id="chartPri"></canvas></div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow p-4">
+    <div class="text-sm text-gray-500 mb-2">Por técnico</div>
+    <div class="h-64"><canvas id="chartTech"></canvas></div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow p-4">
+    <div class="text-sm text-gray-500 mb-2">Horas de resolución (histograma)</div>
+    <div class="h-64"><canvas id="chartHist"></canvas></div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow p-4 md:col-span-2">
+    <div class="text-sm text-gray-500 mb-2">Categorías más lentas (hrs)</div>
+    <div class="h-64"><canvas id="chartCatSlow"></canvas></div>
+  </div>
+</div>
+
+
+{{ chart_cat|json_script:"chart-cat-data" }}
+{{ chart_pri|json_script:"chart-pri-data" }}
+{{ chart_tech|json_script:"chart-tech-data" }}
+{{ chart_hist|json_script:"chart-hist-data" }}
+{{ chart_cat_slow|json_script:"chart-cat-slow-data" }}
+
+{% endblock %}
+
+{% block body_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{# Pasa los dicts de Python a JSON real sin comillas rotas #}
+{{ chart_cat|json_script:"chart_cat_data" }}
+{{ chart_pri|json_script:"chart_pri_data" }}
+{{ chart_tech|json_script:"chart_tech_data" }}
+{{ chart_hist|json_script:"chart_hist_data" }}
+{{ chart_cat_slow|json_script:"chart_cat_slow_data" }}
+
+<script>
+  function parseData(id) {
+    const el = document.getElementById(id);
+    if (!el) return {labels: [], data: []};
+    const js = JSON.parse(el.textContent || "{}");
+    const labels = Array.isArray(js.labels) ? js.labels : [];
+    // Fuerza a número; null/"" -> 0
+    const data = (Array.isArray(js.data) ? js.data : []).map(x => Number(x) || 0);
+    return { labels, data };
+  }
+
+  function buildBar(canvasId, dataset, title, {decimals=0} = {}) {
+    const ctx = document.getElementById(canvasId).getContext("2d");
+    const max = Math.max(1, ...dataset.data);
+    return new Chart(ctx, {
+      type: "bar", // <- si quieres líneas, cambia a "line"
+      data: {
+        labels: dataset.labels,
+        datasets: [{
+          label: title,
+          data: dataset.data
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false, // usa la altura CSS del contenedor
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            beginAtZero: true,
+            suggestedMax: max <= 3 ? 3 : undefined, // evita que se pegue al eje
+            ticks: { precision: decimals }          // 0=enteros, 1=un decimal, etc.
+          }
+        }
+      }
+    });
+  }
+
+  const cat  = parseData("chart_cat_data");
+  const pri  = parseData("chart_pri_data");
+  const tech = parseData("chart_tech_data");
+  const hist = parseData("chart_hist_data");
+  const slow = parseData("chart_cat_slow_data"); // horas promedio (decimales)
+
+  buildBar("chartCat",     cat,  "Por categoría");
+  buildBar("chartPri",     pri,  "Por prioridad");
+  buildBar("chartTech",    tech, "Por técnico");
+  buildBar("chartHist",    hist, "Horas de resolución (histograma)");
+  buildBar("chartCatSlow", slow, "Categorías más lentas (hrs)", {decimals: 1});
+</script>
+{% endblock %}
+
+
+
+
+
+
+

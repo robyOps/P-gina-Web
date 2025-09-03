@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Prioridades{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-3">
+  <h1 class="text-xl font-semibold">Prioridades</h1>
+  <a href="{% url 'priority_create' %}" class="text-sm bg-blue-600 text-white px-3 py-1.5 rounded">Nueva</a>
+</div>
+
+<table class="w-full bg-white rounded-xl shadow overflow-hidden text-sm">
+  <thead class="bg-gray-100">
+    <tr>
+      <th class="text-left p-2">Key</th>
+      <th class="text-left p-2">SLA (horas)</th>
+      <th class="text-left p-2"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr class="border-t">
+      <td class="p-2">{{ r.key }}</td>
+      <td class="p-2">{{ r.sla_hours }}</td>
+      <td class="p-2">
+        <a class="text-blue-600 hover:underline" href="{% url 'priority_edit' r.id %}">Editar</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td class="p-2" colspan="3">Sin prioridades.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
+

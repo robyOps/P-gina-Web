@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block title %}Nuevo ticket{% endblock %}
+
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">Nuevo ticket</h1>
+
+<form method="post" class="bg-white rounded-xl shadow p-4 space-y-4">
+  {% csrf_token %}
+
+  {# Errores generales del form (no_field_errors) #}
+  {% if form.non_field_errors %}
+    <div class="text-red-600 text-sm">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-xs">Título</label>
+      {{ form.title|add_class:"border rounded px-3 py-2 w-full" }}
+      {% if form.title.errors %}<div class="text-red-600 text-xs">{{ form.title.errors }}</div>{% endif %}
+    </div>
+
+    <div class="md:col-span-2">
+      <label class="block text-xs">Descripción</label>
+      {{ form.description|add_class:"border rounded px-3 py-2 w-full" }}
+      {% if form.description.errors %}<div class="text-red-600 text-xs">{{ form.description.errors }}</div>{% endif %}
+    </div>
+
+    <div>
+      <label class="block text-xs">Categoría</label>
+      {{ form.category|add_class:"border rounded px-3 py-2 w-full" }}
+      {% if form.category.errors %}<div class="text-red-600 text-xs">{{ form.category.errors }}</div>{% endif %}
+    </div>
+
+    <div>
+      <label class="block text-xs">Prioridad</label>
+      {{ form.priority|add_class:"border rounded px-3 py-2 w-full" }}
+      {% if form.priority.errors %}<div class="text-red-600 text-xs">{{ form.priority.errors }}</div>{% endif %}
+    </div>
+
+    <div>
+      <label class="block text-xs">Área</label>
+      {{ form.area|add_class:"border rounded px-3 py-2 w-full" }}
+      {% if form.area.errors %}<div class="text-red-600 text-xs">{{ form.area.errors }}</div>{% endif %}
+    </div>
+
+    {# Solo aparece si el usuario es ADMIN, porque el form trae el campo #}
+    {% if form.assignee %}
+    <div>
+      <label class="block text-xs">Asignar a (opcional)</label>
+      {{ form.assignee }}
+      {% if form.assignee.errors %}<div class="text-red-600 text-xs">{{ form.assignee.errors }}</div>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="pt-2">
+    <button class="bg-blue-600 text-white px-4 py-2 rounded text-sm">Crear ticket</button>
+    <a href="{% url 'tickets_home' %}" class="px-4 py-2 text-sm border rounded">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
+
+

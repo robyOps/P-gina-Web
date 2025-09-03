@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Áreas{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-xl font-semibold">Áreas</h1>
+  <a href="{% url 'area_create' %}" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">Nueva</a>
+</div>
+
+<div class="bg-white rounded-xl shadow overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="text-left p-2">Nombre</th>
+        <th class="text-left p-2 w-32">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+      <tr class="border-t">
+        <td class="p-2">{{ it.name }}</td>
+        <td class="p-2"><a class="text-blue-600 hover:underline" href="{% url 'area_edit' it.id %}">Editar</a></td>
+      </tr>
+      {% empty %}
+      <tr><td class="p-3 text-sm text-gray-500" colspan="2">Sin áreas.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

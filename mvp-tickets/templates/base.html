@@ -1,0 +1,75 @@
+{% load static %}
+{% load roles %} {# filtro has_group para chequear grupos #}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Helpdesk{% endblock %}</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <header class="bg-white shadow">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center gap-6">
+        <a href="{% url 'tickets_home' %}" class="font-semibold">Helpdesk</a>
+        {% if request.user.is_authenticated %}
+          <nav class="hidden md:flex items-center gap-4">
+            <a href="{% url 'tickets_home' %}" class="text-sm hover:underline">Tickets</a>
+            <a href="{% url 'reports_dashboard' %}" class="text-sm hover:underline">Reportes</a>
+            {% if request.user|has_group:"ADMIN" or request.user.is_superuser %}
+              <a href="{% url 'accounts:users_list' %}" class="text-sm hover:underline">Usuarios</a>
+              <a href="{% url 'categories_list' %}" class="text-sm hover:underline">Categorías</a>
+              <a href="{% url 'priorities_list' %}" class="text-sm hover:underline">Prioridades</a>
+              <a href="{% url 'areas_list' %}" class="text-sm hover:underline">Áreas</a>
+              <a href="{% url 'auto_rules_list' %}" class="text-sm hover:underline">Auto-asignación</a>
+
+            {% endif %}
+          </nav>
+        {% endif %}
+      </div>
+
+      <div class="text-sm">
+        {% if request.user.is_authenticated %}
+          Hola, <span class="font-medium">{{ request.user.username }}</span>
+          · <form action="{% url 'logout' %}" method="post" class="inline">
+              {% csrf_token %}
+              <button type="submit" class="text-blue-600 hover:underline">Salir</button>
+            </form>
+        {% else %}
+          <a href="{% url 'login' %}" class="text-blue-600 hover:underline">Ingresar</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+
+  <main class="max-w-6xl mx-auto p-4">
+    {# --- Mensajes flash --- #}
+    {% if messages %}
+      <div class="space-y-2 mb-4">
+        {% for m in messages %}
+          <div class="px-3 py-2 rounded text-sm
+              {% if m.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+              {% elif m.tags == 'warning' %}bg-yellow-50 text-yellow-700 border border-yellow-200
+              {% else %}bg-green-50 text-green-700 border border-green-200{% endif %}">
+            {{ m }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block body_extra %}{% endblock %}
+</body>
+</html>
+
+

@@ -1,0 +1,22 @@
+<div class="divide-y">
+  {% for log in logs %}
+    <div class="py-2 text-sm">
+      <div class="flex items-center gap-2">
+        <span class="px-2 py-0.5 rounded border bg-gray-50">{{ log.action }}</span>
+        <span class="text-gray-600">por</span>
+        <span class="font-medium">{{ log.actor__username|default:"(sistema)" }}</span>
+        <span class="text-gray-500 text-xs">· {{ log.created_at }}</span>
+      </div>
+      {% if log.meta %}
+        <div class="mt-1 text-xs text-gray-700">
+          {% for k,v in log.meta.items %}
+            <span class="inline-block mr-2"><span class="text-gray-500">{{ k }}:</span> {{ v }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  {% empty %}
+    <div class="text-sm text-gray-500">Sin actividad registrada.</div>
+  {% endfor %}
+</div>
+

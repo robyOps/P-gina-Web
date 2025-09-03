@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Usuarios{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-xl font-semibold">Usuarios</h1>
+  <a href="{% url 'accounts:user_create' %}" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">Nuevo usuario</a>
+</div>
+
+<form method="get" class="mb-3 flex flex-wrap items-end gap-3 text-sm">
+  <div>
+    <label class="block text-xs">Buscar</label>
+    <input name="q" value="{{ filters.q }}" class="border rounded px-2 py-1" placeholder="usuario, nombre, email" />
+  </div>
+  <div>
+    <label class="block text-xs">Activo</label>
+    <select name="active" class="border rounded px-2 py-1">
+      <option value="" {% if not filters.active %}selected{% endif %}>(Todos)</option>
+      <option value="1" {% if filters.active == "1" %}selected{% endif %}>Sí</option>
+      <option value="0" {% if filters.active == "0" %}selected{% endif %}>No</option>
+    </select>
+  </div>
+  <div>
+    <label class="block text-xs">Grupo</label>
+    <select name="group" class="border rounded px-2 py-1">
+      <option value="" {% if not filters.group %}selected{% endif %}>(Todos)</option>
+      {% for g in groups %}
+        <option value="{{ g.id }}" {% if filters.group == g.id|stringformat:'s' %}selected{% endif %}>{{ g.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="bg-gray-800 text-white px-3 py-1.5 rounded">Filtrar</button>
+  <a href="{% url 'accounts:users_list' %}" class="px-3 py-1.5 rounded border">Limpiar</a>
+</form>
+
+<table class="w-full bg-white rounded-xl shadow overflow-hidden text-sm">
+  <thead class="bg-gray-100">
+    <tr>
+      <th class="text-left p-2">Usuario</th>
+      <th class="text-left p-2">Nombre</th>
+      <th class="text-left p-2">Email</th>
+      <th class="text-left p-2">Grupos</th>
+      <th class="text-left p-2">Estado</th>
+      <th class="text-left p-2 w-40">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr class="border-t hover:bg-gray-50">
+      <td class="p-2">{{ u.username }}</td>
+      <td class="p-2">{{ u.first_name }} {{ u.last_name }}</td>
+      <td class="p-2">{{ u.email }}</td>
+      <td class="p-2">
+        {% for g in u.groups.all %}
+          <span class="text-xs px-2 py-0.5 rounded bg-gray-100 border mr-1">{{ g.name }}</span>
+        {% empty %}
+          <span class="text-xs text-gray-500">—</span>
+        {% endfor %}
+      </td>
+      <td class="p-2">
+        {% if u.is_active %}
+          <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 border border-green-200">Activo</span>
+        {% else %}
+          <span class="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700 border border-red-200">Inactivo</span>
+        {% endif %}
+      </td>
+      <td class="p-2">
+        <a class="text-blue-600 hover:underline" href="{% url 'accounts:user_edit' u.id %}">Editar</a>
+        ·
+        <a class="text-gray-700 hover:underline"
+           href="{% url 'accounts:user_toggle' u.id %}"
+           onclick="return confirm('¿Seguro? Cambiarás el estado de este usuario.');">
+          {{ u.is_active|yesno:"Desactivar,Activar" }}
+        </a>
+      </td>
+    </tr>
+    {% empty %}
+      <tr><td class="p-3 text-sm text-gray-500" colspan="6">Sin resultados.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+

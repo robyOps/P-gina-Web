@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% block title %}{% if is_new %}Nuevo usuario{% else %}Editar usuario{% endif %}{% endblock %}
+
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">
+  {% if is_new %}Nuevo usuario{% else %}Editar usuario{% endif %}
+</h1>
+
+<form method="post" class="bg-white rounded-xl shadow p-4 space-y-4">
+  {% csrf_token %}
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-xs">Usuario</label>
+      {{ form.username|add_class:"border rounded px-3 py-2 w-full" }}
+      {% if form.username.errors %}<div class="text-red-600 text-xs">{{ form.username.errors }}</div>{% endif %}
+    </div>
+    <div>
+      <label class="block text-xs">Email</label>
+      {{ form.email|add_class:"border rounded px-3 py-2 w-full" }}
+      {% if form.email.errors %}<div class="text-red-600 text-xs">{{ form.email.errors }}</div>{% endif %}
+    </div>
+    <div>
+      <label class="block text-xs">Nombre</label>
+      {{ form.first_name|add_class:"border rounded px-3 py-2 w-full" }}
+    </div>
+    <div>
+      <label class="block text-xs">Apellido</label>
+      {{ form.last_name|add_class:"border rounded px-3 py-2 w-full" }}
+    </div>
+    <div>
+      <label class="text-sm inline-flex items-center gap-2">
+        {{ form.is_active }} Activo
+      </label>
+    </div>
+  </div>
+
+  <div>
+    <div class="font-medium mb-2">Grupos (roles)</div>
+    <div class="space-y-1">
+      {{ form.groups }}
+    </div>
+    {% if form.groups.errors %}<div class="text-red-600 text-xs">{{ form.groups.errors }}</div>{% endif %}
+  </div>
+
+  {% if is_new %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs">Contraseña</label>
+        {{ form.password1|add_class:"border rounded px-3 py-2 w-full" }}
+        {% if form.password1.errors %}<div class="text-red-600 text-xs">{{ form.password1.errors }}</div>{% endif %}
+      </div>
+      <div>
+        <label class="block text-xs">Repite la contraseña</label>
+        {{ form.password2|add_class:"border rounded px-3 py-2 w-full" }}
+        {% if form.password2.errors %}<div class="text-red-600 text-xs">{{ form.password2.errors }}</div>{% endif %}
+      </div>
+    </div>
+  {% else %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs">Nueva contraseña (opcional)</label>
+        {{ form.new_password1|add_class:"border rounded px-3 py-2 w-full" }}
+      </div>
+      <div>
+        <label class="block text-xs">Repite la nueva contraseña</label>
+        {{ form.new_password2|add_class:"border rounded px-3 py-2 w-full" }}
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="flex items-center gap-3">
+    <button class="bg-blue-600 text-white px-4 py-2 rounded">
+      {% if is_new %}Crear{% else %}Guardar{% endif %}
+    </button>
+    <a href="{% url 'accounts:users_list' %}" class="px-4 py-2 rounded border">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
+
+
+
+

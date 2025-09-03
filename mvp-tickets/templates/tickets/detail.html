@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}{{ t.code }}{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-3">
+  <h1 class="text-xl font-semibold">{{ t.code }} — {{ t.title }}</h1>
+  <div class="space-x-3">
+    <a href="{% url 'ticket_print' t.id %}" target="_blank" class="text-sm text-blue-600 hover:underline">Imprimir</a>
+    <a href="{% url 'ticket_pdf' t.id %}" class="text-sm text-blue-600 hover:underline">Descargar PDF</a>
+  </div>
+</div>
+
+
+{# --- Avisos SLA y badge CRITICAL --- #}
+{% if t.is_overdue %}
+  <div class="mb-3 px-3 py-2 rounded bg-red-50 text-red-700 border border-red-200 text-sm">
+    SLA vencido (venció {{ t.due_at }})
+  </div>
+{% elif t.is_warning %}
+  <div class="mb-3 px-3 py-2 rounded bg-yellow-50 text-yellow-700 border border-yellow-200 text-sm">
+    SLA por vencer (vence {{ t.due_at }}, ~{{ t.remaining_hours|floatformat:0 }} horas)
+  </div>
+{% endif %}
+{% if t.is_critical %}
+  <div class="mb-3 px-3 py-1.5 rounded inline-block bg-red-600 text-white text-xs tracking-wide">
+    CRITICAL
+  </div>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <!-- Datos -->
+  <div class="bg-white rounded-xl shadow p-4 space-y-1">
+    <div><span class="font-medium">Estado:</span> {{ t.status }}</div>
+    <div><span class="font-medium">Categoría:</span> {{ t.category.name }}</div>
+    <div><span class="font-medium">Prioridad:</span> {{ t.priority.key }}</div>
+    {% if t.area %}<div><span class="font-medium">Área:</span> {{ t.area.name }}</div>{% endif %}
+    <div><span class="font-medium">Solicitante:</span> {{ t.requester.username }}</div>
+    <div><span class="font-medium">Asignado a:</span> {% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}-{% endif %}</div>
+
+    {# --- Línea informativa de SLA --- #}
+    <div><span class="font-medium">SLA:</span>
+      {% if t.is_overdue %}
+        Vencido (venció {{ t.due_at }})
+      {% else %}
+        Vence {{ t.due_at }} ({{ t.remaining_hours|floatformat:0 }} h restantes)
+      {% endif %}
+    </div>
+
+    <div class="text-xs text-gray-500 mt-2">
+      Creado: {{ t.created_at }}
+      {% if t.resolved_at %} · Resuelto: {{ t.resolved_at }}{% endif %}
+      {% if t.closed_at %} · Cerrado: {{ t.closed_at }}{% endif %}
+    </div>
+    <div class="mt-3">
+      <div class="font-medium mb-1">Descripción</div>
+      <div class="text-sm whitespace-pre-line">{{ t.description }}</div>
+    </div>
+  </div>
+
+  <!-- Gestión (Asignación y Estado) -->
+  <div class="bg-white rounded-xl shadow p-4 space-y-6">
+    <!-- Asignación -->
+    {% if can_assign %}
+      <div>
+        <div class="font-medium mb-2">Asignación</div>
+        <form method="post" action="{% url 'ticket_assign' t.id %}" class="space-y-2">
+          {% csrf_token %}
+
+          {% if is_admin_u %}
+            {# ... (bloque de ADMIN se deja igual) ... #}
+
+          {% elif is_tech_u and not t.assigned_to_id %}
+            {# TECH: solo permitir auto-asignar si NO tiene asignado #}
+            <input type="hidden" name="to_user_id" value="{{ request.user.id }}">
+            <label class="block text-sm">Motivo (opcional)</label>
+            <input type="text" name="reason" class="w-full border rounded px-3 py-2 text-sm" placeholder="Auto-asignación" />
+            <button class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm mt-2">Auto-asignarme</button>
+
+          {% elif is_tech_u and t.assigned_to_id == request.user.id %}
+            {# Si ya está asignado a mí, no muestro botón; solo un aviso #}
+            <div class="text-xs text-gray-500">Este ticket ya está asignado a ti.</div>
+          {% endif %}
+        </form>
+      </div>
+    {% endif %}
+
+    <!-- Transiciones -->
+    {% if allowed_transitions %}
+    <div>
+      <div class="font-medium mb-2">Cambiar estado</div>
+      <form method="post" action="{% url 'ticket_transition' t.id %}" class="space-y-2">
+        {% csrf_token %}
+        <label class="block text-sm">Nuevo estado</label>
+        <select name="next_status" class="w-full border rounded px-3 py-2 text-sm" required>
+          {% for st in allowed_transitions %}
+            <option value="{{ st }}">{{ st }}</option>
+          {% endfor %}
+        </select>
+        <label class="block text-sm">Comentario (opcional)</label>
+        <textarea name="comment" rows="3" class="w-full border rounded px-3 py-2 text-sm" placeholder="Detalle de la transición"></textarea>
+        <label class="text-sm inline-flex items-center gap-2">
+          <input type="checkbox" name="is_internal"> Interno
+        </label>
+        <button class="bg-green-600 text-white px-3 py-1.5 rounded text-sm">Actualizar estado</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Comentarios -->
+  <div class="bg-white rounded-xl shadow p-4">
+    <div class="font-medium mb-2">Comentarios</div>
+    <div id="comments"
+         hx-get="{% url 'comments_partial' t.id %}"
+         hx-trigger="load, revealed"
+         hx-target="#comments"
+         hx-swap="innerHTML">
+      <div class="text-sm text-gray-500">Cargando comentarios…</div>
+    </div>
+
+    <form class="mt-3" method="post" action="{% url 'add_comment' t.id %}"
+          hx-post="{% url 'add_comment' t.id %}" hx-target="#comments" hx-swap="innerHTML">
+      {% csrf_token %}
+      <textarea name="body" class="w-full border rounded px-3 py-2 text-sm" rows="3" placeholder="Escribir comentario..." required></textarea>
+      <div class="flex items-center justify-between mt-2">
+        <label class="text-sm inline-flex items-center gap-2">
+          <input type="checkbox" name="is_internal"> Interno
+        </label>
+        <button class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">Agregar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Adjuntos -->
+  <div class="bg-white rounded-xl shadow p-4">
+    <div class="font-medium mb-2">Adjuntos</div>
+    <div id="attachments"
+         hx-get="{% url 'attachments_partial' t.id %}"
+         hx-trigger="load, revealed"
+         hx-target="#attachments"
+         hx-swap="innerHTML">
+      <div class="text-sm text-gray-500">Cargando adjuntos…</div>
+    </div>
+
+    <form class="mt-3" method="post" enctype="multipart/form-data"
+          hx-post="{% url 'add_attachment' t.id %}" hx-target="#attachments" hx-swap="innerHTML">
+      {% csrf_token %}
+      <input type="file" name="file" class="text-sm" required />
+      <button class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">Subir</button>
+    </form>
+  </div>
+
+  <!-- Actividad (Auditoría) -->
+<div class="bg-white rounded-xl shadow p-4">
+  <div class="font-medium mb-2">Actividad (Auditoría)</div>
+  <div id="audit"
+       hx-get="{% url 'audit_partial' t.id %}"
+       hx-trigger="load, revealed"
+       hx-target="#audit"
+       hx-swap="innerHTML">
+    <div class="text-sm text-gray-500">Cargando actividad…</div>
+  </div>
+</div>
+
+
+    <!-- Historial -->
+  <div class="bg-white rounded-xl shadow p-4">
+    <div class="font-medium mb-2">Historial</div>
+    <div id="audit"
+         hx-get="{% url 'audit_partial' t.id %}"
+         hx-trigger="load, revealed"
+         hx-target="#audit"
+         hx-swap="innerHTML">
+      <div class="text-sm text-gray-500">Cargando historial…</div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+

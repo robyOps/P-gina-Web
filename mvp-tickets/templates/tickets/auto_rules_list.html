@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Auto-asignación{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-xl font-semibold">Reglas de auto-asignación</h1>
+  <a href="{% url 'auto_rule_create' %}" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">Nueva regla</a>
+</div>
+
+<table class="w-full bg-white rounded-xl shadow overflow-hidden text-sm">
+  <thead class="bg-gray-100">
+    <tr>
+      <th class="text-left p-2">Categoría</th>
+      <th class="text-left p-2">Área</th>
+      <th class="text-left p-2">Técnico</th>
+      <th class="text-left p-2">Activa</th>
+      <th class="text-left p-2">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rules %}
+    <tr class="border-t">
+      <td class="p-2">{{ r.category.name|default:"—" }}</td>
+      <td class="p-2">{{ r.area.name|default:"—" }}</td>
+      <td class="p-2">{{ r.tech.username }}</td>
+      <td class="p-2">
+        {% if r.is_active %}
+          <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 border border-green-200">Sí</span>
+        {% else %}
+          <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700 border">No</span>
+        {% endif %}
+      </td>
+      <td class="p-2 space-x-2">
+        <a href="{% url 'auto_rule_edit' r.id %}" class="text-blue-600 hover:underline">Editar</a>
+        <form method="post" action="{% url 'auto_rule_toggle' r.id %}" class="inline">
+          {% csrf_token %}
+          <button class="text-yellow-700 hover:underline" title="Activar/Desactivar">Toggle</button>
+        </form>
+        <form method="post" action="{% url 'auto_rule_delete' r.id %}" class="inline" onsubmit="return confirm('¿Eliminar regla?');">
+          {% csrf_token %}
+          <button class="text-red-600 hover:underline">Eliminar</button>
+        </form>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td class="p-3" colspan="5">Sin reglas.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

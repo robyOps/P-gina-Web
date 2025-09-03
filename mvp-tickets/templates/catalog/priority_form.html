@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% block title %}{% if is_new %}Nueva{% else %}Editar{% endif %} prioridad{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">{% if is_new %}Nueva{% else %}Editar{% endif %} prioridad</h1>
+
+<form method="post" class="bg-white rounded-xl shadow p-4 space-y-4">
+  {% csrf_token %}
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-xs">Key</label>
+      {{ form.key|add_class:"border rounded px-3 py-2 w-full" }}
+      {% if form.key.errors %}<div class="text-red-600 text-xs">{{ form.key.errors }}</div>{% endif %}
+      <p class="text-xs text-gray-500 mt-1">Ej: LOW, MEDIUM, HIGH, CRITICAL</p>
+    </div>
+    <div>
+      <label class="block text-xs">SLA (horas)</label>
+      {{ form.sla_hours|add_class:"border rounded px-3 py-2 w-full" }}
+      {% if form.sla_hours.errors %}<div class="text-red-600 text-xs">{{ form.sla_hours.errors }}</div>{% endif %}
+    </div>
+  </div>
+
+  <div class="flex gap-2">
+    <button class="bg-blue-600 text-white px-4 py-2 rounded text-sm">Guardar</button>
+    <a href="{% url 'priorities_list' %}" class="px-4 py-2 rounded text-sm border">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
+
+

@@ -1,0 +1,14 @@
+<ul class="space-y-2 text-sm">
+  {% for c in comments %}
+    <li class="border rounded p-2 {% if c.is_internal %}bg-yellow-50{% else %}bg-gray-50{% endif %}">
+      <div class="flex justify-between">
+        <span class="font-medium">{{ c.author.username }}</span>
+        <span class="text-xs text-gray-500">{{ c.created_at }}</span>
+      </div>
+      {% if c.is_internal %}<div class="text-[10px] text-yellow-700">Interno</div>{% endif %}
+      <div class="mt-1 whitespace-pre-line">{{ c.body }}</div>
+    </li>
+  {% empty %}
+    <li class="text-gray-500">Sin comentarios.</li>
+  {% endfor %}
+</ul>

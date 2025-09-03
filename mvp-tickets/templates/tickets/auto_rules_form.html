@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{% if is_new %}Nueva{% else %}Editar{% endif %} regla{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">{% if is_new %}Nueva{% else %}Editar{% endif %} regla</h1>
+
+<form method="post" class="bg-white rounded-xl shadow p-4 space-y-4">
+  {% csrf_token %}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-xs">Categoría (opcional)</label>
+      {{ form.category }}
+      {% if form.category.errors %}<div class="text-red-600 text-xs">{{ form.category.errors }}</div>{% endif %}
+    </div>
+    <div>
+      <label class="block text-xs">Área (opcional)</label>
+      {{ form.area }}
+      {% if form.area.errors %}<div class="text-red-600 text-xs">{{ form.area.errors }}</div>{% endif %}
+    </div>
+    <div class="md:col-span-2">
+      <label class="block text-xs">Técnico</label>
+      {{ form.tech }}
+      {% if form.tech.errors %}<div class="text-red-600 text-xs">{{ form.tech.errors }}</div>{% endif %}
+    </div>
+    <div class="md:col-span-2">
+      <label class="inline-flex items-center gap-2 text-sm">
+        {{ form.is_active }} Activa
+      </label>
+    </div>
+  </div>
+
+  <div class="flex items-center justify-end gap-2">
+    <a href="{% url 'auto_rules_list' %}" class="px-3 py-1.5 rounded border">Cancelar</a>
+    <button class="bg-blue-600 text-white px-3 py-1.5 rounded">{% if is_new %}Crear{% else %}Guardar{% endif %}</button>
+  </div>
+</form>
+{% endblock %}
