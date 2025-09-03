@@ -66,18 +66,25 @@
           {% csrf_token %}
 
           {% if is_admin_u %}
-            {# ... (bloque de ADMIN se deja igual) ... #}
+            <label class="block text-sm">Asignar a</label>
+            <select name="to_user_id" class="w-full border rounded px-3 py-2 text-sm">
+              {% for u in tech_users %}
+                <option value="{{ u.id }}" {% if t.assigned_to_id == u.id %}selected{% endif %}>{{ u.username }}</option>
+              {% endfor %}
+            </select>
+            <label class="block text-sm mt-2">Motivo (opcional)</label>
+            <input type="text" name="reason" class="w-full border rounded px-3 py-2 text-sm" placeholder="Reasignación" />
+            <button class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm mt-2">Asignar</button>
 
-          {% elif is_tech_u and not t.assigned_to_id %}
-            {# TECH: solo permitir auto-asignar si NO tiene asignado #}
-            <input type="hidden" name="to_user_id" value="{{ request.user.id }}">
-            <label class="block text-sm">Motivo (opcional)</label>
-            <input type="text" name="reason" class="w-full border rounded px-3 py-2 text-sm" placeholder="Auto-asignación" />
-            <button class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm mt-2">Auto-asignarme</button>
-
-          {% elif is_tech_u and t.assigned_to_id == request.user.id %}
-            {# Si ya está asignado a mí, no muestro botón; solo un aviso #}
-            <div class="text-xs text-gray-500">Este ticket ya está asignado a ti.</div>
+          {% elif is_tech_u %}
+            {% if t.assigned_to_id == request.user.id %}
+              <div class="text-xs text-gray-500">Este ticket ya está asignado a ti.</div>
+            {% else %}
+              <input type="hidden" name="to_user_id" value="{{ request.user.id }}">
+              <label class="block text-sm">Motivo (opcional)</label>
+              <input type="text" name="reason" class="w-full border rounded px-3 py-2 text-sm" placeholder="Auto-asignación" />
+              <button class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm mt-2">Auto-asignarme</button>
+            {% endif %}
           {% endif %}
         </form>
       </div>

@@ -11,6 +11,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- HTMX -->
   <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
 
   {% block head_extra %}{% endblock %}
 </head>
@@ -23,25 +25,31 @@
           <nav class="hidden md:flex items-center gap-4">
             <a href="{% url 'tickets_home' %}" class="text-sm hover:underline">Tickets</a>
             <a href="{% url 'reports_dashboard' %}" class="text-sm hover:underline">Reportes</a>
-            {% if request.user|has_group:"ADMIN" or request.user.is_superuser %}
-              <a href="{% url 'accounts:users_list' %}" class="text-sm hover:underline">Usuarios</a>
-              <a href="{% url 'categories_list' %}" class="text-sm hover:underline">Categorías</a>
-              <a href="{% url 'priorities_list' %}" class="text-sm hover:underline">Prioridades</a>
-              <a href="{% url 'areas_list' %}" class="text-sm hover:underline">Áreas</a>
-              <a href="{% url 'auto_rules_list' %}" class="text-sm hover:underline">Auto-asignación</a>
-
-            {% endif %}
           </nav>
         {% endif %}
       </div>
 
-      <div class="text-sm">
+      <div class="flex items-center gap-4 text-sm">
         {% if request.user.is_authenticated %}
-          Hola, <span class="font-medium">{{ request.user.username }}</span>
-          · <form action="{% url 'logout' %}" method="post" class="inline">
-              {% csrf_token %}
-              <button type="submit" class="text-blue-600 hover:underline">Salir</button>
-            </form>
+          {% if request.user|has_group:"ADMIN" or request.user.is_superuser %}
+            <details class="relative">
+              <summary class="cursor-pointer list-none">Admin</summary>
+              <div class="absolute right-0 mt-1 bg-white border rounded shadow text-sm">
+                <a href="{% url 'accounts:users_list' %}" class="block px-4 py-2 hover:bg-gray-100">Usuarios</a>
+                <a href="{% url 'categories_list' %}" class="block px-4 py-2 hover:bg-gray-100">Categorías</a>
+                <a href="{% url 'priorities_list' %}" class="block px-4 py-2 hover:bg-gray-100">Prioridades</a>
+                <a href="{% url 'areas_list' %}" class="block px-4 py-2 hover:bg-gray-100">Áreas</a>
+                <a href="{% url 'auto_rules_list' %}" class="block px-4 py-2 hover:bg-gray-100">Auto-asignación</a>
+              </div>
+            </details>
+          {% endif %}
+          <div>
+            Hola, <span class="font-medium">{{ request.user.username }}</span>
+            · <form action="{% url 'logout' %}" method="post" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="text-blue-600 hover:underline">Salir</button>
+              </form>
+          </div>
         {% else %}
           <a href="{% url 'login' %}" class="text-blue-600 hover:underline">Ingresar</a>
         {% endif %}

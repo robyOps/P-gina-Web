@@ -41,14 +41,35 @@
   <table class="w-full text-sm">
     <thead class="bg-gray-100">
       <tr>
-        <th class="text-left p-2">Código</th>
-        <th class="text-left p-2">Título</th>
-        <th class="text-left p-2">Estado</th>
-        <th class="text-left p-2">Categoría</th>
-        <th class="text-left p-2">Prioridad</th>
-        <th class="text-left p-2">Asignado</th>
+        <th class="text-left p-2">Código
+          <a href="?sort=code{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
+          <a href="?sort=-code{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
+        </th>
+        <th class="text-left p-2">Título
+          <a href="?sort=title{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
+          <a href="?sort=-title{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
+        </th>
+        <th class="text-left p-2">Estado
+          <a href="?sort=status{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
+          <a href="?sort=-status{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
+        </th>
+        <th class="text-left p-2">Categoría
+          <a href="?sort=category__name{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
+          <a href="?sort=-category__name{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
+        </th>
+        <th class="text-left p-2">Prioridad
+          <a href="?sort=priority__key{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
+          <a href="?sort=-priority__key{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
+        </th>
+        <th class="text-left p-2">Asignado
+          <a href="?sort=assigned_to__username{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
+          <a href="?sort=-assigned_to__username{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
+        </th>
         <th class="text-left p-2">SLA</th>
-        <th class="text-left p-2">Creado</th>
+        <th class="text-left p-2">Creado
+          <a href="?sort=created_at{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
+          <a href="?sort=-created_at{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
+        </th>
       </tr>
     </thead>
     <tbody>
@@ -111,6 +132,48 @@
   </div>
   {% endif %}
 </div>
+
+{% if other_tickets %}
+<h2 class="text-xl font-semibold mt-8 mb-4">Tickets de otros técnicos</h2>
+<div class="w-full bg-white rounded-xl shadow overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="text-left p-2">Código
+          <a href="?sort=code{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
+          <a href="?sort=-code{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
+        </th>
+        <th class="text-left p-2">Título
+          <a href="?sort=title{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
+          <a href="?sort=-title{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
+        </th>
+        <th class="text-left p-2">Estado</th>
+        <th class="text-left p-2">Categoría</th>
+        <th class="text-left p-2">Prioridad</th>
+        <th class="text-left p-2">Asignado</th>
+        <th class="text-left p-2">SLA</th>
+        <th class="text-left p-2">Creado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in other_tickets %}
+      <tr class="border-t hover:bg-gray-50">
+        <td class="p-2">
+          <a class="text-blue-600 hover:underline" href="{% url 'ticket_detail' t.id %}">{{ t.code }}</a>
+        </td>
+        <td class="p-2">{{ t.title }}</td>
+        <td class="p-2">{{ t.status }}</td>
+        <td class="p-2">{{ t.category.name }}</td>
+        <td class="p-2">{{ t.priority.key }}</td>
+        <td class="p-2">{% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}-{% endif %}</td>
+        <td class="p-2">{% if t.is_overdue %}<span class="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700 border border-red-200">SLA vencido</span>{% elif t.is_warning %}<span class="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 border border-yellow-200">Por vencer (~{{ t.remaining_hours|floatformat:0 }}h)</span>{% endif %}{% if t.is_critical %} <span class="text-xs px-2 py-0.5 rounded bg-red-600 text-white">CRITICAL</span>{% endif %}</td>
+        <td class="p-2">{{ t.created_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
 {% endblock %}
 
 
