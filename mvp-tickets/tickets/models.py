@@ -67,10 +67,10 @@ class Ticket(models.Model):
     class Meta:
         # Permisos a nivel de objeto/app (opcionales para usar con @permission_required o permisos custom)
         permissions = [
-            ("assign_ticket", "Can assign ticket"),
-            ("transition_ticket", "Can transition ticket status"),
-            ("comment_internal", "Can add internal comment"),
-            ("view_all_tickets", "Can view all tickets"),
+            ("assign_ticket", "Puede asignar ticket"),
+            ("transition_ticket", "Puede cambiar estado de ticket"),
+            ("comment_internal", "Puede comentar internamente"),
+            ("view_all_tickets", "Puede ver todos los tickets"),
         ]
 
     def __str__(self):

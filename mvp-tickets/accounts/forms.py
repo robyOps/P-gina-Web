@@ -1,7 +1,9 @@
 # accounts/forms.py
 from django import forms
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
+
+from .permissions import PERMISSION_LABELS
 
 User = get_user_model()
 
@@ -52,5 +54,27 @@ class UserEditForm(forms.ModelForm):
         if (p1 or p2) and p1 != p2:
             self.add_error("new_password2", "Las contraseñas no coinciden.")
         return cleaned
+
+
+class RoleForm(forms.ModelForm):
+    permissions = forms.ModelMultipleChoiceField(
+        label="Permisos",
+        queryset=Permission.objects.all().order_by("content_type__app_label", "codename"),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
+
+    class Meta:
+        model = Group
+        fields = ["name", "permissions"]
+        labels = {"name": "Nombre"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        def label_from_instance(obj):
+            return PERMISSION_LABELS.get(obj.codename, obj.name)
+
+        self.fields["permissions"].label_from_instance = label_from_instance
 
 

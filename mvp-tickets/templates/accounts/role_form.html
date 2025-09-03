@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% block title %}{% if is_new %}Nuevo rol{% else %}Editar rol{% endif %}{% endblock %}
+
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">
+  {% if is_new %}Nuevo rol{% else %}Editar rol{% endif %}
+</h1>
+
+<form method="post" class="bg-white rounded-xl shadow p-4 space-y-4">
+  {% csrf_token %}
+  <div>
+    <label class="block text-xs">Nombre</label>
+    {{ form.name|add_class:"border rounded px-3 py-2 w-full" }}
+    {% if form.name.errors %}<div class="text-red-600 text-xs">{{ form.name.errors }}</div>{% endif %}
+  </div>
+
+  <div>
+    <div class="font-medium mb-2">Permisos</div>
+    <div class="space-y-1">
+      {{ form.permissions }}
+    </div>
+    {% if form.permissions.errors %}<div class="text-red-600 text-xs">{{ form.permissions.errors }}</div>{% endif %}
+  </div>
+
+  <div class="flex items-center gap-3">
+    <button class="bg-blue-600 text-white px-4 py-2 rounded">
+      {% if is_new %}Crear{% else %}Guardar{% endif %}
+    </button>
+    <a href="{% url 'accounts:roles_list' %}" class="px-4 py-2 rounded border">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

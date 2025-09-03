@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
-from .forms import UserCreateForm, UserEditForm
+from .forms import UserCreateForm, UserEditForm, RoleForm
 from tickets.api import is_admin  # mismo helper de roles que ya usas
 
 User = get_user_model()
@@ -113,6 +113,59 @@ def user_toggle(request, pk):
     user.save(update_fields=["is_active"])
     messages.success(request, f"Usuario '{user.username}' → {'ACTIVO' if user.is_active else 'INACTIVO'}.")
     return redirect("accounts:users_list")
+
+
+@login_required
+def roles_list(request):
+    """Listado de roles (solo ADMIN)."""
+    if not is_admin(request.user):
+        messages.error(request, "Solo ADMIN puede ver roles.")
+        return redirect("tickets_home")
+
+    roles = Group.objects.all().order_by("name")
+    return TemplateResponse(request, "accounts/roles_list.html", {"roles": roles})
+
+
+@login_required
+def role_create(request):
+    """Crear rol y asignar permisos (solo ADMIN)."""
+    if not is_admin(request.user):
+        messages.error(request, "Solo ADMIN puede crear roles.")
+        return redirect("tickets_home")
+
+    if request.method == "POST":
+        form = RoleForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Rol creado.")
+            return redirect("accounts:roles_list")
+        messages.error(request, "Revisa los errores del formulario.")
+    else:
+        form = RoleForm()
+
+    return TemplateResponse(request, "accounts/role_form.html", {"form": form, "is_new": True})
+
+
+@login_required
+def role_edit(request, pk):
+    """Editar rol y sus permisos (solo ADMIN)."""
+    if not is_admin(request.user):
+        messages.error(request, "Solo ADMIN puede editar roles.")
+        return redirect("tickets_home")
+
+    role = get_object_or_404(Group, pk=pk)
+
+    if request.method == "POST":
+        form = RoleForm(request.POST, instance=role)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Rol actualizado.")
+            return redirect("accounts:roles_list")
+        messages.error(request, "Revisa los errores del formulario.")
+    else:
+        form = RoleForm(instance=role)
+
+    return TemplateResponse(request, "accounts/role_form.html", {"form": form, "is_new": False, "obj": role})
 
 
 

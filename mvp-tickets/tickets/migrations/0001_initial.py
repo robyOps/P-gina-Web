@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
                 ('requester', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='tickets', to=settings.AUTH_USER_MODEL)),
             ],
             options={
-                'permissions': [('assign_ticket', 'Can assign ticket'), ('transition_ticket', 'Can transition ticket status'), ('comment_internal', 'Can add internal comment'), ('view_all_tickets', 'Can view all tickets')],
+                'permissions': [('assign_ticket', 'Puede asignar ticket'), ('transition_ticket', 'Puede cambiar estado de ticket'), ('comment_internal', 'Puede comentar internamente'), ('view_all_tickets', 'Puede ver todos los tickets')],
             },
         ),
         migrations.CreateModel(

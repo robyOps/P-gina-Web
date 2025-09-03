@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load perm_labels %}
+{% block title %}Roles{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-xl font-semibold">Roles</h1>
+  <a href="{% url 'accounts:role_create' %}" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">Nuevo rol</a>
+</div>
+
+<table class="w-full bg-white rounded-xl shadow overflow-hidden text-sm">
+  <thead class="bg-gray-100">
+    <tr>
+      <th class="text-left p-2">Nombre</th>
+      <th class="text-left p-2">Permisos</th>
+      <th class="text-left p-2 w-32">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in roles %}
+    <tr class="border-t hover:bg-gray-50">
+      <td class="p-2">{{ r.name }}</td>
+      <td class="p-2">
+        {% for p in r.permissions.all %}
+          <span class="text-xs px-2 py-0.5 rounded bg-gray-100 border mr-1">{{ p|perm_label }}</span>
+        {% empty %}
+          <span class="text-xs text-gray-500">—</span>
+        {% endfor %}
+      </td>
+      <td class="p-2">
+        <a class="text-blue-600 hover:underline" href="{% url 'accounts:role_edit' r.id %}">Editar</a>
+      </td>
+    </tr>
+    {% empty %}
+      <tr><td class="p-3 text-sm text-gray-500" colspan="3">Sin resultados.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
