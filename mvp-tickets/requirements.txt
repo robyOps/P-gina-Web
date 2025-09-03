@@ -1,7 +1,9 @@
 Django
-djangorestframework
-djangorestframework-simplejwt
-django-filter
-psycopg2-binary
 Pillow
 django-cors-headers
+django-filter
+django-widget-tweaks
+djangorestframework
+djangorestframework-simplejwt
+psycopg2-binary
+xhtml2pdf

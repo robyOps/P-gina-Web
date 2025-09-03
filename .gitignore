@@ -1,0 +1,15 @@
+# Archivos y carpetas innecesarios para el repositorio
+
+# Cachés de Python
+__pycache__/
+*.py[cod]
+
+# Base de datos local
+*.sqlite3
+mvp-tickets/db.sqlite3
+
+# Archivos de medios subidos por usuarios
+mvp-tickets/media/
+
+# Archivos estáticos generados
+mvp-tickets/staticfiles/
