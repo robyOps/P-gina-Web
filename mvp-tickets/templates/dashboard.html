@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Dashboard</h1>
+<p class="mb-4 text-gray-600">Resumen {{ scope }}.</p>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <div class="p-4 rounded-lg shadow bg-blue-100">
+    <div class="flex items-center">
+      <i class="bi bi-ticket-perforated text-3xl text-blue-700 mr-3"></i>
+      <div>
+        <div class="text-sm text-blue-700">Abiertos</div>
+        <div class="text-2xl font-semibold">{{ counts.open }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="p-4 rounded-lg shadow bg-yellow-100">
+    <div class="flex items-center">
+      <i class="bi bi-play-circle text-3xl text-yellow-600 mr-3"></i>
+      <div>
+        <div class="text-sm text-yellow-600">En progreso</div>
+        <div class="text-2xl font-semibold">{{ counts.in_progress }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="p-4 rounded-lg shadow bg-green-100">
+    <div class="flex items-center">
+      <i class="bi bi-check-circle text-3xl text-green-600 mr-3"></i>
+      <div>
+        <div class="text-sm text-green-600">Resueltos</div>
+        <div class="text-2xl font-semibold">{{ counts.resolved }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="p-4 rounded-lg shadow bg-gray-200">
+    <div class="flex items-center">
+      <i class="bi bi-archive text-3xl text-gray-700 mr-3"></i>
+      <div>
+        <div class="text-sm text-gray-700">Cerrados</div>
+        <div class="text-2xl font-semibold">{{ counts.closed }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-md mx-auto">
+  <canvas id="statusChart"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('statusChart').getContext('2d');
+  const data = {{ chart_data|safe }};
+  new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: data.labels,
+      datasets: [{
+        data: data.data,
+        backgroundColor: ['#bfdbfe', '#fef3c7', '#bbf7d0', '#e5e7eb'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    }
+  });
+</script>
+{% endblock %}

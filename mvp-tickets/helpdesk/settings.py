@@ -129,5 +129,5 @@ DEFAULT_FROM_EMAIL = "mvp@localhost"
 
 
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "tickets_home"
+LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"

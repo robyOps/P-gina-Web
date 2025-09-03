@@ -27,4 +27,17 @@ PERMISSION_LABELS = {
     "change_area": "Puede cambiar área",
     "delete_area": "Puede eliminar área",
     "view_area": "Puede ver área",
+    # Permisos de usuarios y roles (auth)
+    "add_user": "Puede agregar usuario",
+    "change_user": "Puede cambiar usuario",
+    "delete_user": "Puede eliminar usuario",
+    "view_user": "Puede ver usuario",
+    "add_group": "Puede agregar rol",
+    "change_group": "Puede cambiar rol",
+    "delete_group": "Puede eliminar rol",
+    "view_group": "Puede ver rol",
+    "add_permission": "Puede agregar permiso",
+    "change_permission": "Puede cambiar permiso",
+    "delete_permission": "Puede eliminar permiso",
+    "view_permission": "Puede ver permiso",
 }
