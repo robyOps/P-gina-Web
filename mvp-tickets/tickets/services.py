@@ -4,6 +4,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import AuditLog, Ticket, AutoAssignRule, TicketAssignment
 from django.db.models import Q
+from openpyxl import Workbook
 
 def _has_log(t, action: str) -> bool:
     return AuditLog.objects.filter(ticket=t, action=action).exists()
@@ -111,3 +112,42 @@ def apply_auto_assign(ticket: Ticket, actor=None) -> bool:
         meta={"from": prev.id if prev else None, "to": rule.tech_id, "reason": "auto-assign"},
     )
     return True
+
+
+def tickets_to_workbook(qs) -> Workbook:
+    """Construye un workbook de Excel a partir de un queryset de tickets."""
+    wb = Workbook()
+    ws = wb.active
+    ws.append(
+        [
+            "code",
+            "title",
+            "status",
+            "category",
+            "priority",
+            "area",
+            "requester",
+            "assigned_to",
+            "created_at",
+            "resolved_at",
+            "closed_at",
+        ]
+    )
+    for t in qs:
+        ws.append(
+            [
+                t.code,
+                t.title,
+                t.status,
+                getattr(t.category, "name", ""),
+                getattr(t.priority, "key", ""),
+                getattr(t.area, "name", ""),
+                getattr(t.requester, "username", ""),
+                getattr(t.assigned_to, "username", ""),
+                t.created_at.strftime("%Y-%m-%d %H:%M"),
+                t.resolved_at.strftime("%Y-%m-%d %H:%M") if t.resolved_at else "",
+                t.closed_at.strftime("%Y-%m-%d %H:%M") if t.closed_at else "",
+            ]
+        )
+
+    return wb
