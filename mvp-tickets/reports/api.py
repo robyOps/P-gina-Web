@@ -58,7 +58,8 @@ class ReportSummaryView(APIView):
         # --- by_status robusto (incluye estados con 0) ---
         status_list = list(qs.values_list("status", flat=True))
         cnt = Counter(status_list)
-        by_status = {key: cnt.get(key, 0) for key, _ in Ticket.STATUS_CHOICES}
+        status_map = dict(Ticket.STATUS_CHOICES)
+        by_status = {status_map.get(key, key): cnt.get(key, 0) for key, _ in Ticket.STATUS_CHOICES}
 
         # por categoría
         by_category = [
@@ -68,8 +69,8 @@ class ReportSummaryView(APIView):
 
         # por prioridad
         by_priority = [
-            {"priority": key, "count": c}
-            for key, c in qs.values_list("priority__key").annotate(c=Count("id"))
+            {"priority": name, "count": c}
+            for name, c in qs.values_list("priority__name").annotate(c=Count("id"))
         ]
 
         # por técnico asignado

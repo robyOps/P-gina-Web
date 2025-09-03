@@ -24,42 +24,61 @@
   </div>
 
   <div class="kpi"><strong>Total:</strong> {{ total }}</div>
-  <div class="kpi"><strong>Promedio de resolución (hrs):</strong> {{ avg_hours|default:"—" }}</div>
 
-  <h2>Por estado</h2>
-  <table>
-    <thead><tr><th>Estado</th><th>Cantidad</th></tr></thead>
-    <tbody>
-      {% for k,v in by_status.items %}
-        <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
-      {% empty %}
-        <tr><td colspan="2">Sin datos</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  {% if type == 'promedio' %}
+    <div class="kpi"><strong>Tiempo promedio de resolución (hrs):</strong> {{ avg_hours|default:"—" }}</div>
+  {% elif type == 'categoria' %}
+    <h2>Tickets por categoría</h2>
+    <table>
+      <thead><tr><th>Categoría</th><th>Cantidad</th></tr></thead>
+      <tbody>
+        {% for row in by_category %}
+          <tr><td>{{ row.category__name|default:"—" }}</td><td>{{ row.count }}</td></tr>
+        {% empty %}<tr><td colspan="2">Sin datos</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  {% elif type == 'tecnico' %}
+    <h2>Tickets por técnico</h2>
+    <table>
+      <thead><tr><th>Técnico</th><th>Cantidad</th></tr></thead>
+      <tbody>
+        {% for row in by_tech %}
+          <tr><td>{{ row.assigned_to__username|default:"—" }}</td><td>{{ row.count }}</td></tr>
+        {% empty %}<tr><td colspan="2">Sin datos</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="kpi"><strong>Promedio de resolución (hrs):</strong> {{ avg_hours|default:"—" }}</div>
 
-  <h2>Por categoría</h2>
-  <table>
-    <thead><tr><th>Categoría</th><th>Cantidad</th></tr></thead>
-    <tbody>
-      {% for row in by_category %}
-        <tr><td>{{ row.category__name|default:"—" }}</td><td>{{ row.count }}</td></tr>
-      {% empty %}
-        <tr><td colspan="2">Sin datos</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    <h2>Por estado</h2>
+    <table>
+      <thead><tr><th>Estado</th><th>Cantidad</th></tr></thead>
+      <tbody>
+        {% for k,v in by_status.items %}
+          <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+        {% empty %}<tr><td colspan="2">Sin datos</td></tr>{% endfor %}
+      </tbody>
+    </table>
 
-  <h2>Por prioridad</h2>
-  <table>
-    <thead><tr><th>Prioridad</th><th>Cantidad</th></tr></thead>
-    <tbody>
-      {% for row in by_priority %}
-        <tr><td>{{ row.priority__key|default:"—" }}</td><td>{{ row.count }}</td></tr>
-      {% empty %}
-        <tr><td colspan="2">Sin datos</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    <h2>Por categoría</h2>
+    <table>
+      <thead><tr><th>Categoría</th><th>Cantidad</th></tr></thead>
+      <tbody>
+        {% for row in by_category %}
+          <tr><td>{{ row.category__name|default:"—" }}</td><td>{{ row.count }}</td></tr>
+        {% empty %}<tr><td colspan="2">Sin datos</td></tr>{% endfor %}
+      </tbody>
+    </table>
+
+    <h2>Por prioridad</h2>
+    <table>
+      <thead><tr><th>Prioridad</th><th>Cantidad</th></tr></thead>
+      <tbody>
+        {% for row in by_priority %}
+          <tr><td>{{ row.priority__name|default:"—" }}</td><td>{{ row.count }}</td></tr>
+        {% empty %}<tr><td colspan="2">Sin datos</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
 </body>
 </html>

@@ -120,17 +120,17 @@ def tickets_to_workbook(qs) -> Workbook:
     ws = wb.active
     ws.append(
         [
-            "code",
-            "title",
-            "status",
-            "category",
-            "priority",
-            "area",
-            "requester",
-            "assigned_to",
-            "created_at",
-            "resolved_at",
-            "closed_at",
+            "Código",
+            "Título",
+            "Estado",
+            "Categoría",
+            "Prioridad",
+            "Área",
+            "Solicitante",
+            "Asignado a",
+            "Creado",
+            "Resuelto",
+            "Cerrado",
         ]
     )
     for t in qs:
@@ -138,15 +138,15 @@ def tickets_to_workbook(qs) -> Workbook:
             [
                 t.code,
                 t.title,
-                t.status,
+                t.get_status_display(),
                 getattr(t.category, "name", ""),
-                getattr(t.priority, "key", ""),
+                getattr(t.priority, "name", ""),
                 getattr(t.area, "name", ""),
                 getattr(t.requester, "username", ""),
                 getattr(t.assigned_to, "username", ""),
-                t.created_at.strftime("%Y-%m-%d %H:%M"),
-                t.resolved_at.strftime("%Y-%m-%d %H:%M") if t.resolved_at else "",
-                t.closed_at.strftime("%Y-%m-%d %H:%M") if t.closed_at else "",
+                timezone.localtime(t.created_at).strftime("%Y-%m-%d %H:%M"),
+                timezone.localtime(t.resolved_at).strftime("%Y-%m-%d %H:%M") if t.resolved_at else "",
+                timezone.localtime(t.closed_at).strftime("%Y-%m-%d %H:%M") if t.closed_at else "",
             ]
         )
 

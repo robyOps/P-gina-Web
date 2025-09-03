@@ -55,7 +55,7 @@ def category_edit(request, pk):
 def priorities_list(request):
     if not is_admin(request.user):
         return HttpResponseForbidden("Solo ADMIN")
-    qs = Priority.objects.all().order_by("key")
+    qs = Priority.objects.all().order_by("name")
     return render(request, "catalog/priorities_list.html", {"rows": qs})
 
 @login_required

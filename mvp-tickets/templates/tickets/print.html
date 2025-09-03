@@ -79,7 +79,7 @@
       <h3 class="mb-1">Datos</h3>
       <div><strong>Estado:</strong> {{ t.status }}</div>
       <div><strong>Categoría:</strong> {{ t.category.name }}</div>
-      <div><strong>Prioridad:</strong> {{ t.priority.key }}</div>
+      <div><strong>Prioridad:</strong> {{ t.priority.name }}</div>
       {% if t.area %}<div><strong>Área:</strong> {{ t.area.name }}</div>{% endif %}
       <div><strong>Solicitante:</strong> {{ t.requester.username }}</div>
       <div><strong>Asignado a:</strong> {% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}-{% endif %}</div>
