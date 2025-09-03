@@ -14,7 +14,8 @@ urlpatterns = [
     path("logout/", auth_views.LogoutView.as_view(next_page="login"), name="logout"),
 
     # --- UI (server-rendered) ---
-    path("", ticket_views.tickets_home, name="tickets_home"),
+    path("", ticket_views.dashboard, name="dashboard"),
+    path("tickets/", ticket_views.tickets_home, name="tickets_home"),
     path("tickets/new/", ticket_views.ticket_create, name="ticket_create"),
     path("tickets/<int:pk>/", ticket_views.ticket_detail, name="ticket_detail"),
     path("tickets/<int:pk>/print/", ticket_views.ticket_print, name="ticket_print"),

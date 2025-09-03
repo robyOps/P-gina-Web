@@ -32,11 +32,12 @@
   <header class="bg-gradient-to-r from-indigo-600 to-blue-500 shadow text-white">
     <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
       <div class="flex items-center gap-6">
-        <a href="{% url 'tickets_home' %}" class="font-semibold hover:text-yellow-200 transition-colors">Helpdesk</a>
+        <a href="{% url 'dashboard' %}" class="font-semibold hover:text-yellow-200 transition-colors">Helpdesk</a>
         {% if request.user.is_authenticated %}
           <nav class="hidden md:flex items-center gap-4">
             <a href="{% url 'tickets_home' %}" class="text-sm hover:text-yellow-200 transition-colors">Tickets</a>
             <a href="{% url 'reports_dashboard' %}" class="text-sm hover:text-yellow-200 transition-colors">Reportes</a>
+            <a href="{% url 'dashboard' %}" class="text-sm hover:text-yellow-200 transition-colors">Dashboard</a>
           </nav>
         {% endif %}
       </div>

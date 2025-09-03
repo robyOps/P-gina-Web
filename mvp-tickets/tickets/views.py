@@ -28,6 +28,7 @@ from .models import AutoAssignRule
 # --- Stdlib ---
 from datetime import datetime
 import uuid
+import json
 from io import BytesIO
 from urllib.parse import urlencode
 
@@ -88,6 +89,45 @@ def _parse_date_param(s: str | None):
 
 
 # ----------------- vistas UI -----------------
+@login_required
+def dashboard(request):
+    """Panel con indicadores clave según rol."""
+    u = request.user
+    base = Ticket.objects.all()
+    if is_admin(u):
+        qs = base
+        scope = "global"
+    elif is_tech(u):
+        qs = base.filter(assigned_to=u)
+        scope = "de tus tickets asignados"
+    else:
+        qs = base.filter(requester=u)
+        scope = "de tus tickets"
+
+    counts = {
+        "open": qs.filter(status=Ticket.OPEN).count(),
+        "in_progress": qs.filter(status=Ticket.IN_PROGRESS).count(),
+        "resolved": qs.filter(status=Ticket.RESOLVED).count(),
+        "closed": qs.filter(status=Ticket.CLOSED).count(),
+    }
+
+    chart_data = json.dumps({
+        "labels": ["Abierto", "En progreso", "Resuelto", "Cerrado"],
+        "data": [
+            counts["open"],
+            counts["in_progress"],
+            counts["resolved"],
+            counts["closed"],
+        ],
+    })
+
+    ctx = {
+        "counts": counts,
+        "chart_data": chart_data,
+        "scope": scope,
+    }
+    return render(request, "dashboard.html", ctx)
+
 @login_required
 def tickets_home(request):
     """
