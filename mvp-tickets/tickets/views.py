@@ -92,18 +92,16 @@ def tickets_home(request):
       - page, page_size: paginación (por defecto 20)
     """
     u = request.user
-    qs = (
-        Ticket.objects.select_related("category", "priority", "assigned_to")
-        .order_by("-created_at")
-    )
+    base_qs = Ticket.objects.select_related("category", "priority", "assigned_to")
 
-    # Visibilidad por rol
+    other_qs = None
     if is_admin(u):
-        pass
+        qs = base_qs
     elif is_tech(u):
-        qs = qs.filter(assigned_to=u)
+        qs = base_qs.filter(assigned_to=u)
+        other_qs = base_qs.filter(assigned_to__groups__name="TECH").exclude(assigned_to=u)
     else:
-        qs = qs.filter(requester=u)
+        qs = base_qs.filter(requester=u)
 
     # Filtros
     status   = (request.GET.get("status") or "").strip()
@@ -113,13 +111,21 @@ def tickets_home(request):
     # Por defecto ocultar CLOSED si no hay filtro de estado
     if not status:
         qs = qs.exclude(status=Ticket.CLOSED)
+        if other_qs is not None:
+            other_qs = other_qs.exclude(status=Ticket.CLOSED)
 
     if status:
         qs = qs.filter(status=status)
+        if other_qs is not None:
+            other_qs = other_qs.filter(status=status)
     if category:
         qs = qs.filter(category_id=category)
+        if other_qs is not None:
+            other_qs = other_qs.filter(category_id=category)
     if priority:
         qs = qs.filter(priority_id=priority)
+        if other_qs is not None:
+            other_qs = other_qs.filter(priority_id=priority)
 
     # Búsqueda
     q = (request.GET.get("q") or "").strip()
@@ -129,6 +135,33 @@ def tickets_home(request):
             Q(title__icontains=q) |
             Q(description__icontains=q)
         )
+        if other_qs is not None:
+            other_qs = other_qs.filter(
+                Q(code__icontains=q)
+                | Q(title__icontains=q)
+                | Q(description__icontains=q)
+            )
+
+    # Ordenamiento
+    sort = (request.GET.get("sort") or "").strip()
+    allowed_sorts = {
+        "code",
+        "title",
+        "status",
+        "category__name",
+        "priority__key",
+        "assigned_to__username",
+        "created_at",
+    }
+    sort_key = sort.lstrip("-")
+    if sort_key in allowed_sorts:
+        qs = qs.order_by(sort)
+        if other_qs is not None:
+            other_qs = other_qs.order_by(sort)
+    else:
+        qs = qs.order_by("-created_at")
+        if other_qs is not None:
+            other_qs = other_qs.order_by("-created_at")
 
     # Paginación
     try:
@@ -139,6 +172,7 @@ def tickets_home(request):
 
     paginator = Paginator(qs, page_size)
     page_obj = paginator.get_page(request.GET.get("page"))
+    other_tickets = list(other_qs[:50]) if other_qs is not None else []
 
     # Para el combo de estados
     statuses = [key for key, _ in Ticket.STATUS_CHOICES]
@@ -148,6 +182,11 @@ def tickets_home(request):
     qdict.pop("page", None)
     qs_no_page = qdict.urlencode()
     qs_no_page = f"&{qs_no_page}" if qs_no_page else ""
+
+    qdict_no_sort = qdict.copy()
+    qdict_no_sort.pop("sort", None)
+    qs_no_sort = qdict_no_sort.urlencode()
+    qs_no_sort = f"&{qs_no_sort}" if qs_no_sort else ""
 
     ctx = {
         "tickets": page_obj.object_list,
@@ -162,6 +201,8 @@ def tickets_home(request):
         },
         "statuses": statuses,
         "qs_no_page": qs_no_page,  # opcional para los links de paginación
+        "qs_no_sort": qs_no_sort,
+        "other_tickets": other_tickets,
     }
     return TemplateResponse(request, "tickets/list.html", ctx)
 
@@ -203,17 +244,13 @@ def ticket_detail(request, pk):
         pk=pk,
     )
     u = request.user
-    if not (
-        is_admin(u)
-        or (is_tech(u) and t.assigned_to_id in (None, u.id))
-        or t.requester_id == u.id
-    ):
+    if not (is_admin(u) or is_tech(u) or t.requester_id == u.id):
         return HttpResponseForbidden("No autorizado")
 
     # Panel de gestión
     is_admin_u = is_admin(u)
     is_tech_u = is_tech(u)
-    can_assign = is_admin_u or (is_tech_u and t.assigned_to_id in (None, u.id))
+    can_assign = is_admin_u or is_tech_u
     allowed = allowed_transitions_for(t, u)
 
     tech_users = []
@@ -379,7 +416,7 @@ def ticket_assign(request, pk):
     t = get_object_or_404(Ticket, pk=pk)
     u = request.user
 
-    if not (is_admin(u) or (is_tech(u) and t.assigned_to_id in (None, u.id))):
+    if not (is_admin(u) or is_tech(u)):
         return HttpResponseForbidden("No autorizado para asignar")
 
     # ADMIN: combo; TECH: auto-asignación
