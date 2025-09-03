@@ -31,7 +31,7 @@
   <div class="bg-white rounded-xl shadow p-4 space-y-1">
     <div><span class="font-medium">Estado:</span> {{ t.status }}</div>
     <div><span class="font-medium">Categoría:</span> {{ t.category.name }}</div>
-    <div><span class="font-medium">Prioridad:</span> {{ t.priority.key }}</div>
+    <div><span class="font-medium">Prioridad:</span> {{ t.priority.name }}</div>
     {% if t.area %}<div><span class="font-medium">Área:</span> {{ t.area.name }}</div>{% endif %}
     <div><span class="font-medium">Solicitante:</span> {{ t.requester.username }}</div>
     <div><span class="font-medium">Asignado a:</span> {% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}-{% endif %}</div>

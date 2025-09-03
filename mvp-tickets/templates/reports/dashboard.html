@@ -17,18 +17,32 @@
     <label class="block text-xs">Hasta</label>
     <input type="date" name="to" value="{{ to }}" class="border rounded px-2 py-1">
   </div>
+  <div>
+    <label class="block text-xs">Tipo de reporte</label>
+    <select name="type" class="border rounded px-2 py-1">
+      <option value="total" {% if report_type == 'total' %}selected{% endif %}>Total</option>
+      <option value="categoria" {% if report_type == 'categoria' %}selected{% endif %}>Por categoría</option>
+      <option value="promedio" {% if report_type == 'promedio' %}selected{% endif %}>Tiempo promedio</option>
+      <option value="tecnico" {% if report_type == 'tecnico' %}selected{% endif %}>Por técnico</option>
+    </select>
+  </div>
+  <div>
+    <label class="block text-xs">Técnico</label>
+    <select name="tech" class="border rounded px-2 py-1">
+      <option value="" {% if not tech_selected %}selected{% endif %}>(Todos)</option>
+      {% for t in techs %}
+      <option value="{{ t.id }}" {% if tech_selected == t.id|stringformat:'s' %}selected{% endif %}>{{ t.username }}</option>
+      {% endfor %}
+    </select>
+  </div>
   <button class="bg-gray-800 text-white px-3 py-1.5 rounded">Filtrar</button>
   <a href="{% url 'reports_dashboard' %}" class="px-3 py-1.5 rounded border">Limpiar</a>
   <div class="mt-2 flex flex-wrap gap-2">
-    <a href="{% url 'reports_export_csv' %}?from={{ from }}&to={{ to }}"
-      class="bg-emerald-600 text-white px-3 py-1.5 rounded text-sm">
-      Exportar CSV
-    </a>
-    <a href="{% url 'reports_export_pdf' %}?from={{ from }}&to={{ to }}"
+    <a href="{% url 'reports_export_pdf' %}?from={{ from }}&to={{ to }}&type={{ report_type }}&tech={{ tech_selected }}"
       class="bg-slate-700 text-white px-3 py-1.5 rounded text-sm">
       Exportar PDF
     </a>
-    <a href="{% url 'reports_export_excel' %}?from={{ from }}&to={{ to }}"
+    <a href="{% url 'reports_export_excel' %}?from={{ from }}&to={{ to }}&tech={{ tech_selected }}"
       class="bg-indigo-600 text-white px-3 py-1.5 rounded text-sm">
       Exportar Excel
     </a>
@@ -50,7 +64,7 @@
   <div class="bg-white rounded-xl shadow p-4">
     <div class="text-sm text-gray-500">Por prioridad</div>
     <ul class="mt-2 text-sm space-y-1">
-      {% for row in by_priority %}<li>{{ row.priority__key }}: <span class="font-medium">{{ row.count }}</span></li>{% endfor %}
+      {% for row in by_priority %}<li>{{ row.priority__name }}: <span class="font-medium">{{ row.count }}</span></li>{% endfor %}
     </ul>
   </div>
 </div>

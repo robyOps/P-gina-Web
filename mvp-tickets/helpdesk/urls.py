@@ -33,7 +33,6 @@ urlpatterns = [
     # Reportes
     path("reports/", ticket_views.reports_dashboard, name="reports_dashboard"),
     path("reports/check-sla/", ticket_views.reports_check_sla, name="reports_check_sla"),
-    path("reports/export.csv", ticket_views.reports_export_csv, name="reports_export_csv"),
     path("reports/export.pdf", ticket_views.reports_export_pdf, name="reports_export_pdf"),
     path("reports/export.xlsx", ticket_views.reports_export_excel, name="reports_export_excel"),
 

@@ -4,6 +4,12 @@ from catalog.models import Priority
 class Command(BaseCommand):
     help = "Crea prioridades por defecto"
     def handle(self, *args, **kwargs):
-        for key in ("LOW","MEDIUM","HIGH","CRITICAL"):
-            Priority.objects.get_or_create(key=key)
+        defaults = [
+            ("Baja", 72),
+            ("Media", 48),
+            ("Alta", 24),
+            ("Crítica", 8),
+        ]
+        for name, hours in defaults:
+            Priority.objects.get_or_create(name=name, defaults={"sla_hours": hours})
         self.stdout.write(self.style.SUCCESS("Prioridades listas"))

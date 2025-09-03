@@ -9,10 +9,10 @@
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
-      <label class="block text-xs">Key</label>
-      {{ form.key|add_class:"border rounded px-3 py-2 w-full" }}
-      {% if form.key.errors %}<div class="text-red-600 text-xs">{{ form.key.errors }}</div>{% endif %}
-      <p class="text-xs text-gray-500 mt-1">Ej: LOW, MEDIUM, HIGH, CRITICAL</p>
+      <label class="block text-xs">Nombre</label>
+      {{ form.name|add_class:"border rounded px-3 py-2 w-full" }}
+      {% if form.name.errors %}<div class="text-red-600 text-xs">{{ form.name.errors }}</div>{% endif %}
+      <p class="text-xs text-gray-500 mt-1">Ej: Baja, Media, Alta</p>
     </div>
     <div>
       <label class="block text-xs">SLA (horas)</label>

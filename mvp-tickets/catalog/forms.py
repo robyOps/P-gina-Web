@@ -10,9 +10,9 @@ class CategoryForm(forms.ModelForm):
 class PriorityForm(forms.ModelForm):
     class Meta:
         model = Priority
-        fields = ["key", "sla_hours"]  # << OJO: key y sla_hours, no 'name'
+        fields = ["name", "sla_hours"]
         widgets = {
-            "key": forms.TextInput(attrs={"placeholder": "MEDIUM"}),
+            "name": forms.TextInput(attrs={"placeholder": "Alta"}),
             "sla_hours": forms.NumberInput(attrs={"min": 1}),
         }
 

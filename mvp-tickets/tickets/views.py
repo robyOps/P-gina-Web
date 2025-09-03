@@ -29,7 +29,6 @@ from datetime import datetime
 import uuid
 from io import BytesIO
 from urllib.parse import urlencode
-import csv
 
 # --- Third-party ---
 from xhtml2pdf import pisa
@@ -148,7 +147,7 @@ def tickets_home(request):
         "title",
         "status",
         "category__name",
-        "priority__key",
+        "priority__name",
         "assigned_to__username",
         "created_at",
     }
@@ -533,13 +532,21 @@ def reports_dashboard(request):
     if dto:
         qs = qs.filter(created_at__date__lte=dto)
 
+    tech_selected = (request.GET.get("tech") or "").strip()
+    if tech_selected:
+        qs = qs.filter(assigned_to_id=tech_selected)
+
+    report_type = request.GET.get("type", "total")
+
     # Métricas base
-    by_status = dict(qs.values_list("status").annotate(c=Count("id")))
+    by_status_raw = dict(qs.values_list("status").annotate(c=Count("id")))
+    status_map = dict(Ticket.STATUS_CHOICES)
+    by_status = {status_map.get(k, k): v for k, v in by_status_raw.items()}
     by_category = list(
         qs.values("category__name").annotate(count=Count("id")).order_by("-count")
     )
     by_priority = list(
-        qs.values("priority__key").annotate(count=Count("id")).order_by("-count")
+        qs.values("priority__name").annotate(count=Count("id")).order_by("-count")
     )
     by_area = list(
         qs.values("area__name")
@@ -567,7 +574,7 @@ def reports_dashboard(request):
         "data": [r["count"] for r in by_category],
     }
     chart_pri = {
-        "labels": [r["priority__key"] or "—" for r in by_priority],
+        "labels": [r["priority__name"] or "—" for r in by_priority],
         "data": [r["count"] for r in by_priority],
     }
     chart_tech = {
@@ -625,6 +632,9 @@ def reports_dashboard(request):
             "chart_tech": chart_tech,
             "chart_hist": chart_hist,
             "chart_cat_slow": chart_cat_slow,
+            "techs": User.objects.filter(groups__name="TECH").order_by("username"),
+            "tech_selected": tech_selected,
+            "report_type": report_type,
         },
     )
 
@@ -706,7 +716,7 @@ def reports_pdf(request):
     # Métricas
     by_status   = dict(qs.values_list("status").annotate(c=Count("id")))
     by_category = list(qs.values("category__name").annotate(count=Count("id")).order_by("-count"))
-    by_priority = list(qs.values("priority__key").annotate(count=Count("id")).order_by("-count"))
+    by_priority = list(qs.values("priority__name").annotate(count=Count("id")).order_by("-count"))
     by_tech     = list(
         qs.exclude(assigned_to__isnull=True)
           .values("assigned_to__username")
@@ -765,73 +775,6 @@ def audit_partial(request, pk):
 
 
 @login_required
-def reports_export_csv(request):
-    """
-    Exporta a CSV los tickets visibles para el usuario (respeta filtros ?from=&to=&status=&category=&priority=&q=).
-    Útil para admin/tech/solicitante sin necesidad de JWT.
-    """
-    u = request.user
-    qs = Ticket.objects.select_related("category", "priority", "area", "requester", "assigned_to").order_by("-created_at")
-
-    # visibilidad
-    if is_admin(u):
-        pass
-    elif is_tech(u):
-        qs = qs.filter(assigned_to=u)
-    else:
-        qs = qs.filter(requester=u)
-
-    # filtros (mismos que dashboard)
-    dfrom = _parse_date_param(request.GET.get("from"))
-    dto   = _parse_date_param(request.GET.get("to"))
-    if dfrom:
-        qs = qs.filter(created_at__date__gte=dfrom)
-    if dto:
-        qs = qs.filter(created_at__date__lte=dto)
-
-    status = (request.GET.get("status") or "").strip()
-    category = (request.GET.get("category") or "").strip()
-    priority = (request.GET.get("priority") or "").strip()
-    q = (request.GET.get("q") or "").strip()
-
-    if status:
-        qs = qs.filter(status=status)
-    if category:
-        qs = qs.filter(category_id=category)
-    if priority:
-        qs = qs.filter(priority_id=priority)
-    if q:
-        qs = qs.filter(Q(code__icontains=q) | Q(title__icontains=q) | Q(description__icontains=q))
-
-    # respuesta CSV (con BOM para Excel y separador ;)
-    resp = HttpResponse(content_type="text/csv; charset=utf-8")
-    resp["Content-Disposition"] = 'attachment; filename="tickets_export.csv"'
-    # BOM para que Excel detecte UTF-8
-    resp.write("\ufeff")
-    writer = csv.writer(resp, delimiter=';')
-
-    writer.writerow([
-        "code","title","status","category","priority","area",
-        "requester","assigned_to","created_at","resolved_at","closed_at"
-    ])
-    for t in qs:
-        writer.writerow([
-            t.code,
-            t.title,
-            t.status,
-            getattr(t.category, "name", ""),
-            getattr(t.priority, "key", ""),
-            getattr(t.area, "name", ""),
-            getattr(t.requester, "username", ""),
-            getattr(t.assigned_to, "username", ""),
-            t.created_at.strftime("%Y-%m-%d %H:%M"),
-            t.resolved_at.strftime("%Y-%m-%d %H:%M") if t.resolved_at else "",
-            t.closed_at.strftime("%Y-%m-%d %H:%M") if t.closed_at else "",
-        ])
-    return resp
-
-
-@login_required
 def reports_export_excel(request):
     """Exporta a Excel (.xlsx) los tickets visibles para el usuario."""
     u = request.user
@@ -856,6 +799,7 @@ def reports_export_excel(request):
     status = (request.GET.get("status") or "").strip()
     category = (request.GET.get("category") or "").strip()
     priority = (request.GET.get("priority") or "").strip()
+    tech = (request.GET.get("tech") or "").strip()
     q = (request.GET.get("q") or "").strip()
 
     if status:
@@ -864,6 +808,8 @@ def reports_export_excel(request):
         qs = qs.filter(category_id=category)
     if priority:
         qs = qs.filter(priority_id=priority)
+    if tech:
+        qs = qs.filter(assigned_to_id=tech)
     if q:
         qs = qs.filter(
             Q(code__icontains=q)
@@ -957,7 +903,7 @@ def reports_export_pdf(request):
     else:
         qs = qs.filter(requester=u)
 
-    # Fechas (usa tu helper existente)
+    # Fechas y filtros adicionales
     dfrom = _parse_date_param(request.GET.get("from"))
     dto   = _parse_date_param(request.GET.get("to"))
     if dfrom:
@@ -965,26 +911,49 @@ def reports_export_pdf(request):
     if dto:
         qs = qs.filter(created_at__date__lte=dto)
 
-    # Métricas
-    by_status   = dict(qs.values_list("status").annotate(c=Count("id")))
-    by_category = list(qs.values("category__name").annotate(count=Count("id")).order_by("-count"))
-    by_priority = list(qs.values("priority__key").annotate(count=Count("id")).order_by("-count"))
+    tech_id = (request.GET.get("tech") or "").strip()
+    if tech_id:
+        qs = qs.filter(assigned_to_id=tech_id)
+
+    report_type = request.GET.get("type", "total")
 
     dur = ExpressionWrapper(F("resolved_at") - F("created_at"), output_field=DurationField())
     resolved = qs.exclude(resolved_at__isnull=True)
     avg_resolve = resolved.aggregate(avg=Avg(dur))["avg"]
     avg_hours = round(avg_resolve.total_seconds()/3600, 2) if avg_resolve else None
 
+    status_map = dict(Ticket.STATUS_CHOICES)
     ctx = {
         "generated_at": timezone.now(),
         "from": dfrom.isoformat() if dfrom else "",
         "to": dto.isoformat() if dto else "",
         "total": qs.count(),
-        "by_status": by_status,
-        "by_category": by_category,
-        "by_priority": by_priority,
-        "avg_hours": avg_hours,
+        "type": report_type,
     }
+
+    if report_type == "categoria":
+        ctx["by_category"] = list(
+            qs.values("category__name").annotate(count=Count("id")).order_by("-count")
+        )
+    elif report_type == "promedio":
+        ctx["avg_hours"] = avg_hours
+    elif report_type == "tecnico":
+        ctx["by_tech"] = list(
+            qs.exclude(assigned_to__isnull=True)
+            .values("assigned_to__username")
+            .annotate(count=Count("id"))
+            .order_by("-count")
+        )
+    else:
+        by_status_raw = dict(qs.values_list("status").annotate(c=Count("id")))
+        ctx["by_status"] = {status_map.get(k, k): v for k, v in by_status_raw.items()}
+        ctx["by_category"] = list(
+            qs.values("category__name").annotate(count=Count("id")).order_by("-count")
+        )
+        ctx["by_priority"] = list(
+            qs.values("priority__name").annotate(count=Count("id")).order_by("-count")
+        )
+        ctx["avg_hours"] = avg_hours
 
     # Render y PDF
     html = get_template("reports/report_pdf.html").render(ctx)

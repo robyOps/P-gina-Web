@@ -124,7 +124,7 @@ class Ticket(models.Model):
         """
         True si la prioridad es CRITICAL (para mostrar badge rojo en UI).
         """
-        return (getattr(self.priority, "key", "") or "").upper() == "CRITICAL"
+        return (getattr(self.priority, "name", "") or "").lower() == "crítica"
 
 
 # ------------------------- COMENTARIOS -------------------------

@@ -12,7 +12,7 @@ class ReportsExportExcelTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="u1", password="pass")
         cat = Category.objects.create(name="Cat")
-        pri = Priority.objects.create(key=Priority.LOW)
+        pri = Priority.objects.create(name="Baja")
         Ticket.objects.create(
             code="T1",
             title="Test",
@@ -37,7 +37,7 @@ class ReportsExportExcelTests(TestCase):
         wb = load_workbook(filename=BytesIO(resp.content))
         ws = wb.active
         headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
-        self.assertIn("code", headers)
+        self.assertIn("Código", headers)
         first_row = [cell.value for cell in next(ws.iter_rows(min_row=2, max_row=2))]
         self.assertEqual(first_row[0], "T1")
 
