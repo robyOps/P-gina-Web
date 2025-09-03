@@ -172,8 +172,8 @@ def tickets_home(request):
     page_obj = paginator.get_page(request.GET.get("page"))
     other_tickets = list(other_qs[:50]) if other_qs is not None else []
 
-    # Para el combo de estados
-    statuses = [key for key, _ in Ticket.STATUS_CHOICES]
+    # Para el combo de estados (clave y etiqueta en español)
+    statuses = Ticket.STATUS_CHOICES
 
     # Para preservar filtros en paginación (opcional, usado en template)
     qdict = request.GET.copy()
@@ -249,7 +249,9 @@ def ticket_detail(request, pk):
     is_admin_u = is_admin(u)
     is_tech_u = is_tech(u)
     can_assign = is_admin_u or is_tech_u
-    allowed = allowed_transitions_for(t, u)
+    allowed_codes = allowed_transitions_for(t, u)
+    status_map = dict(Ticket.STATUS_CHOICES)
+    allowed = [(code, status_map.get(code, code)) for code in allowed_codes]
 
     tech_users = []
     if is_admin_u:

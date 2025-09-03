@@ -14,17 +14,29 @@
   <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
 
+  <style>
+    .btn {
+      transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+  </style>
   {% block head_extra %}{% endblock %}
 </head>
 <body class="bg-gray-50 text-gray-900">
-  <header class="bg-white shadow">
+  <header class="bg-gradient-to-r from-indigo-600 to-blue-500 shadow text-white">
     <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
       <div class="flex items-center gap-6">
-        <a href="{% url 'tickets_home' %}" class="font-semibold">Helpdesk</a>
+        <a href="{% url 'tickets_home' %}" class="font-semibold hover:text-yellow-200 transition-colors">Helpdesk</a>
         {% if request.user.is_authenticated %}
           <nav class="hidden md:flex items-center gap-4">
-            <a href="{% url 'tickets_home' %}" class="text-sm hover:underline">Tickets</a>
-            <a href="{% url 'reports_dashboard' %}" class="text-sm hover:underline">Reportes</a>
+            <a href="{% url 'tickets_home' %}" class="text-sm hover:text-yellow-200 transition-colors">Tickets</a>
+            <a href="{% url 'reports_dashboard' %}" class="text-sm hover:text-yellow-200 transition-colors">Reportes</a>
           </nav>
         {% endif %}
       </div>
@@ -33,7 +45,7 @@
         {% if request.user.is_authenticated %}
           {% if request.user|has_group:"ADMIN" or request.user.is_superuser %}
             <details class="relative">
-              <summary class="cursor-pointer list-none">Admin</summary>
+              <summary class="cursor-pointer list-none hover:text-yellow-200 transition-colors">Admin</summary>
               <div class="absolute right-0 mt-1 bg-white border rounded shadow text-sm">
                 <a href="{% url 'accounts:users_list' %}" class="block px-4 py-2 hover:bg-gray-100">Usuarios</a>
                 <a href="{% url 'categories_list' %}" class="block px-4 py-2 hover:bg-gray-100">Categorías</a>
@@ -47,11 +59,11 @@
             Hola, <span class="font-medium">{{ request.user.username }}</span>
             · <form action="{% url 'logout' %}" method="post" class="inline">
                 {% csrf_token %}
-                <button type="submit" class="text-blue-600 hover:underline">Salir</button>
+                <button type="submit" class="hover:text-yellow-200 transition-colors">Salir</button>
               </form>
           </div>
         {% else %}
-          <a href="{% url 'login' %}" class="text-blue-600 hover:underline">Ingresar</a>
+          <a href="{% url 'login' %}" class="hover:text-yellow-200 transition-colors">Ingresar</a>
         {% endif %}
       </div>
     </div>
