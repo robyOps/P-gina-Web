@@ -14,6 +14,7 @@ from django.http import (
 )
 
 from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 from django.template.response import TemplateResponse
 from django.template.loader import get_template
 from django.utils import timezone
@@ -47,6 +48,7 @@ from .models import (
     TicketAttachment,
     TicketAssignment,
     AuditLog,
+    Notification,
 )
 
 
@@ -55,6 +57,12 @@ from .services import run_sla_check, apply_auto_assign, tickets_to_workbook
 from .validators import validate_upload, UploadValidationError
 
 User = get_user_model()
+
+
+# ----------------- notificaciones -----------------
+def create_notification(user, message, url=""):
+    if user:
+        Notification.objects.create(user=user, message=message, url=url)
 
 
 # ----------------- helpers -----------------
@@ -224,12 +232,24 @@ def ticket_create(request):
                 except Exception:
                     pass
 
+            link = reverse("ticket_detail", args=[t.pk])
+            create_notification(request.user, f"Ticket {t.code} creado", link)
+            if t.assigned_to_id:
+                create_notification(t.assigned_to, f"Ticket {t.code} te ha sido asignado", link)
+
             messages.success(request, f"Ticket creado: {t.code}")
             return redirect("ticket_detail", pk=t.pk)
         messages.error(request, "Revisa los campos del formulario.")
     else:
         form = TicketCreateForm()
     return TemplateResponse(request, "tickets/new.html", {"form": form})
+
+
+@login_required
+def notifications_list(request):
+    qs = Notification.objects.filter(user=request.user).order_by("-created_at")
+    qs.filter(is_read=False).update(is_read=True)
+    return TemplateResponse(request, "notifications/list.html", {"notifications": qs})
 
 
 @login_required
@@ -460,6 +480,10 @@ def ticket_assign(request, pk):
         meta={"from": prev.id if prev else None, "to": to_user.id, "reason": reason},
     )
 
+    link = reverse("ticket_detail", args=[t.pk])
+    create_notification(to_user, f"Ticket {t.code} te ha sido asignado", link)
+    create_notification(t.requester, f"Ticket {t.code} asignado a {to_user.username}", link)
+
     messages.success(request, f"Ticket asignado a {to_user.username}.")
     return redirect("ticket_detail", pk=t.pk)
 
@@ -499,7 +523,7 @@ def ticket_transition(request, pk):
 
     AuditLog.objects.create(
         ticket=t,
-        actor=u,
+       actor=u,
         action="STATUS",
         meta={
             "to": next_status,
@@ -507,6 +531,12 @@ def ticket_transition(request, pk):
             "internal": bool(is_internal),
         },
     )
+
+    link = reverse("ticket_detail", args=[t.pk])
+    msg = f"Ticket {t.code} estado actualizado a {t.get_status_display()}"
+    create_notification(t.requester, msg, link)
+    if t.assigned_to:
+        create_notification(t.assigned_to, msg, link)
 
     messages.success(request, f"Estado actualizado a {next_status}.")
     return redirect("ticket_detail", pk=t.pk)

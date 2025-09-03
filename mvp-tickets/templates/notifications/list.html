@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Notificaciones{% endblock %}
+
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">Notificaciones</h1>
+<ul class="space-y-2">
+  {% for n in notifications %}
+    <li class="bg-white p-3 rounded shadow">
+      {% if n.url %}<a href="{{ n.url }}" class="hover:underline">{{ n.message }}</a>{% else %}{{ n.message }}{% endif %}
+      <div class="text-xs text-gray-500">{{ n.created_at|date:'Y-m-d H:i' }}</div>
+    </li>
+  {% empty %}
+    <li>No hay notificaciones.</li>
+  {% endfor %}
+</ul>
+{% endblock %}
