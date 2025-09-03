@@ -1,5 +1,5 @@
 {% load static %}
-{% load roles %} {# filtro has_group para chequear grupos #}
+{% load roles notifications %} {# filtros personalizados #}
 <!doctype html>
 <html lang="es">
 <head>
@@ -46,7 +46,7 @@
           {% if request.user|has_group:"ADMIN" or request.user.is_superuser %}
             <details class="relative">
               <summary class="cursor-pointer list-none bg-white/20 px-2 py-1 rounded hover:bg-white/30 transition-colors">Admin Panel</summary>
-              <div class="absolute right-0 mt-1 bg-white border rounded shadow text-sm">
+              <div class="absolute right-0 mt-1 bg-white border rounded shadow text-sm text-black">
                 <a href="{% url 'accounts:users_list' %}" class="block px-4 py-2 hover:bg-gray-100">Usuarios</a>
                 <a href="{% url 'categories_list' %}" class="block px-4 py-2 hover:bg-gray-100">Categorías</a>
                 <a href="{% url 'priorities_list' %}" class="block px-4 py-2 hover:bg-gray-100">Prioridades</a>
@@ -56,6 +56,13 @@
             </details>
           {% endif %}
           <div class="flex items-center gap-4">
+            <a href="{% url 'notifications_list' %}" class="relative hover:text-yellow-200 transition-colors">
+              <i class="bi bi-bell"></i>
+              {% unread_notifications_count as notif_count %}
+              {% if notif_count %}
+                <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1">{{ notif_count }}</span>
+              {% endif %}
+            </a>
             <span>Hola, <span class="font-medium">{{ request.user.username }}</span></span>
             <form action="{% url 'logout' %}" method="post">
                 {% csrf_token %}
