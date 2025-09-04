@@ -4,6 +4,7 @@ from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 from tickets.models import Ticket, TicketComment, TicketAttachment
 from catalog.models import Category, Priority, Area
+from accounts.roles import ROLE_ADMIN, ROLE_TECH, ROLE_REQUESTER
 
 class Command(BaseCommand):
     help = "Inicializa grupos y asigna permisos por defecto"
@@ -17,9 +18,9 @@ class Command(BaseCommand):
         custom_codes = ["assign_ticket", "transition_ticket", "comment_internal", "view_all_tickets"]
         custom = list(Permission.objects.filter(codename__in=custom_codes))
 
-        requester, _ = Group.objects.get_or_create(name="REQUESTER")
-        tech, _ = Group.objects.get_or_create(name="TECH")
-        admin, _ = Group.objects.get_or_create(name="ADMIN")
+        requester, _ = Group.objects.get_or_create(name=ROLE_REQUESTER)
+        tech, _ = Group.objects.get_or_create(name=ROLE_TECH)
+        admin, _ = Group.objects.get_or_create(name=ROLE_ADMIN)
 
         cat_perms = std_perms(Category) + std_perms(Priority) + std_perms(Area)
         t_perms   = std_perms(Ticket) + custom

@@ -135,7 +135,7 @@ class TicketComment(models.Model):
     # Autor del comentario
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
-    # Texto y si es interno (visible solo a TECH/ADMIN)
+    # Texto y si es interno (visible solo a TECNICO/ADMINISTRADOR)
     body = models.TextField()
     is_internal = models.BooleanField(default=False)
 

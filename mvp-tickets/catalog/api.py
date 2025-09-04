@@ -1,12 +1,13 @@
 from rest_framework import viewsets, permissions
 from .models import Category, Priority, Area
 from .serializers import CategorySerializer, PrioritySerializer, AreaSerializer
+from accounts.roles import is_admin
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in ("GET", "HEAD", "OPTIONS"):
             return True
-        return request.user.groups.filter(name="ADMIN").exists()
+        return is_admin(request.user)
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()

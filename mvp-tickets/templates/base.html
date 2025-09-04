@@ -44,7 +44,7 @@
 
       <div class="flex items-center gap-6 text-sm">
         {% if request.user.is_authenticated %}
-          {% if request.user|has_group:"ADMIN" or request.user.is_superuser %}
+          {% if request.user|has_group:"ADMINISTRADOR" or request.user.is_superuser %}
             <details class="relative">
               <summary class="cursor-pointer list-none bg-white/20 px-2 py-1 rounded hover:bg-white/30 transition-colors">Admin Panel</summary>
               <div class="absolute right-0 mt-1 bg-white border rounded shadow text-sm text-black">

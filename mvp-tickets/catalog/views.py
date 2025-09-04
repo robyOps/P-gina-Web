@@ -9,10 +9,7 @@ from .forms import CategoryForm, PriorityForm, AreaForm
 
 
 from django.http import HttpResponseForbidden
-from tickets.api import is_admin  # ya lo tienes
-
-def is_admin(u):
-    return u.is_authenticated and (u.is_superuser or u.groups.filter(name="ADMIN").exists())
+from accounts.roles import is_admin, ROLE_ADMIN
 
 # -------- Categorías --------
 @login_required
@@ -54,14 +51,14 @@ def category_edit(request, pk):
 @login_required
 def priorities_list(request):
     if not is_admin(request.user):
-        return HttpResponseForbidden("Solo ADMIN")
+        return HttpResponseForbidden(f"Solo {ROLE_ADMIN}")
     qs = Priority.objects.all().order_by("name")
     return render(request, "catalog/priorities_list.html", {"rows": qs})
 
 @login_required
 def priority_create(request):
     if not is_admin(request.user):
-        return HttpResponseForbidden("Solo ADMIN")
+        return HttpResponseForbidden(f"Solo {ROLE_ADMIN}")
     if request.method == "POST":
         form = PriorityForm(request.POST)
         if form.is_valid():
@@ -76,7 +73,7 @@ def priority_create(request):
 @login_required
 def priority_edit(request, pk):
     if not is_admin(request.user):
-        return HttpResponseForbidden("Solo ADMIN")
+        return HttpResponseForbidden(f"Solo {ROLE_ADMIN}")
     obj = get_object_or_404(Priority, pk=pk)
     if request.method == "POST":
         form = PriorityForm(request.POST, instance=obj)
