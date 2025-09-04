@@ -32,12 +32,13 @@
   <header class="bg-gradient-to-r from-indigo-600 to-blue-500 shadow text-white">
     <div class="w-full pl-2 pr-4 py-3 flex justify-between items-center">
       <div class="flex items-center gap-6">
-        <a href="{% url 'dashboard' %}" class="relative font-bold text-2xl group">
-          <span class="transition-opacity duration-300 group-hover:opacity-0">Coyahue</span>
-          <span class="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 text-black">Coyahue Helpdesk</span>
+        <a href="{% url 'dashboard' %}" class="relative font-bold text-2xl group flex items-center">
+          <span>Coyahue</span>
+          <span class="inline-block text-white transition-all duration-300 group-hover:ml-6 group-hover:text-black">h</span>
+          <span class="inline-block overflow-hidden max-w-0 transition-all duration-300 text-black group-hover:max-w-[120px] group-hover:ml-1">elpdesk</span>
         </a>
         {% if request.user.is_authenticated %}
-        <nav class="hidden md:flex items-center gap-4">
+        <nav class="hidden md:flex items-center gap-4 ml-8">
           <a href="{% url 'tickets_home' %}" class="text-sm hover:text-orange-300 transition-colors">Tickets</a>
           <a href="{% url 'reports_dashboard' %}" class="text-sm hover:text-orange-300 transition-colors">Reportes</a>
           <a href="{% url 'dashboard' %}" class="text-sm hover:text-orange-300 transition-colors">Dashboard</a>
