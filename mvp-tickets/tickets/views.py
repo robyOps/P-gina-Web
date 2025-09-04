@@ -441,31 +441,18 @@ def add_attachment(request, pk):
     f = request.FILES.get("file")
     if not f:
         return HttpResponseBadRequest("Archivo requerido")
-    if f.size > 20 * 1024 * 1024:
-        return HttpResponseBadRequest("Archivo > 20MB")
+    try:
+        validate_upload(f)
+    except UploadValidationError as e:
+        return HttpResponseBadRequest(str(e))
 
-    # --- Validación de tipo/extension (whitelist) ---
-    allowed_ext = {"pdf", "png", "jpg", "jpeg", "txt", "csv", "log", "docx", "xlsx"}
-    allowed_ct_prefix = ("image/",)
-    allowed_ct_exact = {
-        "application/pdf",
-        "text/plain",
-        "text/csv",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    }
-    name_lower = f.name.lower()
-    ext = name_lower.rsplit(".", 1)[-1] if "." in name_lower else ""
     content_type = getattr(f, "content_type", "") or ""
-
-    if (ext not in allowed_ext) or not (
-        content_type.startswith(allowed_ct_prefix) or content_type in allowed_ct_exact
-    ):
-        return HttpResponseBadRequest("Tipo de archivo no permitido")
-
     TicketAttachment.objects.create(
-        ticket=t, uploaded_by=u, file=f,
-        content_type=content_type, size=f.size
+        ticket=t,
+        uploaded_by=u,
+        file=f,
+        content_type=content_type,
+        size=f.size,
     )
 
 

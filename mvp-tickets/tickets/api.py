@@ -267,32 +267,12 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         f = request.FILES["file"]
 
-        # --- Validación de tamaño (20 MB) ---
-        max_size = 20 * 1024 * 1024
-        if f.size > max_size:
-            return Response({"detail": "Archivo demasiado grande"}, status=400)
+        try:
+            validate_upload(f)
+        except UploadValidationError as e:
+            return Response({"detail": str(e)}, status=400)
 
-        # --- Validación de tipo/extension (whitelist) ---
-        allowed_ext = {"pdf", "png", "jpg", "jpeg", "txt", "csv", "log", "docx", "xlsx"}
-        allowed_ct_prefix = ("image/",)  # ej: image/png, image/jpeg
-        allowed_ct_exact = {
-            "application/pdf",
-            "text/plain",
-            "text/csv",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # docx
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",      # xlsx
-        }
-        name_lower = f.name.lower()
-        ext = name_lower.rsplit(".", 1)[-1] if "." in name_lower else ""
         content_type = getattr(f, "content_type", "") or ""
-
-        if (ext not in allowed_ext) or not (
-            content_type.startswith(allowed_ct_prefix) or content_type in allowed_ct_exact
-        ):
-            return Response(
-                {"detail": f"Tipo de archivo no permitido ({ext}, {content_type})."},
-                status=400,
-            )
 
         # --- Crear registro ---
         att = TicketAttachment.objects.create(

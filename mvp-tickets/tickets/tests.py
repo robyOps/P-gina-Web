@@ -3,9 +3,11 @@ from io import BytesIO
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from catalog.models import Category, Priority
 from tickets.models import Ticket
+from tickets.validators import validate_upload, UploadValidationError
 
 
 class ReportsExportExcelTests(TestCase):
@@ -40,4 +42,22 @@ class ReportsExportExcelTests(TestCase):
         self.assertIn("Código", headers)
         first_row = [cell.value for cell in next(ws.iter_rows(min_row=2, max_row=2))]
         self.assertEqual(first_row[0], "T1")
+
+
+class UploadValidatorTests(TestCase):
+    def test_invalid_path_rejected(self):
+        class Dummy:
+            name = "../../evil.txt"
+            size = 1
+            content_type = "text/plain"
+
+        with self.assertRaises(UploadValidationError):
+            validate_upload(Dummy())
+
+    def test_valid_file(self):
+        f = SimpleUploadedFile("ok.txt", b"x", content_type="text/plain")
+        try:
+            validate_upload(f)
+        except UploadValidationError:
+            self.fail("validate_upload raised unexpectedly")
 
