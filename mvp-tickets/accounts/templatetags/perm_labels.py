@@ -8,6 +8,15 @@ def perm_label(permission):
     """Devuelve el nombre en español del permiso dado."""
     try:
         code = getattr(permission, "codename", "")
-        return PERMISSION_LABELS.get(code, getattr(permission, "name", code))
+        return PERMISSION_LABELS.get(code, "")
     except Exception:
-        return getattr(permission, "name", "")
+        return ""
+
+
+@register.filter
+def perm_known(perms):
+    """Filtra una lista/queryset de permisos dejando solo los conocidos."""
+    try:
+        return [p for p in perms if getattr(p, "codename", "") in PERMISSION_LABELS]
+    except Exception:
+        return []
