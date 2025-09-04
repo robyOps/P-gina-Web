@@ -31,6 +31,7 @@ urlpatterns = [
     path("tickets/<int:pk>/attachments/add/", ticket_views.add_attachment, name="add_attachment"),
     path("tickets/<int:pk>/audit/partial/", ticket_views.audit_partial, name="audit_partial"),
 
+    path("logs/", ticket_views.logs_list, name="logs_list"),
 
     # Reportes
     path("reports/", ticket_views.reports_dashboard, name="reports_dashboard"),
