@@ -58,6 +58,7 @@ urlpatterns = [
     # --- API bajo /api/ ---
     path("api/", include("helpdesk.api_urls")),
     path('api/booking/', include('tickets.urls_reservas')),
+    path('booking/', include('tickets.urls_reservas_ui')),
     path('api-auth/', include('rest_framework.urls')),
 
     path("auto-assign/", ticket_views.auto_rules_list, name="auto_rules_list"),

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Políticas{% endblock %}
+{% block content %}
+<h1 class="text-xl font-bold mb-4">Políticas</h1>
+<form id="form-politica" class="space-y-2 mb-4">
+  <label>Nombre <input type="text" id="name" class="border p-1" /></label>
+  <label>Máx. horas <input type="number" id="max_hours" value="4" class="border p-1" /></label>
+  <label>Aviso mínimo (horas) <input type="number" id="min_notice_hours" value="1" class="border p-1" /></label>
+  <label><input type="checkbox" id="allow_weekends" checked /> Permitir fines de semana</label>
+  <label>Buffer (minutos) <input type="number" id="buffer_minutes" value="0" class="border p-1" /></label>
+  <button type="submit" class="btn bg-blue-500 text-white px-2 py-1">Crear</button>
+</form>
+<div id="politica-msg" class="mb-4 text-sm"></div>
+<ul id="lista-politicas" class="list-disc pl-5"></ul>
+
+<script>
+function getCSRFToken() {
+  const name = 'csrftoken=';
+  const cookie = document.cookie.split('; ').find(row => row.startsWith(name));
+  return cookie ? cookie.split('=')[1] : '';
+}
+
+async function cargarPoliticas() {
+  const resp = await fetch('/api/booking/policies/');
+  const data = await resp.json();
+  const ul = document.getElementById('lista-politicas');
+  ul.innerHTML = '';
+  data.forEach(p => {
+    const li = document.createElement('li');
+    li.textContent = `${p.name} - máx ${p.max_hours}h, aviso ${p.min_notice_hours}h`;
+    ul.appendChild(li);
+  });
+}
+
+document.getElementById('form-politica').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    name: document.getElementById('name').value,
+    max_hours: parseInt(document.getElementById('max_hours').value || '0'),
+    min_notice_hours: parseInt(document.getElementById('min_notice_hours').value || '0'),
+    allow_weekends: document.getElementById('allow_weekends').checked,
+    buffer_minutes: parseInt(document.getElementById('buffer_minutes').value || '0'),
+  };
+  const resp = await fetch('/api/booking/policies/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+    credentials: 'same-origin',
+    body: JSON.stringify(payload),
+  });
+  const msg = document.getElementById('politica-msg');
+  if (resp.ok) {
+    msg.textContent = 'Política creada.';
+    cargarPoliticas();
+  } else {
+    msg.textContent = 'Error inesperado (código ' + resp.status + ')';
+  }
+});
+
+cargarPoliticas();
+</script>
+{% endblock %}

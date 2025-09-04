@@ -17,7 +17,6 @@ urlpatterns = [
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("auth/me/", MeView.as_view(), name="auth_me"),
     path("", include(router.urls)),
-    path("reservas/", include("tickets.urls_reservas")),
 ]
 
 urlpatterns += [
