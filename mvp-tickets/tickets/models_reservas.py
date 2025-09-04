@@ -2,6 +2,11 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+try:  # Modelo Ticket puede no existir en algunos entornos
+    from .models import Ticket
+except Exception:  # pragma: no cover - fallback cuando la app tickets no tiene Ticket
+    Ticket = None
+
 
 class Resource(models.Model):
     class ResourceType(models.TextChoices):
@@ -40,9 +45,18 @@ class Reservation(models.Model):
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField()
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.REQUESTED)
+    # En caso de que el proyecto tenga tickets, podemos vincular una reserva a uno
+    if Ticket:  # pragma: no branch - solo se ejecuta si el modelo existe
+        ticket = models.ForeignKey(
+            Ticket, null=True, blank=True, on_delete=models.SET_NULL, related_name="reservations"
+        )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'booking_reservation'
         ordering = ['-starts_at']
+        indexes = [
+            models.Index(fields=["resource", "starts_at"]),
+            models.Index(fields=["resource", "ends_at"]),
+        ]

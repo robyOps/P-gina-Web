@@ -23,3 +23,40 @@ class ReservaApiTests(TestCase):
         }
         resp = self.client.post(url, data=payload, content_type='application/json')
         self.assertIn(resp.status_code, (200, 201))
+
+    def test_solapamiento_conflict(self):
+        url = reverse('booking-reservation-list')
+        start = timezone.now() + timedelta(hours=1)
+        end = start + timedelta(hours=1)
+        payload = {
+            'resource': self.resource.id,
+            'starts_at': start.isoformat(),
+            'ends_at': end.isoformat(),
+        }
+        self.client.post(url, data=payload, content_type='application/json')
+        # Segunda reserva solapada
+        payload2 = {
+            'resource': self.resource.id,
+            'starts_at': (start + timedelta(minutes=30)).isoformat(),
+            'ends_at': (end + timedelta(minutes=30)).isoformat(),
+        }
+        resp2 = self.client.post(url, data=payload2, content_type='application/json')
+        self.assertEqual(resp2.status_code, 409)
+
+    def test_politica_max_horas(self):
+        policy = Policy.objects.first()
+        policy.max_hours = 1
+        policy.save()
+        url = reverse('booking-reservation-list')
+        start = timezone.now() + timedelta(hours=1)
+        end = start + timedelta(hours=2)
+        resp = self.client.post(
+            url,
+            data={
+                'resource': self.resource.id,
+                'starts_at': start.isoformat(),
+                'ends_at': end.isoformat(),
+            },
+            content_type='application/json',
+        )
+        self.assertEqual(resp.status_code, 400)
