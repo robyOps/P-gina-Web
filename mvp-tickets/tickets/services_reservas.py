@@ -4,7 +4,7 @@ from .validators_reservas import enforce_policies, assert_no_overlap
 
 
 @transaction.atomic
-def create_reservation(*, user, resource: Resource, starts_at, ends_at) -> Reservation:
+def create_reservation(*, user, resource: Resource, starts_at, ends_at, ticket=None) -> Reservation:
     enforce_policies(user, resource, starts_at, ends_at)
     assert_no_overlap(resource, starts_at, ends_at)
     return Reservation.objects.create(
@@ -12,6 +12,7 @@ def create_reservation(*, user, resource: Resource, starts_at, ends_at) -> Reser
         resource=resource,
         starts_at=starts_at,
         ends_at=ends_at,
+        ticket=ticket,
     )
 
 

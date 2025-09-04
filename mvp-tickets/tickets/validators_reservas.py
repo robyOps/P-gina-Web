@@ -23,23 +23,13 @@ def enforce_policies(user, resource: Resource, start, end):
     hours = duration.total_seconds() / 3600
 
     policy = Policy.objects.first()
-    if policy and hasattr(resource, 'type'):
-        # Si la política aplica por tipo de recurso (simple)
-        applies = True
-        if resource.type == 'room':
-            applies = getattr(policy, 'applies_to_room', True)
-        elif resource.type == 'device':
-            applies = getattr(policy, 'applies_to_device', True)
-        else:
-            applies = getattr(policy, 'applies_to_other', True)
-        if not applies:
-            policy = None
-
     if policy:
         if hours > policy.max_hours:
             raise PolicyError(f"La reserva excede el máximo de {policy.max_hours} horas.")
         if start < timezone.now() + timedelta(hours=policy.min_notice_hours):
-            raise PolicyError(f"Se requiere un aviso mínimo de {policy.min_notice_hours} horas.")
+            raise PolicyError(
+                f"Se requiere un aviso mínimo de {policy.min_notice_hours} horas."
+            )
         if not policy.allow_weekends and start.weekday() >= 5:
             raise PolicyError("No se permiten reservas en fin de semana.")
 

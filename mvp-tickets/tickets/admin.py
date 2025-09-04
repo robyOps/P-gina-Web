@@ -1,3 +1,7 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models_reservas import Resource, Policy, Reservation
+
+admin.site.register(Resource)
+admin.site.register(Policy)
+admin.site.register(Reservation)

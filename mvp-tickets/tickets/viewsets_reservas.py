@@ -81,9 +81,9 @@ class ReservationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def availability(self, request):
         resource_id = request.query_params.get('resource_id')
-        date_from = self.request.query_params.get('from')
-        date_to = self.request.query_params.get('to')
-        qs = self.get_queryset()
+        date_from = request.query_params.get('from')
+        date_to = request.query_params.get('to')
+        qs = Reservation.objects.select_related('resource').all()
         if resource_id:
             qs = qs.filter(resource_id=resource_id)
         if date_from:
