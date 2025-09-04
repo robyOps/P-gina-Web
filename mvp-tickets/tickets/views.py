@@ -598,6 +598,8 @@ def reports_dashboard(request):
         qs = qs.filter(assigned_to_id=tech_selected)
 
     report_type = request.GET.get("type", "total")
+    if report_type == "urgencia":
+        qs = qs.filter(priority__name__icontains="urgencia")
 
     # Métricas base
     by_status_raw = dict(qs.values_list("status").annotate(c=Count("id")))
@@ -861,6 +863,7 @@ def reports_export_excel(request):
     category = (request.GET.get("category") or "").strip()
     priority = (request.GET.get("priority") or "").strip()
     tech = (request.GET.get("tech") or "").strip()
+    report_type = (request.GET.get("type") or "").strip()
     q = (request.GET.get("q") or "").strip()
 
     if status:
@@ -871,6 +874,8 @@ def reports_export_excel(request):
         qs = qs.filter(priority_id=priority)
     if tech:
         qs = qs.filter(assigned_to_id=tech)
+    if report_type == "urgencia":
+        qs = qs.filter(priority__name__icontains="urgencia")
     if q:
         qs = qs.filter(
             Q(code__icontains=q)
@@ -1004,6 +1009,10 @@ def reports_export_pdf(request):
             .values("assigned_to__username")
             .annotate(count=Count("id"))
             .order_by("-count")
+        )
+    elif report_type == "urgencia":
+        ctx["urgent_tickets"] = list(
+            qs.values("code", "title", "status").order_by("-created_at")
         )
     else:
         by_status_raw = dict(qs.values_list("status").annotate(c=Count("id")))

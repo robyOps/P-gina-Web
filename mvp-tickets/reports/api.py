@@ -47,6 +47,9 @@ class ReportSummaryView(APIView):
 
     def get(self, request):
         qs = base_queryset(request)
+        report_type = request.query_params.get("type")
+        if report_type == "urgencia":
+            qs = qs.filter(priority__name__icontains="urgencia")
 
         # --- by_status robusto (incluye estados con 0) ---
         status_list = list(qs.values_list("status", flat=True))
@@ -96,6 +99,9 @@ class ReportExportView(APIView):
 
     def get(self, request):
         qs = base_queryset(request)
+        report_type = request.query_params.get("type")
+        if report_type == "urgencia":
+            qs = qs.filter(priority__name__icontains="urgencia")
 
         # --- Config CSV / Excel ---
         # Excel (es-CL/es-ES) suele esperar ; como separador
