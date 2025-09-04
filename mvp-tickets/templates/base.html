@@ -34,11 +34,12 @@
       <div class="flex items-center gap-6">
         <a href="{% url 'dashboard' %}" class="relative font-bold text-2xl group flex items-center">
           <span>Coyahue</span>
-          <span class="inline-block text-white transition-all duration-300 group-hover:ml-6 group-hover:text-black">h</span>
-          <span class="inline-block overflow-hidden max-w-0 transition-all duration-300 text-black group-hover:max-w-[120px] group-hover:ml-1">elpdesk</span>
+          <span class="inline-block overflow-hidden max-w-0 transition-all duration-300 group-hover:max-w-[120px] group-hover:ml-1">
+            <span class="text-white transition-colors duration-300 group-hover:text-black">h</span><span class="text-black">elpdesk</span>
+          </span>
         </a>
         {% if request.user.is_authenticated %}
-        <nav class="hidden md:flex items-center gap-4 ml-8">
+        <nav class="hidden md:flex items-center gap-4 ml-32">
           <a href="{% url 'tickets_home' %}" class="text-sm hover:text-orange-300 transition-colors">Tickets</a>
           <a href="{% url 'reports_dashboard' %}" class="text-sm hover:text-orange-300 transition-colors">Reportes</a>
           <a href="{% url 'dashboard' %}" class="text-sm hover:text-orange-300 transition-colors">Dashboard</a>
