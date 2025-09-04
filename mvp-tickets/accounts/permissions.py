@@ -40,4 +40,17 @@ PERMISSION_LABELS = {
     "change_permission": "Puede cambiar permiso",
     "delete_permission": "Puede eliminar permiso",
     "view_permission": "Puede ver permiso",
+    # Permisos del sistema y administración
+    "add_logentry": "Puede agregar registro de admin",
+    "change_logentry": "Puede cambiar registro de admin",
+    "delete_logentry": "Puede eliminar registro de admin",
+    "view_logentry": "Puede ver registro de admin",
+    "add_contenttype": "Puede agregar tipo de contenido",
+    "change_contenttype": "Puede cambiar tipo de contenido",
+    "delete_contenttype": "Puede eliminar tipo de contenido",
+    "view_contenttype": "Puede ver tipo de contenido",
+    "add_session": "Puede agregar sesión",
+    "change_session": "Puede cambiar sesión",
+    "delete_session": "Puede eliminar sesión",
+    "view_session": "Puede ver sesión",
 }
