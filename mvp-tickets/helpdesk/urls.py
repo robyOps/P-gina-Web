@@ -1,5 +1,4 @@
 # helpdesk/urls.py
-from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from django.conf import settings
@@ -58,6 +57,7 @@ urlpatterns = [
     # --- API bajo /api/ ---
     path("api/", include("helpdesk.api_urls")),
     path('api/booking/', include('tickets.urls_reservas')),
+    path('booking/', include('tickets.urls_reservas_ui')),
     path('api-auth/', include('rest_framework.urls')),
 
     path("auto-assign/", ticket_views.auto_rules_list, name="auto_rules_list"),
@@ -73,9 +73,6 @@ urlpatterns = [
     path("rules/<int:pk>/toggle/",ticket_views.auto_rule_toggle,  name="auto_rule_toggle"),
     path("rules/<int:pk>/delete/",ticket_views.auto_rule_delete,  name="auto_rule_delete"),
 
-
-    # Admin opcional en dev
-    # path("admin/", admin.site.urls),
 ]
 
 # Servir MEDIA en dev

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Reservas{% endblock %}
+{% block content %}
+<h1 class="text-xl font-bold mb-4">Reservas</h1>
+
+<div id="reserva-form" class="mb-6">
+  <h2 class="font-semibold">Nueva reserva</h2>
+  <form id="form-reserva" class="space-y-2">
+    <label>Recurso
+      <select id="resource" class="border p-1"></select>
+    </label>
+    <label>Inicio
+      <input type="datetime-local" id="starts_at" class="border p-1" />
+    </label>
+    <label>Término
+      <input type="datetime-local" id="ends_at" class="border p-1" />
+    </label>
+    <button type="submit" class="btn bg-blue-500 text-white px-2 py-1">Crear</button>
+  </form>
+  <div id="reserva-msg" class="mt-2 text-sm"></div>
+</div>
+
+<div class="mt-6">
+  <h2 class="font-semibold">Mis reservas</h2>
+  <ul id="mis-reservas" class="list-disc pl-5"></ul>
+</div>
+
+<div class="mt-6">
+  <h2 class="font-semibold">Disponibilidad</h2>
+  <form id="form-disponibilidad" class="space-y-2">
+    <label>Recurso
+      <select id="disp-resource" class="border p-1"></select>
+    </label>
+    <label>Desde
+      <input type="datetime-local" id="from" class="border p-1" />
+    </label>
+    <label>Hasta
+      <input type="datetime-local" id="to" class="border p-1" />
+    </label>
+    <button type="submit" class="btn bg-blue-500 text-white px-2 py-1">Consultar</button>
+  </form>
+  <ul id="lista-disponibilidad" class="list-disc pl-5 mt-2"></ul>
+</div>
+
+<script>
+function getCSRFToken() {
+  const name = 'csrftoken=';
+  const cookie = document.cookie.split('; ').find(row => row.startsWith(name));
+  return cookie ? cookie.split('=')[1] : '';
+}
+
+async function cargarRecursos() {
+  const resp = await fetch('/api/booking/resources/');
+  const data = await resp.json();
+  const sel1 = document.getElementById('resource');
+  const sel2 = document.getElementById('disp-resource');
+  data.forEach(r => {
+    const opt = new Option(r.name, r.id);
+    sel1.add(opt.cloneNode(true));
+    sel2.add(opt);
+  });
+}
+
+async function cargarMisReservas() {
+  const resp = await fetch('/api/booking/reservations/');
+  if (resp.ok) {
+    const data = await resp.json();
+    const ul = document.getElementById('mis-reservas');
+    ul.innerHTML = '';
+    data.forEach(r => {
+      const li = document.createElement('li');
+      li.textContent = `${r.resource} - ${r.starts_at} → ${r.ends_at} (${r.status})`;
+      ul.appendChild(li);
+    });
+  }
+}
+
+document.getElementById('form-reserva').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    resource: document.getElementById('resource').value,
+    starts_at: document.getElementById('starts_at').value,
+    ends_at: document.getElementById('ends_at').value,
+  };
+  const resp = await fetch('/api/booking/reservations/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCSRFToken(),
+    },
+    credentials: 'same-origin',
+    body: JSON.stringify(payload),
+  });
+  const msg = document.getElementById('reserva-msg');
+  if (resp.ok) {
+    msg.textContent = 'Reserva creada.';
+    cargarMisReservas();
+  } else if (resp.status === 400) {
+    const data = await resp.json();
+    msg.textContent = 'La reserva no cumple las políticas: ' + (data.detail || '');
+  } else if (resp.status === 409) {
+    msg.textContent = 'Ya existe una reserva que se solapa en ese horario.';
+  } else {
+    msg.textContent = 'Error inesperado (código ' + resp.status + ')';
+  }
+});
+
+document.getElementById('form-disponibilidad').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const params = new URLSearchParams({
+    resource_id: document.getElementById('disp-resource').value,
+    from: document.getElementById('from').value,
+    to: document.getElementById('to').value,
+  });
+  const resp = await fetch('/api/booking/reservations/availability?' + params.toString());
+  const ul = document.getElementById('lista-disponibilidad');
+  ul.innerHTML = '';
+  if (resp.ok) {
+    const data = await resp.json();
+    data.forEach(r => {
+      const li = document.createElement('li');
+      li.textContent = `${r.title}: ${r.start} → ${r.end}`;
+      ul.appendChild(li);
+    });
+  }
+});
+
+cargarRecursos();
+cargarMisReservas();
+</script>
+{% endblock %}
