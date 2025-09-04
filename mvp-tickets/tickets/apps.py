@@ -6,3 +6,4 @@ class TicketsConfig(AppConfig):
 
     def ready(self):
         from . import signals  # importa señales al arrancar
+        from . import models_reservas  # registra modelos de reservas
