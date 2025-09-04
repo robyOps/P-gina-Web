@@ -75,8 +75,8 @@ urlpatterns = [
     path("rules/<int:pk>/delete/",ticket_views.auto_rule_delete,  name="auto_rule_delete"),
 
 
-    # Admin opcional en dev
-    # path("admin/", admin.site.urls),
+    # Admin
+    path("admin/", admin.site.urls),
 ]
 
 # Servir MEDIA en dev
