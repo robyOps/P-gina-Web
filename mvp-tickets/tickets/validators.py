@@ -19,6 +19,9 @@ def validate_upload(django_file):
     size = getattr(django_file, "size", 0)
     ctyp = getattr(django_file, "content_type", "") or ""
 
+    if Path(name).name != name:
+        raise UploadValidationError("Nombre de archivo inválido.")
+
     if size > MAX_SIZE:
         raise UploadValidationError("Archivo demasiado grande (>20MB).")
 
