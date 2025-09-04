@@ -53,7 +53,7 @@ from .models import (
 )
 
 
-from .api import is_admin, is_tech  # helpers de rol (reutilizamos)
+from accounts.roles import is_admin, is_tech, ROLE_TECH, ROLE_ADMIN  # helpers de rol
 from .services import run_sla_check, apply_auto_assign, tickets_to_workbook
 from .validators import validate_upload, UploadValidationError
 
@@ -145,7 +145,7 @@ def tickets_home(request):
         qs = base_qs
     elif is_tech(u):
         qs = base_qs.filter(assigned_to=u)
-        other_qs = base_qs.filter(assigned_to__groups__name="TECH").exclude(assigned_to=u)
+        other_qs = base_qs.filter(assigned_to__groups__name=ROLE_TECH).exclude(assigned_to=u)
     else:
         qs = base_qs.filter(requester=u)
 
@@ -316,7 +316,7 @@ def ticket_detail(request, pk):
     tech_users = []
     if is_admin_u:
         try:
-            g = Group.objects.get(name="TECH")
+            g = Group.objects.get(name=ROLE_TECH)
             tech_users = list(
                 User.objects.filter(groups=g, is_active=True).order_by("username")
             )
@@ -399,7 +399,7 @@ def add_comment(request, pk):
 
     is_internal = request.POST.get("is_internal") == "on"
     if not (is_admin(u) or is_tech(u)):
-        # REQUESTER no puede marcar interno
+        # SOLICITANTE no puede marcar interno
         is_internal = False
 
     # Crear comentario
@@ -472,14 +472,14 @@ def add_attachment(request, pk):
 @login_required
 @require_http_methods(["POST"])
 def ticket_assign(request, pk):
-    """Asignar/reasignar desde UI. ADMIN elige técnico; TECH se auto-asigna."""
+    """Asignar/reasignar desde UI. ADMINISTRADOR elige técnico; TECNICO se autoasigna."""
     t = get_object_or_404(Ticket, pk=pk)
     u = request.user
 
     if not (is_admin(u) or is_tech(u)):
         return HttpResponseForbidden("No autorizado para asignar")
 
-    # ADMIN: combo; TECH: auto-asignación
+    # ADMINISTRADOR: combo; TECNICO: autoasignación
     to_user_id = request.POST.get("to_user_id")
     if is_tech(u) and not is_admin(u):
         to_user_id = str(u.id)
@@ -494,15 +494,15 @@ def ticket_assign(request, pk):
         messages.error(request, "Técnico no válido.")
         return redirect("ticket_detail", pk=t.pk)
 
-    # Si es ADMIN, valida que sea TECH
+    # Si es ADMINISTRADOR, valida que sea TECNICO
     if is_admin(u):
         try:
-            g = Group.objects.get(name="TECH")
+            g = Group.objects.get(name=ROLE_TECH)
         except Group.DoesNotExist:
-            messages.error(request, "No existe el grupo TECH.")
+            messages.error(request, f"No existe el grupo {ROLE_TECH}.")
             return redirect("ticket_detail", pk=t.pk)
         if not to_user.groups.filter(id=g.id).exists():
-            messages.error(request, "El usuario seleccionado no es TECH.")
+            messages.error(request, f"El usuario seleccionado no es {ROLE_TECH}.")
             return redirect("ticket_detail", pk=t.pk)
 
     reason = (request.POST.get("reason") or "").strip()
@@ -531,7 +531,7 @@ def ticket_assign(request, pk):
 @login_required
 @require_http_methods(["POST"])
 def ticket_transition(request, pk):
-    """Cambiar estado desde UI (ADMIN o TECH asignado). Puede incluir comentario (interno/público)."""
+    """Cambiar estado desde UI (ADMINISTRADOR o TECNICO asignado). Puede incluir comentario (interno/público)."""
     t = get_object_or_404(Ticket, pk=pk)
     u = request.user
 
@@ -704,7 +704,7 @@ def reports_dashboard(request):
             "chart_tech": chart_tech,
             "chart_hist": chart_hist,
             "chart_cat_slow": chart_cat_slow,
-            "techs": User.objects.filter(groups__name="TECH").order_by("username"),
+            "techs": User.objects.filter(groups__name=ROLE_TECH).order_by("username"),
             "tech_selected": tech_selected,
             "report_type": report_type,
         },
@@ -714,9 +714,9 @@ def reports_dashboard(request):
 @login_required
 @require_POST
 def reports_check_sla(request):
-    """Ejecuta el chequeo SLA desde la web (solo ADMIN)."""
+    """Ejecuta el chequeo SLA desde la web (solo ADMINISTRADOR)."""
     if not is_admin(request.user):
-        return HttpResponseForbidden("Solo ADMIN")
+        return HttpResponseForbidden(f"Solo {ROLE_ADMIN}")
 
     try:
         warn_ratio = float(request.POST.get("warn_ratio", "0.8"))
@@ -902,14 +902,14 @@ def reports_export_excel(request):
 @login_required
 def auto_rules_list(request):
     if not is_admin(request.user):
-        return HttpResponseForbidden("Solo ADMIN")
+        return HttpResponseForbidden(f"Solo {ROLE_ADMIN}")
     rules = AutoAssignRule.objects.select_related("category","area","tech").order_by("-is_active","category__name","area__name")
     return TemplateResponse(request, "tickets/auto_rules/list.html", {"rules": rules})
 
 @login_required
 def auto_rule_create(request):
     if not is_admin(request.user):
-        return HttpResponseForbidden("Solo ADMIN")
+        return HttpResponseForbidden(f"Solo {ROLE_ADMIN}")
     if request.method == "POST":
         form = AutoAssignRuleForm(request.POST)
         if form.is_valid():
@@ -924,7 +924,7 @@ def auto_rule_create(request):
 @login_required
 def auto_rule_edit(request, pk):
     if not is_admin(request.user):
-        return HttpResponseForbidden("Solo ADMIN")
+        return HttpResponseForbidden(f"Solo {ROLE_ADMIN}")
     rule = get_object_or_404(AutoAssignRule, pk=pk)
     if request.method == "POST":
         form = AutoAssignRuleForm(request.POST, instance=rule)
@@ -941,7 +941,7 @@ def auto_rule_edit(request, pk):
 @require_http_methods(["POST"])
 def auto_rule_toggle(request, pk):
     if not is_admin(request.user):
-        return HttpResponseForbidden("Solo ADMIN")
+        return HttpResponseForbidden(f"Solo {ROLE_ADMIN}")
     rule = get_object_or_404(AutoAssignRule, pk=pk)
     rule.is_active = not rule.is_active
     rule.save(update_fields=["is_active"])
@@ -952,7 +952,7 @@ def auto_rule_toggle(request, pk):
 @require_http_methods(["POST"])
 def auto_rule_delete(request, pk):
     if not is_admin(request.user):
-        return HttpResponseForbidden("Solo ADMIN")
+        return HttpResponseForbidden(f"Solo {ROLE_ADMIN}")
     rule = get_object_or_404(AutoAssignRule, pk=pk)
     rule.delete()
     messages.success(request, "Regla eliminada.")

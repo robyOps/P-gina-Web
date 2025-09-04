@@ -2,6 +2,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from accounts.roles import ROLE_ADMIN, ROLE_TECH
 from .models import Ticket
 from .models import AutoAssignRule
 
@@ -9,7 +10,7 @@ User = get_user_model()
 
 class TicketCreateForm(forms.ModelForm):
     """
-    Form para crear ticket. Si el usuario es ADMIN, se muestra un campo
+    Form para crear ticket. Si el usuario es ADMINISTRADOR, se muestra un campo
     opcional 'assignee' para asignar a un técnico desde la creación.
     """
     assignee = forms.ModelChoiceField(
@@ -33,10 +34,10 @@ class TicketCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-        # Solo ADMIN ve y puede usar el campo para asignar
-        if user and (user.is_superuser or user.groups.filter(name="ADMIN").exists()):
+        # Solo ADMINISTRADOR ve y puede usar el campo para asignar
+        if user and (user.is_superuser or user.groups.filter(name=ROLE_ADMIN).exists()):
             try:
-                tech_group = Group.objects.get(name="TECH")
+                tech_group = Group.objects.get(name=ROLE_TECH)
                 self.fields["assignee"].queryset = (
                     User.objects.filter(groups=tech_group, is_active=True)
                     .order_by("username")
@@ -62,7 +63,7 @@ class AutoAssignRuleForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         try:
-            g = Group.objects.get(name="TECH")
+            g = Group.objects.get(name=ROLE_TECH)
             self.fields["tech"].queryset = User.objects.filter(groups=g, is_active=True).order_by("username")
         except Group.DoesNotExist:
             self.fields["tech"].queryset = User.objects.none()

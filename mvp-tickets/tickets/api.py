@@ -39,16 +39,8 @@ logger = logging.getLogger(__name__)
 # Modelo de usuario activo
 User = get_user_model()
 
-
-# ------------------------- HELPERS DE ROL -------------------------
-def is_admin(user):
-    """True si es superuser o pertenece al grupo ADMIN."""
-    return user.is_superuser or user.groups.filter(name="ADMIN").exists()
-
-
-def is_tech(user):
-    """True si pertenece al grupo TECH."""
-    return user.groups.filter(name="TECH").exists()
+# Helpers de roles
+from accounts.roles import is_admin, is_tech, ROLE_ADMIN, ROLE_TECH
 
 
 # ------------------------- VIEWSET PRINCIPAL -------------------------
@@ -79,9 +71,9 @@ class TicketViewSet(viewsets.ModelViewSet):
     # --------- Visibilidad por rol ---------
     def get_queryset(self):
         """
-        ADMIN -> todos
-        TECH  -> solo asignados a sí mismo
-        REQUESTER -> solo propios
+        ADMINISTRADOR -> todos
+        TECNICO       -> solo asignados a sí mismo
+        SOLICITANTE   -> solo propios
         """
         qs = super().get_queryset()
         u = self.request.user
@@ -120,8 +112,8 @@ class TicketViewSet(viewsets.ModelViewSet):
     def assign(self, request, pk=None):
         """
         Asignar/reasignar ticket:
-          - ADMIN puede asignar a cualquiera
-          - TECH solo puede auto-asignarse
+          - ADMINISTRADOR puede asignar a cualquiera
+          - TECNICO solo puede autoasignarse
           - Registra TicketAssignment y AuditLog 'ASSIGN'
         """
         ticket = self.get_object()
@@ -164,7 +156,7 @@ class TicketViewSet(viewsets.ModelViewSet):
           IN_PROGRESS -> RESOLVED | OPEN
           RESOLVED -> CLOSED | IN_PROGRESS
           CLOSED -> (no avanza)
-        Permisos: ADMIN o TECH asignado.
+        Permisos: ADMINISTRADOR o TECNICO asignado.
         Efectos: setea resolved_at/closed_at, comentario opcional, AuditLog 'STATUS'.
         """
         ticket = self.get_object()
@@ -211,15 +203,15 @@ class TicketViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get", "post"])
     def comments(self, request, pk=None):
         """
-        GET: lista comentarios del ticket (oculta internos a REQUESTER).
-        POST: crea comentario (REQUESTER siempre público). AuditLog 'COMMENT'.
+        GET: lista comentarios del ticket (oculta internos a SOLICITANTE).
+        POST: crea comentario (SOLICITANTE siempre público). AuditLog 'COMMENT'.
         """
         ticket = self.get_object()
         u = request.user
 
         if request.method == "GET":
             qs = TicketComment.objects.filter(ticket=ticket).order_by("created_at")
-            if not (is_admin(u) or is_tech(u)):  # requester -> no ve internos
+            if not (is_admin(u) or is_tech(u)):  # solicitante -> no ve internos
                 qs = qs.filter(is_internal=False)
             ser = TicketCommentSerializer(qs, many=True)
             return Response(ser.data)
@@ -227,7 +219,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         # POST
         data = request.data.copy()
         data["ticket"] = ticket.id
-        if not (is_admin(u) or is_tech(u)):  # requester no puede marcar interno
+        if not (is_admin(u) or is_tech(u)):  # solicitante no puede marcar interno
             data["is_internal"] = False
 
         ser = TicketCommentSerializer(data=data, context={"request": request})
@@ -247,9 +239,9 @@ class TicketViewSet(viewsets.ModelViewSet):
         GET: lista adjuntos del ticket.
         POST: sube un archivo (multipart/form-data).
         Permisos para ambos:
-          - ADMIN
-          - TECH (si asignado o sin asignación)
-          - REQUESTER dueño del ticket
+          - ADMINISTRADOR
+          - TECNICO (si asignado o sin asignación)
+          - SOLICITANTE dueño del ticket
         AuditLog 'ATTACH' en POST.
         """
         ticket = self.get_object()

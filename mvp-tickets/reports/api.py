@@ -10,14 +10,7 @@ from rest_framework.response import Response
 from rest_framework import permissions
 
 from tickets.models import Ticket
-
-
-def is_admin(u):
-    return u.is_superuser or u.groups.filter(name="ADMIN").exists()
-
-
-def is_tech(u):
-    return u.groups.filter(name="TECH").exists()
+from accounts.roles import is_admin, is_tech
 
 
 def parse_dt(s):
@@ -31,7 +24,7 @@ def base_queryset(request):
     qs = Ticket.objects.select_related("category", "priority", "assigned_to")
     u = request.user
 
-    # filtros por rol (ADMIN ve todo; TECH solo asignados; REQUESTER propios)
+    # filtros por rol (ADMINISTRADOR ve todo; TECNICO solo asignados; SOLICITANTE propios)
     if is_admin(u):
         pass
     elif is_tech(u):

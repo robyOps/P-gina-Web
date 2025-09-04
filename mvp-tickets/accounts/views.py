@@ -8,16 +8,16 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
 from .forms import UserCreateForm, UserEditForm, RoleForm
-from tickets.api import is_admin  # mismo helper de roles que ya usas
+from accounts.roles import is_admin, ROLE_ADMIN
 
 User = get_user_model()
 
 
 @login_required
 def users_list(request):
-    """Listado de usuarios (solo ADMIN). Filtros básicos por texto, estado y grupo."""
+    """Listado de usuarios (solo ADMINISTRADOR). Filtros básicos por texto, estado y grupo."""
     if not is_admin(request.user):
-        messages.error(request, "Solo ADMIN puede ver usuarios.")
+        messages.error(request, f"Solo {ROLE_ADMIN} puede ver usuarios.")
         return redirect("tickets_home")
 
     q = (request.GET.get("q") or "").strip()
@@ -50,9 +50,9 @@ def users_list(request):
 
 @login_required
 def user_create(request):
-    """Crear nuevo usuario (solo ADMIN)."""
+    """Crear nuevo usuario (solo ADMINISTRADOR)."""
     if not is_admin(request.user):
-        messages.error(request, "Solo ADMIN puede crear usuarios.")
+        messages.error(request, f"Solo {ROLE_ADMIN} puede crear usuarios.")
         return redirect("tickets_home")
 
     if request.method == "POST":
@@ -75,9 +75,9 @@ def user_create(request):
 
 @login_required
 def user_edit(request, pk):
-    """Editar usuario (solo ADMIN)."""
+    """Editar usuario (solo ADMINISTRADOR)."""
     if not is_admin(request.user):
-        messages.error(request, "Solo ADMIN puede editar usuarios.")
+        messages.error(request, f"Solo {ROLE_ADMIN} puede editar usuarios.")
         return redirect("tickets_home")
 
     user = get_object_or_404(User, pk=pk)
@@ -103,9 +103,9 @@ def user_edit(request, pk):
 
 @login_required
 def user_toggle(request, pk):
-    """Activar/Desactivar usuario (solo ADMIN)."""
+    """Activar/Desactivar usuario (solo ADMINISTRADOR)."""
     if not is_admin(request.user):
-        messages.error(request, "Solo ADMIN puede cambiar estado de usuarios.")
+        messages.error(request, f"Solo {ROLE_ADMIN} puede cambiar estado de usuarios.")
         return redirect("tickets_home")
 
     user = get_object_or_404(User, pk=pk)
@@ -117,9 +117,9 @@ def user_toggle(request, pk):
 
 @login_required
 def roles_list(request):
-    """Listado de roles (solo ADMIN)."""
+    """Listado de roles (solo ADMINISTRADOR)."""
     if not is_admin(request.user):
-        messages.error(request, "Solo ADMIN puede ver roles.")
+        messages.error(request, f"Solo {ROLE_ADMIN} puede ver roles.")
         return redirect("tickets_home")
 
     roles = Group.objects.all().order_by("name")
@@ -128,9 +128,9 @@ def roles_list(request):
 
 @login_required
 def role_create(request):
-    """Crear rol y asignar permisos (solo ADMIN)."""
+    """Crear rol y asignar permisos (solo ADMINISTRADOR)."""
     if not is_admin(request.user):
-        messages.error(request, "Solo ADMIN puede crear roles.")
+        messages.error(request, f"Solo {ROLE_ADMIN} puede crear roles.")
         return redirect("tickets_home")
 
     if request.method == "POST":
@@ -148,9 +148,9 @@ def role_create(request):
 
 @login_required
 def role_edit(request, pk):
-    """Editar rol y sus permisos (solo ADMIN)."""
+    """Editar rol y sus permisos (solo ADMINISTRADOR)."""
     if not is_admin(request.user):
-        messages.error(request, "Solo ADMIN puede editar roles.")
+        messages.error(request, f"Solo {ROLE_ADMIN} puede editar roles.")
         return redirect("tickets_home")
 
     role = get_object_or_404(Group, pk=pk)

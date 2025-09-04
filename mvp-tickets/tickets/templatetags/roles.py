@@ -1,5 +1,6 @@
 # tickets/templatetags/roles.py
 from django import template
+from accounts.roles import ROLE_ADMIN
 
 register = template.Library()
 
@@ -7,15 +8,15 @@ register = template.Library()
 def has_group(user, group_name: str) -> bool:
     """
     Uso en plantillas:
-      {% if request.user|has_group:"ADMIN" %} ... {% endif %}
+      {% if request.user|has_group:"ADMINISTRADOR" %} ... {% endif %}
     Devuelve True si el usuario pertenece al grupo dado.
     Para ADMIN, considera también superuser.
     """
     try:
         if not getattr(user, "is_authenticated", False):
             return False
-        if group_name == "ADMIN":
-            return user.is_superuser or user.groups.filter(name="ADMIN").exists()
+        if group_name == ROLE_ADMIN:
+            return user.is_superuser or user.groups.filter(name=ROLE_ADMIN).exists()
         return user.groups.filter(name=group_name).exists()
     except Exception:
         return False

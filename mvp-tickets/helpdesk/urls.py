@@ -39,7 +39,7 @@ urlpatterns = [
     path("reports/export.xlsx", ticket_views.reports_export_excel, name="reports_export_excel"),
 
 
-    # Mantenedor de usuarios (solo ADMIN) → usamos el urls.py de accounts
+    # Mantenedor de usuarios (solo ADMINISTRADOR) → usamos el urls.py de accounts
     path("users/", include(("accounts.urls", "accounts"), namespace="accounts")),
 
     # Catálogo simple
@@ -64,7 +64,7 @@ urlpatterns = [
     path("auto-assign/<int:pk>/toggle/", ticket_views.auto_rule_toggle, name="auto_rule_toggle"),
     path("auto-assign/<int:pk>/delete/", ticket_views.auto_rule_delete, name="auto_rule_delete"),
 
-    # --- Auto-assign rules (ADMIN) ---
+    # --- Reglas de auto-asignación (ADMINISTRADOR) ---
     path("rules/",                ticket_views.auto_rules_list,   name="auto_rules_list"),
     path("rules/new/",            ticket_views.auto_rule_create,  name="auto_rule_create"),
     path("rules/<int:pk>/edit/",  ticket_views.auto_rule_edit,    name="auto_rule_edit"),
