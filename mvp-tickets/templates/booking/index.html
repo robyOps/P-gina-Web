@@ -12,14 +12,26 @@
     <label>Inicio
       <div class="flex gap-2">
         <input type="date" id="starts_at_date" class="border p-1" aria-describedby="start-help" />
-        <input type="time" id="starts_at_time" class="border p-1" aria-describedby="start-help" />
+        <div class="relative">
+          <input type="time" id="starts_at_time" class="border p-1" aria-describedby="start-help" />
+          <div class="pointer-events-none absolute inset-x-0 -top-3 flex justify-between text-[10px] px-1">
+            <span>hrs</span>
+            <span>min</span>
+          </div>
+        </div>
       </div>
       <small id="start-help" class="block text-gray-600">Seleccione fecha y hora (formato 24h).</small>
     </label>
     <label>Término
       <div class="flex gap-2">
         <input type="date" id="ends_at_date" class="border p-1" aria-describedby="end-help" />
-        <input type="time" id="ends_at_time" class="border p-1" aria-describedby="end-help" />
+        <div class="relative">
+          <input type="time" id="ends_at_time" class="border p-1" aria-describedby="end-help" />
+          <div class="pointer-events-none absolute inset-x-0 -top-3 flex justify-between text-[10px] px-1">
+            <span>hrs</span>
+            <span>min</span>
+          </div>
+        </div>
       </div>
       <small id="end-help" class="block text-gray-600">Debe ser posterior al inicio.</small>
     </label>
@@ -42,14 +54,26 @@
     <label>Desde
       <div class="flex gap-2">
         <input type="date" id="from_date" class="border p-1" aria-describedby="from-help" />
-        <input type="time" id="from_time" class="border p-1" aria-describedby="from-help" />
+        <div class="relative">
+          <input type="time" id="from_time" class="border p-1" aria-describedby="from-help" />
+          <div class="pointer-events-none absolute inset-x-0 -top-3 flex justify-between text-[10px] px-1">
+            <span>hrs</span>
+            <span>min</span>
+          </div>
+        </div>
       </div>
       <small id="from-help" class="block text-gray-600">Fecha y hora de inicio del rango.</small>
     </label>
     <label>Hasta
       <div class="flex gap-2">
         <input type="date" id="to_date" class="border p-1" aria-describedby="to-help" />
-        <input type="time" id="to_time" class="border p-1" aria-describedby="to-help" />
+        <div class="relative">
+          <input type="time" id="to_time" class="border p-1" aria-describedby="to-help" />
+          <div class="pointer-events-none absolute inset-x-0 -top-3 flex justify-between text-[10px] px-1">
+            <span>hrs</span>
+            <span>min</span>
+          </div>
+        </div>
       </div>
       <small id="to-help" class="block text-gray-600">Fecha y hora de término del rango.</small>
     </label>
