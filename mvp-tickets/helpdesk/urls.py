@@ -1,5 +1,6 @@
 # helpdesk/urls.py
 from django.urls import path, include
+from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
@@ -56,6 +57,7 @@ urlpatterns = [
 
     # --- API bajo /api/ ---
     path("api/", include("helpdesk.api_urls")),
+    path("admin/", admin.site.urls),
     path('api/booking/', include('tickets.urls_reservas')),
     path('booking/', include('tickets.urls_reservas_ui')),
     path('api-auth/', include('rest_framework.urls')),
