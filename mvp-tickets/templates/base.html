@@ -32,9 +32,9 @@
   <header class="bg-gradient-to-r from-indigo-600 to-blue-500 shadow text-white">
     <div class="w-full pl-2 pr-4 py-3 flex justify-between items-center">
       <div class="flex items-center gap-6">
-        <a href="{% url 'dashboard' %}" class="relative font-bold text-2xl transition-colors group hover:text-yellow-200">
-          Coya<span class="relative inline-block text-transparent bg-clip-text bg-gradient-to-b from-white via-gray-500 to-black group-hover:text-yellow-200">h
-            <span class="absolute top-full left-1/2 -translate-x-1/2 flex flex-col items-center text-xs leading-none text-gray-800 transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-1 group-hover:text-yellow-200">
+        <a href="{% url 'dashboard' %}" class="relative font-bold text-2xl transition-colors group hover:text-orange-300">
+          Coya<span class="relative inline-block text-transparent bg-clip-text bg-gradient-to-b from-white via-gray-500 to-black group-hover:text-orange-300">h
+            <span class="absolute top-full left-1/2 -translate-x-1/2 flex flex-col items-center text-2xl leading-none text-gray-800 transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-1 group-hover:text-orange-300">
               <span>e</span>
               <span>l</span>
               <span>p</span>
@@ -45,18 +45,16 @@
             </span>
           </span>ue
         </a>
-        {% if request.user.is_authenticated %}
-          <nav class="hidden md:flex items-center gap-4">
-            <a href="{% url 'tickets_home' %}" class="text-sm hover:text-yellow-200 transition-colors">Tickets</a>
-            <a href="{% url 'reports_dashboard' %}" class="text-sm hover:text-yellow-200 transition-colors">Reportes</a>
-            <a href="{% url 'dashboard' %}" class="text-sm hover:text-yellow-200 transition-colors">Dashboard</a>
-            <a href="{% url 'booking_ui_home' %}" class="text-sm hover:text-yellow-200 transition-colors">Reservas</a>
-          </nav>
-        {% endif %}
       </div>
 
       <div class="flex items-center gap-6 text-sm">
         {% if request.user.is_authenticated %}
+          <nav class="hidden md:flex items-center gap-4 mr-4">
+            <a href="{% url 'tickets_home' %}" class="text-sm hover:text-orange-300 transition-colors">Tickets</a>
+            <a href="{% url 'reports_dashboard' %}" class="text-sm hover:text-orange-300 transition-colors">Reportes</a>
+            <a href="{% url 'dashboard' %}" class="text-sm hover:text-orange-300 transition-colors">Dashboard</a>
+            <a href="{% url 'booking_ui_home' %}" class="text-sm hover:text-orange-300 transition-colors">Reservas</a>
+          </nav>
           {% if request.user|has_group:"ADMINISTRADOR" or request.user.is_superuser %}
             <details class="relative">
               <summary class="cursor-pointer list-none bg-white/20 px-2 py-1 rounded hover:bg-white/30 transition-colors">Admin Panel</summary>
@@ -74,7 +72,7 @@
             </details>
           {% endif %}
           <div class="flex items-center gap-4">
-            <a href="{% url 'notifications_list' %}" class="relative hover:text-yellow-200 transition-colors">
+            <a href="{% url 'notifications_list' %}" class="relative hover:text-orange-300 transition-colors">
               <i class="bi bi-bell"></i>
               {% unread_notifications_count as notif_count %}
               {% if notif_count %}
@@ -84,11 +82,11 @@
             <span>Hola, <span class="font-medium">{{ request.user.username }}</span></span>
             <form action="{% url 'logout' %}" method="post">
                 {% csrf_token %}
-                <button type="submit" class="hover:text-yellow-200 transition-colors">Salir</button>
+                <button type="submit" class="hover:text-orange-300 transition-colors">Salir</button>
             </form>
           </div>
         {% else %}
-          <a href="{% url 'login' %}" class="hover:text-yellow-200 transition-colors">Ingresar</a>
+          <a href="{% url 'login' %}" class="hover:text-orange-300 transition-colors">Ingresar</a>
         {% endif %}
       </div>
     </div>
