@@ -57,7 +57,6 @@ urlpatterns = [
 
     # --- API bajo /api/ ---
     path("api/", include("helpdesk.api_urls")),
-    path("admin/", admin.site.urls),
     path('api/booking/', include('tickets.urls_reservas')),
     path('booking/', include('tickets.urls_reservas_ui')),
     path('api-auth/', include('rest_framework.urls')),
@@ -75,6 +74,9 @@ urlpatterns = [
     path("rules/<int:pk>/toggle/",ticket_views.auto_rule_toggle,  name="auto_rule_toggle"),
     path("rules/<int:pk>/delete/",ticket_views.auto_rule_delete,  name="auto_rule_delete"),
 
+
+    # Admin opcional en dev
+    # path("admin/", admin.site.urls),
 ]
 
 # Servir MEDIA en dev
