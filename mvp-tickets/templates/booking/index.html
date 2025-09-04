@@ -10,11 +10,17 @@
       <select id="resource" class="border p-1"></select>
     </label>
     <label>Inicio
-      <input type="datetime-local" id="starts_at" class="border p-1" aria-describedby="start-help" placeholder="AAAA-MM-DD HH:MM" />
+      <div class="flex gap-2">
+        <input type="date" id="starts_at_date" class="border p-1" aria-describedby="start-help" />
+        <input type="time" id="starts_at_time" class="border p-1" aria-describedby="start-help" />
+      </div>
       <small id="start-help" class="block text-gray-600">Seleccione fecha y hora (formato 24h).</small>
     </label>
     <label>Término
-      <input type="datetime-local" id="ends_at" class="border p-1" aria-describedby="end-help" placeholder="AAAA-MM-DD HH:MM" />
+      <div class="flex gap-2">
+        <input type="date" id="ends_at_date" class="border p-1" aria-describedby="end-help" />
+        <input type="time" id="ends_at_time" class="border p-1" aria-describedby="end-help" />
+      </div>
       <small id="end-help" class="block text-gray-600">Debe ser posterior al inicio.</small>
     </label>
     <button type="submit" class="btn bg-blue-500 text-white px-2 py-1">Crear</button>
@@ -34,11 +40,17 @@
       <select id="disp-resource" class="border p-1"></select>
     </label>
     <label>Desde
-      <input type="datetime-local" id="from" class="border p-1" aria-describedby="from-help" placeholder="AAAA-MM-DD HH:MM" />
+      <div class="flex gap-2">
+        <input type="date" id="from_date" class="border p-1" aria-describedby="from-help" />
+        <input type="time" id="from_time" class="border p-1" aria-describedby="from-help" />
+      </div>
       <small id="from-help" class="block text-gray-600">Fecha y hora de inicio del rango.</small>
     </label>
     <label>Hasta
-      <input type="datetime-local" id="to" class="border p-1" aria-describedby="to-help" placeholder="AAAA-MM-DD HH:MM" />
+      <div class="flex gap-2">
+        <input type="date" id="to_date" class="border p-1" aria-describedby="to-help" />
+        <input type="time" id="to_time" class="border p-1" aria-describedby="to-help" />
+      </div>
       <small id="to-help" class="block text-gray-600">Fecha y hora de término del rango.</small>
     </label>
     <button type="submit" class="btn bg-blue-500 text-white px-2 py-1">Consultar</button>
@@ -52,6 +64,12 @@ function getCSRFToken() {
   const name = 'csrftoken=';
   const cookie = document.cookie.split('; ').find(row => row.startsWith(name));
   return cookie ? cookie.split('=')[1] : '';
+}
+
+function combineDateTime(dateId, timeId) {
+  const d = document.getElementById(dateId).value;
+  const t = document.getElementById(timeId).value;
+  return d && t ? `${d}T${t}` : '';
 }
 
 async function cargarRecursos() {
@@ -91,8 +109,8 @@ document.getElementById('form-reserva').addEventListener('submit', async (e) => 
   e.preventDefault();
   const payload = {
     resource: document.getElementById('resource').value,
-    starts_at: document.getElementById('starts_at').value,
-    ends_at: document.getElementById('ends_at').value,
+    starts_at: combineDateTime('starts_at_date','starts_at_time'),
+    ends_at: combineDateTime('ends_at_date','ends_at_time'),
   };
   const resp = await fetch('/api/booking/reservations/', {
     method: 'POST',
@@ -130,8 +148,8 @@ document.getElementById('form-disponibilidad').addEventListener('submit', async 
   e.preventDefault();
   const params = new URLSearchParams({
     resource_id: document.getElementById('disp-resource').value,
-    from: document.getElementById('from').value,
-    to: document.getElementById('to').value,
+    from: combineDateTime('from_date','from_time'),
+    to: combineDateTime('to_date','to_time'),
   });
   const resp = await fetch('/api/booking/reservations/availability?' + params.toString());
   const ul = document.getElementById('lista-disponibilidad');

@@ -11,8 +11,14 @@
   </select>
   <input type="text" name="action" value="{{ filters.action }}" placeholder="Acción" class="border p-1" />
   <input type="text" name="resource" value="{{ filters.resource }}" placeholder="Recurso" class="border p-1" />
-  <input type="date" name="from" value="{{ filters.from }}" class="border p-1" />
-  <input type="date" name="to" value="{{ filters.to }}" class="border p-1" />
+  <label class="flex flex-col">
+    <span>Desde</span>
+    <input type="date" name="from" value="{{ filters.from }}" class="border p-1" />
+  </label>
+  <label class="flex flex-col">
+    <span>Hasta</span>
+    <input type="date" name="to" value="{{ filters.to }}" class="border p-1" />
+  </label>
   <input type="hidden" name="obj_id" value="{{ filters.obj_id }}" />
   <button class="btn bg-blue-500 text-white px-2 py-1 col-span-2 md:col-span-3">Filtrar</button>
 </form>
