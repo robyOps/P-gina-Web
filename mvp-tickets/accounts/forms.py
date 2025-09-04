@@ -59,7 +59,9 @@ class UserEditForm(forms.ModelForm):
 class RoleForm(forms.ModelForm):
     permissions = forms.ModelMultipleChoiceField(
         label="Permisos",
-        queryset=Permission.objects.all().order_by("content_type__app_label", "codename"),
+        queryset=Permission.objects.filter(
+            codename__in=PERMISSION_LABELS.keys()
+        ).order_by("content_type__app_label", "codename"),
         required=False,
         widget=forms.CheckboxSelectMultiple,
     )
