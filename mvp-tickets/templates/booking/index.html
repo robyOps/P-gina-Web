@@ -10,10 +10,12 @@
       <select id="resource" class="border p-1"></select>
     </label>
     <label>Inicio
-      <input type="datetime-local" id="starts_at" class="border p-1" />
+      <input type="datetime-local" id="starts_at" class="border p-1" aria-describedby="start-help" />
+      <small id="start-help" class="block text-gray-600">Seleccione fecha y hora (formato 24h).</small>
     </label>
     <label>Término
-      <input type="datetime-local" id="ends_at" class="border p-1" />
+      <input type="datetime-local" id="ends_at" class="border p-1" aria-describedby="end-help" />
+      <small id="end-help" class="block text-gray-600">Debe ser posterior al inicio.</small>
     </label>
     <button type="submit" class="btn bg-blue-500 text-white px-2 py-1">Crear</button>
   </form>
@@ -32,10 +34,12 @@
       <select id="disp-resource" class="border p-1"></select>
     </label>
     <label>Desde
-      <input type="datetime-local" id="from" class="border p-1" />
+      <input type="datetime-local" id="from" class="border p-1" aria-describedby="from-help" />
+      <small id="from-help" class="block text-gray-600">Fecha y hora de inicio del rango.</small>
     </label>
     <label>Hasta
-      <input type="datetime-local" id="to" class="border p-1" />
+      <input type="datetime-local" id="to" class="border p-1" aria-describedby="to-help" />
+      <small id="to-help" class="block text-gray-600">Fecha y hora de término del rango.</small>
     </label>
     <button type="submit" class="btn bg-blue-500 text-white px-2 py-1">Consultar</button>
   </form>
@@ -96,8 +100,17 @@ document.getElementById('form-reserva').addEventListener('submit', async (e) => 
     msg.textContent = 'Reserva creada.';
     cargarMisReservas();
   } else if (resp.status === 400) {
-    const data = await resp.json();
-    msg.textContent = 'La reserva no cumple las políticas: ' + (data.detail || '');
+    let data = {};
+    try {
+      data = await resp.json();
+    } catch (_) {}
+    const detail = typeof data.detail === 'string'
+      ? data.detail
+      : Array.isArray(data.detail)
+        ? data.detail.join(', ')
+        : '';
+    msg.textContent = 'La reserva no cumple las políticas. ' +
+      (detail || 'Verifica que el horario sea válido, que haya suficiente aviso y que la duración no exceda el máximo permitido.');
   } else if (resp.status === 409) {
     msg.textContent = 'Ya existe una reserva que se solapa en ese horario.';
   } else {
