@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import transaction
 
 from django.contrib.auth import get_user_model
-from .models import Ticket, TicketComment, TicketAssignment
+from .models import Ticket, TicketComment, TicketAssignment, AuditLog, EventLog
 
 User = get_user_model()
 
@@ -126,3 +126,25 @@ def on_public_comment(sender, instance: TicketComment, created, **kwargs):
             )
 
     transaction.on_commit(_notify)
+
+
+@receiver(post_save, sender=AuditLog)
+def on_audit_log(sender, instance: AuditLog, created, **kwargs):
+    if not created:
+        return
+    messages = {
+        "CREATE": "Ticket creado.",
+        "ASSIGN": "Asignación de ticket.",
+        "STATUS": "Cambio de estado del ticket.",
+        "COMMENT": "Comentario en ticket.",
+        "ATTACH": "Adjunto agregado al ticket.",
+        "SLA_WARN": "Advertencia SLA.",
+        "SLA_BREACH": "Incumplimiento SLA.",
+    }
+    EventLog.objects.create(
+        actor=instance.actor,
+        model="ticket",
+        obj_id=instance.ticket_id,
+        action=instance.action,
+        message=messages.get(instance.action, ""),
+    )

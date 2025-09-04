@@ -239,6 +239,26 @@ class AuditLog(models.Model):
     def __str__(self):
         return f"Audit({self.ticket.code}) {self.action}"
 
+
+class EventLog(models.Model):
+    """Registro global de eventos para auditoría mínima."""
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    model = models.CharField(max_length=50)
+    obj_id = models.PositiveIntegerField()
+    action = models.CharField(max_length=50)
+    message = models.CharField(max_length=255)
+    resource_id = models.PositiveIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Event({self.model}:{self.obj_id}) {self.action}"
+
 class AutoAssignRule(models.Model):
     """Regla: (category y/o area) -> técnico."""
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True)

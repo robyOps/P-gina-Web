@@ -6,6 +6,9 @@
   <div class="space-x-3">
     <a href="{% url 'ticket_print' t.id %}" target="_blank" class="text-sm text-blue-600 hover:underline">Imprimir</a>
     <a href="{% url 'ticket_pdf' t.id %}" class="text-sm text-blue-600 hover:underline">Descargar PDF</a>
+    {% if request.user.is_staff %}
+    <a href="{% url 'logs_list' %}?model=ticket&obj_id={{ t.id }}" class="text-sm text-blue-600 hover:underline">Historial</a>
+    {% endif %}
   </div>
 </div>
 

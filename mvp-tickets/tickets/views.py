@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_http_methods, require_POST
 from django.contrib import messages
 from django.http import (
@@ -49,6 +50,7 @@ from .models import (
     TicketAttachment,
     TicketAssignment,
     AuditLog,
+    EventLog,
     Notification,
 )
 
@@ -1024,3 +1026,43 @@ def reports_export_pdf(request):
     resp = HttpResponse(result.getvalue(), content_type="application/pdf")
     resp["Content-Disposition"] = 'attachment; filename="reporte_tickets.pdf"'
     return resp
+
+
+@staff_member_required
+def logs_list(request):
+    qs = EventLog.objects.select_related("actor").all()
+    model = request.GET.get("model")
+    if model in {"ticket", "reservation"}:
+        qs = qs.filter(model=model)
+    obj_id = request.GET.get("obj_id")
+    if obj_id:
+        qs = qs.filter(obj_id=obj_id)
+    actor = request.GET.get("actor")
+    if actor:
+        qs = qs.filter(actor__username__icontains=actor)
+    action = request.GET.get("action")
+    if action:
+        qs = qs.filter(action__icontains=action)
+    resource = request.GET.get("resource")
+    if resource:
+        qs = qs.filter(resource_id=resource)
+    dfrom = request.GET.get("from")
+    if dfrom:
+        qs = qs.filter(created_at__date__gte=dfrom)
+    dto = request.GET.get("to")
+    if dto:
+        qs = qs.filter(created_at__date__lte=dto)
+
+    paginator = Paginator(qs, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    params = request.GET.copy()
+    params.pop("page", None)
+    ctx = {
+        "logs": page_obj,
+        "page_obj": page_obj,
+        "querystring": params.urlencode(),
+        "filters": request.GET,
+    }
+    return TemplateResponse(request, "logs/list.html", ctx)

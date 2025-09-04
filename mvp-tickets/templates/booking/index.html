@@ -10,11 +10,11 @@
       <select id="resource" class="border p-1"></select>
     </label>
     <label>Inicio
-      <input type="datetime-local" id="starts_at" class="border p-1" aria-describedby="start-help" />
+      <input type="datetime-local" id="starts_at" class="border p-1" aria-describedby="start-help" placeholder="AAAA-MM-DD HH:MM" />
       <small id="start-help" class="block text-gray-600">Seleccione fecha y hora (formato 24h).</small>
     </label>
     <label>Término
-      <input type="datetime-local" id="ends_at" class="border p-1" aria-describedby="end-help" />
+      <input type="datetime-local" id="ends_at" class="border p-1" aria-describedby="end-help" placeholder="AAAA-MM-DD HH:MM" />
       <small id="end-help" class="block text-gray-600">Debe ser posterior al inicio.</small>
     </label>
     <button type="submit" class="btn bg-blue-500 text-white px-2 py-1">Crear</button>
@@ -34,11 +34,11 @@
       <select id="disp-resource" class="border p-1"></select>
     </label>
     <label>Desde
-      <input type="datetime-local" id="from" class="border p-1" aria-describedby="from-help" />
+      <input type="datetime-local" id="from" class="border p-1" aria-describedby="from-help" placeholder="AAAA-MM-DD HH:MM" />
       <small id="from-help" class="block text-gray-600">Fecha y hora de inicio del rango.</small>
     </label>
     <label>Hasta
-      <input type="datetime-local" id="to" class="border p-1" aria-describedby="to-help" />
+      <input type="datetime-local" id="to" class="border p-1" aria-describedby="to-help" placeholder="AAAA-MM-DD HH:MM" />
       <small id="to-help" class="block text-gray-600">Fecha y hora de término del rango.</small>
     </label>
     <button type="submit" class="btn bg-blue-500 text-white px-2 py-1">Consultar</button>
@@ -47,6 +47,7 @@
 </div>
 
 <script>
+const IS_STAFF = {{ request.user.is_staff|yesno:'true,false' }};
 function getCSRFToken() {
   const name = 'csrftoken=';
   const cookie = document.cookie.split('; ').find(row => row.startsWith(name));
@@ -74,6 +75,13 @@ async function cargarMisReservas() {
     data.forEach(r => {
       const li = document.createElement('li');
       li.textContent = `${r.resource} - ${r.starts_at} → ${r.ends_at} (${r.status})`;
+      if (IS_STAFF) {
+        const a = document.createElement('a');
+        a.href = `/logs/?model=reservation&obj_id=${r.id}`;
+        a.textContent = 'Historial';
+        a.className = 'text-blue-600 hover:underline ml-2';
+        li.appendChild(a);
+      }
       ul.appendChild(li);
     });
   }
