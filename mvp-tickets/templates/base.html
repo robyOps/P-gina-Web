@@ -32,7 +32,19 @@
   <header class="bg-gradient-to-r from-indigo-600 to-blue-500 shadow text-white">
     <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
       <div class="flex items-center gap-6">
-        <a href="{% url 'dashboard' %}" class="font-semibold hover:text-yellow-200 transition-colors">Helpdesk</a>
+        <a href="{% url 'dashboard' %}" class="relative font-semibold transition-colors group hover:text-yellow-200">
+          Coya<span class="relative inline-block">h
+            <span class="absolute top-full left-1/2 -translate-x-1/2 flex flex-col items-center text-xs leading-none transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-1 group-hover:text-yellow-200">
+              <span>e</span>
+              <span>l</span>
+              <span>p</span>
+              <span>d</span>
+              <span>e</span>
+              <span>s</span>
+              <span>k</span>
+            </span>
+          </span>ue
+        </a>
         {% if request.user.is_authenticated %}
           <nav class="hidden md:flex items-center gap-4">
             <a href="{% url 'tickets_home' %}" class="text-sm hover:text-yellow-200 transition-colors">Tickets</a>
