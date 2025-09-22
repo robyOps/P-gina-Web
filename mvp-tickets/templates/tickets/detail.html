@@ -131,9 +131,6 @@
 
   <div class="md:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
     <div class="bg-white rounded-xl shadow p-4 space-y-4">
-      <div class="flex items-center justify-between">
-        <div class="font-medium">Comentarios</div>
-      </div>
       <div id="discussion"
            hx-get="{% url 'discussion_partial' t.id %}"
            hx-trigger="load, revealed"
