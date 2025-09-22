@@ -1,12 +1,13 @@
 from io import BytesIO
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from catalog.models import Category, Priority
-from tickets.models import Ticket
+from tickets.models import AuditLog, Ticket, TicketAssignment
+from accounts.roles import ROLE_TECH
 from tickets.validators import validate_upload, UploadValidationError
 
 
@@ -59,4 +60,45 @@ class UploadValidatorTests(TestCase):
             validate_upload(f)
         except UploadValidationError:
             self.fail("validate_upload raised unexpectedly")
+
+
+class TicketCreationAssignmentTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username="admin", email="admin@example.com", password="pass"
+        )
+        self.tech_group = Group.objects.create(name=ROLE_TECH)
+        self.tech = User.objects.create_user(
+            username="tech", email="tech@example.com", password="pass"
+        )
+        self.tech.groups.add(self.tech_group)
+
+        self.category = Category.objects.create(name="Cat")
+        self.priority = Priority.objects.create(name="Alta")
+
+    def test_ticket_creation_with_assignee_creates_history(self):
+        self.client.login(username="admin", password="pass")
+        payload = {
+            "title": "Nuevo ticket",
+            "description": "Descripción",
+            "category": str(self.category.id),
+            "priority": str(self.priority.id),
+            "kind": Ticket.REQUEST,
+            "assignee": str(self.tech.id),
+        }
+
+        response = self.client.post(reverse("ticket_create"), payload)
+        self.assertEqual(response.status_code, 302)
+
+        ticket = Ticket.objects.get(title="Nuevo ticket")
+        self.assertEqual(ticket.assigned_to, self.tech)
+
+        assignment = TicketAssignment.objects.get(ticket=ticket)
+        self.assertEqual(assignment.from_user, self.admin)
+        self.assertEqual(assignment.to_user, self.tech)
+
+        audit_entry = AuditLog.objects.get(ticket=ticket, action="ASSIGN")
+        self.assertEqual(audit_entry.actor, self.admin)
+        self.assertEqual(audit_entry.meta.get("from"), None)
+        self.assertEqual(audit_entry.meta.get("to"), self.tech.id)
 
