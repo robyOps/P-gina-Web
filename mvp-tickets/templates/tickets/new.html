@@ -34,6 +34,13 @@
     </div>
 
     <div>
+      <label class="block text-xs">Tipo de ticket</label>
+      {{ form.kind|add_class:"border rounded px-3 py-2 w-full" }}
+      <p class="text-[11px] text-gray-500 mt-1">Incidente: interrupción o falla del servicio · Solicitud: requerimiento o petición nueva.</p>
+      {% if form.kind.errors %}<div class="text-red-600 text-xs">{{ form.kind.errors }}</div>{% endif %}
+    </div>
+
+    <div>
       <label class="block text-xs">Área</label>
       {{ form.area|add_class:"border rounded px-3 py-2 w-full" }}
       {% if form.area.errors %}<div class="text-red-600 text-xs">{{ form.area.errors }}</div>{% endif %}

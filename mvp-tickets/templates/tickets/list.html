@@ -90,6 +90,10 @@
           <a href="?sort=status{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
           <a href="?sort=-status{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
         </th>
+        <th class="text-left p-2">Tipo
+          <a href="?sort=kind{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
+          <a href="?sort=-kind{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
+        </th>
         <th class="text-left p-2">Categoría
           <a href="?sort=category__name{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
           <a href="?sort=-category__name{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
@@ -117,6 +121,18 @@
         </td>
         <td class="p-2">{{ t.title }}</td>
         <td class="p-2">{{ t.get_status_display }}</td>
+        <td class="p-2">
+          <span class="inline-flex items-center gap-1">
+            {{ t.get_kind_display }}
+            {% if t.kind == 'INCIDENT' %}
+              <i class="bi bi-exclamation-triangle-fill text-red-500" title="Incidente: interrupción o degradación del servicio."></i>
+            {% elif t.kind == 'REQUEST' %}
+              <i class="bi bi-clipboard-check text-green-600" title="Solicitud: requerimiento o petición de servicio."></i>
+            {% else %}
+              <i class="bi bi-info-circle text-gray-500" title="Clasificación del ticket"></i>
+            {% endif %}
+          </span>
+        </td>
         <td class="p-2">{{ t.category.name }}</td>
         <td class="p-2">{{ t.priority.name }}</td>
         <td class="p-2">{% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}-{% endif %}</td>
@@ -138,7 +154,7 @@
         <td class="p-2">{{ t.created_at }}</td>
       </tr>
       {% empty %}
-      <tr><td class="p-3" colspan="8">Sin tickets.</td></tr>
+      <tr><td class="p-3" colspan="9">Sin tickets.</td></tr>
       {% endfor %}
     </tbody>
   </table>

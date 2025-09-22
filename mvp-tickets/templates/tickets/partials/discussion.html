@@ -22,4 +22,27 @@
       {% endfor %}
     </ul>
   </section>
+
+  <section class="pt-2 border-t">
+    <h3 class="font-medium mb-2">Adjuntos</h3>
+    <ul class="space-y-2">
+      {% for a in attachments %}
+        <li class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border rounded-lg p-3 bg-white">
+          <div class="flex items-start gap-2">
+            <i class="bi bi-paperclip text-gray-500 mt-0.5"></i>
+            <div>
+              <a href="{{ a.file.url }}" class="text-blue-600 hover:underline" target="_blank" rel="noopener">{{ a.file.name|default:"Archivo adjunto" }}</a>
+              <div class="text-xs text-gray-500">{{ a.uploaded_by.get_full_name|default:a.uploaded_by.username }} · {{ a.uploaded_at }}</div>
+            </div>
+          </div>
+          <div class="text-xs text-gray-500">{{ a.size }} bytes</div>
+        </li>
+      {% empty %}
+        <li class="text-gray-500">Sin archivos adjuntos.</li>
+      {% endfor %}
+    </ul>
+    {% if not can_upload_files %}
+      <p class="text-xs text-gray-500 mt-2">Solo el solicitante y el técnico asignado pueden agregar nuevos adjuntos.</p>
+    {% endif %}
+  </section>
 </div>

@@ -22,13 +22,14 @@ class TicketCreateForm(forms.ModelForm):
 
     class Meta:
         model = Ticket
-        fields = ("title", "description", "category", "priority", "area")
+        fields = ("title", "description", "category", "priority", "area", "kind")
         widgets = {
             "title": forms.TextInput(attrs={"class": "border rounded px-3 py-2 w-full"}),
             "description": forms.Textarea(attrs={"class": "border rounded px-3 py-2 w-full", "rows": 4}),
             "category": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
             "priority": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
             "area": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
+            "kind": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
         }
 
     def __init__(self, *args, **kwargs):

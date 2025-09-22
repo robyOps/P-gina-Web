@@ -7,7 +7,7 @@
     <a href="{% url 'ticket_print' t.id %}" target="_blank" class="text-sm text-blue-600 hover:underline">Imprimir</a>
     <a href="{% url 'ticket_pdf' t.id %}" class="text-sm text-blue-600 hover:underline">Descargar PDF</a>
     {% if request.user.is_staff %}
-    <a href="{% url 'logs_list' %}?model=ticket&obj_id={{ t.id }}" class="btn inline-flex items-center bg-gray-900 text-white px-3 py-1.5 rounded text-sm shadow">Historial</a>
+    <a href="{% url 'logs_list' %}?model=ticket&obj_id={{ t.id }}" class="btn inline-flex items-center bg-gray-900 text-white px-3 py-1.5 rounded text-sm shadow">Auditoría</a>
     {% endif %}
   </div>
 </div>
@@ -33,6 +33,19 @@
   <!-- Datos -->
   <div class="bg-white rounded-xl shadow p-4 space-y-1">
     <div><span class="font-medium">Estado:</span> {{ t.get_status_display }}</div>
+    <div>
+      <span class="font-medium">Tipo:</span>
+      <span class="inline-flex items-center gap-1">
+        {{ t.get_kind_display }}
+        {% if t.kind == 'INCIDENT' %}
+          <i class="bi bi-exclamation-triangle-fill text-red-500" title="Incidente: interrupción o degradación del servicio."></i>
+        {% elif t.kind == 'REQUEST' %}
+          <i class="bi bi-clipboard-check text-green-600" title="Solicitud: requerimiento o petición de servicio."></i>
+        {% else %}
+          <i class="bi bi-info-circle text-gray-500" title="Clasificación del ticket"></i>
+        {% endif %}
+      </span>
+    </div>
     <div><span class="font-medium">Categoría:</span> {{ t.category.name }}</div>
     <div><span class="font-medium">Prioridad:</span> {{ t.priority.name }}</div>
     {% if t.area %}<div><span class="font-medium">Área:</span> {{ t.area.name }}</div>{% endif %}
@@ -129,9 +142,9 @@
         <div class="text-sm text-gray-500">Cargando comentarios…</div>
       </div>
 
-      <form class="space-y-3" method="post"
+      <form class="space-y-3" method="post" enctype="multipart/form-data"
             hx-post="{% url 'add_comment' t.id %}"
-            hx-target="#discussion" hx-swap="innerHTML">
+            hx-target="#discussion" hx-swap="innerHTML" hx-encoding="multipart/form-data">
         {% csrf_token %}
         <label class="block text-sm font-medium">Nuevo comentario</label>
         <textarea name="body" class="w-full border rounded px-3 py-2 text-sm" rows="3" placeholder="Describe la actualización" required></textarea>
@@ -140,17 +153,19 @@
           <input type="checkbox" name="is_internal"> Interno
         </label>
         {% endif %}
+        {% if can_upload_files %}
+        <div class="space-y-1">
+          <label class="block text-sm font-medium">Adjuntar archivo (opcional)</label>
+          <input type="file" name="file" class="w-full text-sm border rounded px-3 py-2">
+          <p class="text-xs text-gray-500">Puedes adjuntar evidencia para acompañar el comentario.</p>
+        </div>
+        {% endif %}
         <button class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm shadow">Guardar comentario</button>
       </form>
     </div>
 
     <div class="bg-white rounded-xl shadow p-4">
-      <div class="flex items-center justify-between mb-2">
-        <div class="font-medium">Historial general</div>
-        {% if request.user.is_staff %}
-        <a href="{% url 'logs_list' %}?model=ticket&obj_id={{ t.id }}" class="text-xs text-blue-600 hover:underline">Ver en logs</a>
-        {% endif %}
-      </div>
+      <div class="font-medium mb-2">Historial general</div>
       <div id="audit"
            hx-get="{% url 'audit_partial' t.id %}"
            hx-trigger="load, revealed"
