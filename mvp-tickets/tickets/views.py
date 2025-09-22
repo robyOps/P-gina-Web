@@ -28,7 +28,6 @@ from .models import AutoAssignRule
 
 # --- Stdlib ---
 from datetime import datetime
-import uuid
 import json
 from io import BytesIO
 from urllib.parse import urlencode
@@ -52,6 +51,7 @@ from .models import (
     AuditLog,
     EventLog,
     Notification,
+    Priority,
 )
 
 
@@ -101,22 +101,15 @@ def can_upload_attachments(ticket: Ticket, user) -> bool:
 
 
 def discussion_payload(ticket: Ticket, user) -> dict:
-    """Construye el contexto con comentarios y adjuntos visibles para el usuario."""
+    """Construye el contexto con los comentarios visibles para el usuario."""
 
     comments_qs = TicketComment.objects.filter(ticket=ticket).order_by("created_at")
     if not (is_admin(user) or is_tech(user)):
         comments_qs = comments_qs.filter(is_internal=False)
 
-    attachments_qs = TicketAttachment.objects.none()
-    if can_upload_attachments(ticket, user):
-        attachments_qs = TicketAttachment.objects.filter(ticket=ticket).order_by("-uploaded_at")
-
     return {
         "t": ticket,
         "comments": comments_qs,
-        "attachments": attachments_qs,
-        "can_upload": can_upload_attachments(ticket, user),
-        "can_mark_internal": is_admin(user) or is_tech(user),
     }
 
 
@@ -136,15 +129,18 @@ def dashboard(request):
         qs = base.filter(requester=u)
         scope = "de tus tickets"
 
+    month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
     counts = {
         "open": qs.filter(status=Ticket.OPEN).count(),
         "in_progress": qs.filter(status=Ticket.IN_PROGRESS).count(),
-        "resolved": qs.filter(status=Ticket.RESOLVED).count(),
-        "closed": qs.filter(status=Ticket.CLOSED).count(),
+        "resolved": qs.filter(resolved_at__gte=month_start).count(),
+        "closed": qs.filter(closed_at__gte=month_start).count(),
     }
 
+    chart_labels = ["Abierto", "En progreso", "Resuelto (mes)", "Cerrado (mes)"]
     chart_data = json.dumps({
-        "labels": ["Abierto", "En progreso", "Resuelto", "Cerrado"],
+        "labels": chart_labels,
         "data": [
             counts["open"],
             counts["in_progress"],
@@ -172,53 +168,58 @@ def tickets_home(request):
     u = request.user
     base_qs = Ticket.objects.select_related("category", "priority", "assigned_to")
 
-    other_qs = None
+    inbox = (request.GET.get("inbox") or "").strip().lower()
+    inbox_options: list[tuple[str, str]] = []
     if is_admin(u):
-        qs = base_qs
+        default_inbox = "general"
+        if inbox not in {"general", "personal"}:
+            inbox = default_inbox
+        qs = base_qs if inbox == "general" else base_qs.filter(assigned_to=u)
+        inbox_options = [
+            ("general", "Bandeja general"),
+            ("personal", "Bandeja personal"),
+        ]
     elif is_tech(u):
-        qs = base_qs.filter(assigned_to=u)
-        other_qs = base_qs.filter(assigned_to__groups__name=ROLE_TECH).exclude(assigned_to=u)
+        default_inbox = "personal"
+        if inbox not in {"general", "personal"}:
+            inbox = default_inbox
+        qs = base_qs if inbox == "general" else base_qs.filter(assigned_to=u)
+        inbox_options = [
+            ("personal", "Bandeja personal"),
+            ("general", "Bandeja general"),
+        ]
     else:
         qs = base_qs.filter(requester=u)
+        inbox = ""
 
     # Filtros
-    status   = (request.GET.get("status") or "").strip()
+    status = (request.GET.get("status") or "").strip()
     category = (request.GET.get("category") or "").strip()
     priority = (request.GET.get("priority") or "").strip()
+    alerts_only = request.GET.get("alerts") == "1"
 
     # Por defecto ocultar CLOSED si no hay filtro de estado
     if not status:
         qs = qs.exclude(status=Ticket.CLOSED)
-        if other_qs is not None:
-            other_qs = other_qs.exclude(status=Ticket.CLOSED)
 
     if status:
         qs = qs.filter(status=status)
-        if other_qs is not None:
-            other_qs = other_qs.filter(status=status)
     if category:
         qs = qs.filter(category_id=category)
-        if other_qs is not None:
-            other_qs = other_qs.filter(category_id=category)
     if priority:
-        qs = qs.filter(priority_id=priority)
-        if other_qs is not None:
-            other_qs = other_qs.filter(priority_id=priority)
+        if priority.isdigit():
+            qs = qs.filter(priority_id=priority)
+        else:
+            qs = qs.filter(priority__name__iexact=priority)
 
     # Búsqueda
     q = (request.GET.get("q") or "").strip()
     if q:
         qs = qs.filter(
-            Q(code__icontains=q) |
-            Q(title__icontains=q) |
-            Q(description__icontains=q)
+            Q(code__icontains=q)
+            | Q(title__icontains=q)
+            | Q(description__icontains=q)
         )
-        if other_qs is not None:
-            other_qs = other_qs.filter(
-                Q(code__icontains=q)
-                | Q(title__icontains=q)
-                | Q(description__icontains=q)
-            )
 
     # Ordenamiento
     sort = (request.GET.get("sort") or "").strip()
@@ -234,12 +235,8 @@ def tickets_home(request):
     sort_key = sort.lstrip("-")
     if sort_key in allowed_sorts:
         qs = qs.order_by(sort)
-        if other_qs is not None:
-            other_qs = other_qs.order_by(sort)
     else:
         qs = qs.order_by("-created_at")
-        if other_qs is not None:
-            other_qs = other_qs.order_by("-created_at")
 
     # Paginación
     try:
@@ -248,21 +245,29 @@ def tickets_home(request):
         page_size = 20
     page_size = max(5, min(page_size, 100))  # clamp 5..100
 
-    paginator = Paginator(qs, page_size)
+    tickets_list = list(qs)
+    if alerts_only:
+        tickets_list = [t for t in tickets_list if t.is_overdue or t.is_warning]
+
+    paginator = Paginator(tickets_list, page_size)
     page_obj = paginator.get_page(request.GET.get("page"))
-    other_tickets = list(other_qs[:50]) if other_qs is not None else []
 
     # Resumen exclusivo para técnicos: permite decidir si autoasignarse.
     tech_counters = None
     if is_tech(u):
         tech_counters = {
-            "assigned": Ticket.objects.exclude(status=Ticket.CLOSED).filter(assigned_to=u).count(),
+            "assigned": Ticket.objects.exclude(status=Ticket.CLOSED)
+            .filter(assigned_to=u)
+            .count(),
             "total": Ticket.objects.exclude(status=Ticket.CLOSED).count(),
-            "unassigned": Ticket.objects.exclude(status=Ticket.CLOSED).filter(assigned_to__isnull=True).count(),
+            "unassigned": Ticket.objects.exclude(status=Ticket.CLOSED)
+            .filter(assigned_to__isnull=True)
+            .count(),
         }
 
     # Para el combo de estados (clave y etiqueta en español)
     statuses = Ticket.STATUS_CHOICES
+    priorities = list(Priority.objects.order_by("name"))
 
     # Para preservar filtros en paginación (opcional, usado en template)
     qdict = request.GET.copy()
@@ -275,6 +280,21 @@ def tickets_home(request):
     qs_no_sort = qdict_no_sort.urlencode()
     qs_no_sort = f"&{qs_no_sort}" if qs_no_sort else ""
 
+    def _inbox_query(value: str) -> str:
+        params = request.GET.copy()
+        params.pop("page", None)
+        if value:
+            params["inbox"] = value
+        else:
+            params.pop("inbox", None)
+        encoded = params.urlencode()
+        return f"?{encoded}" if encoded else "?"
+
+    inbox_links = [
+        {"value": value, "label": label, "url": _inbox_query(value)}
+        for value, label in inbox_options
+    ]
+
     ctx = {
         "tickets": page_obj.object_list,
         "page_obj": page_obj,
@@ -285,12 +305,15 @@ def tickets_home(request):
             "status": status,
             "category": category,
             "priority": priority,
+            "alerts": "1" if alerts_only else "",
         },
         "statuses": statuses,
         "qs_no_page": qs_no_page,  # opcional para los links de paginación
         "qs_no_sort": qs_no_sort,
-        "other_tickets": other_tickets,
         "tech_counters": tech_counters,
+        "priorities": priorities,
+        "current_inbox": inbox,
+        "inbox_links": inbox_links,
     }
     return TemplateResponse(request, "tickets/list.html", ctx)
 
@@ -304,7 +327,6 @@ def ticket_create(request):
             t = form.save(commit=False)
             t.requester = request.user
             t.status = Ticket.OPEN
-            t.code = f"TCK-{uuid.uuid4().hex[:8].upper()}"
             t.save()
 
             # ⬇️ Si no se asignó manualmente, intenta auto-asignar por reglas
@@ -372,7 +394,6 @@ def ticket_detail(request, pk):
         "tech_users": tech_users,
         "is_admin_u": is_admin_u,
         "is_tech_u": is_tech_u,
-        "can_upload": can_upload_attachments(t, u),
         "can_mark_internal": is_admin_u or is_tech_u,
     }
     return TemplateResponse(request, "tickets/detail.html", ctx)
@@ -400,7 +421,7 @@ def ticket_print(request, pk):
 # --------- partials HTMX ---------
 @login_required
 def discussion_partial(request, pk):
-    """HTMX: renderiza comentarios y adjuntos en un solo bloque."""
+    """HTMX: renderiza el historial de comentarios en un solo bloque."""
 
     t = get_object_or_404(Ticket, pk=pk)
     u = request.user

@@ -7,7 +7,7 @@
     <a href="{% url 'ticket_print' t.id %}" target="_blank" class="text-sm text-blue-600 hover:underline">Imprimir</a>
     <a href="{% url 'ticket_pdf' t.id %}" class="text-sm text-blue-600 hover:underline">Descargar PDF</a>
     {% if request.user.is_staff %}
-    <a href="{% url 'logs_list' %}?model=ticket&obj_id={{ t.id }}" class="text-sm text-blue-600 hover:underline">Historial</a>
+    <a href="{% url 'logs_list' %}?model=ticket&obj_id={{ t.id }}" class="btn inline-flex items-center bg-gray-900 text-white px-3 py-1.5 rounded text-sm shadow">Historial</a>
     {% endif %}
   </div>
 </div>
@@ -116,65 +116,49 @@
     {% endif %}
   </div>
 
-  <!-- Actividad (Auditoría) -->
-<div class="bg-white rounded-xl shadow p-4">
-  <div class="font-medium mb-2">Actividad (Auditoría)</div>
-  <div id="audit"
-       hx-get="{% url 'audit_partial' t.id %}"
-       hx-trigger="load, revealed"
-       hx-target="#audit"
-       hx-swap="innerHTML">
-    <div class="text-sm text-gray-500">Cargando actividad…</div>
-  </div>
-</div>
+  <div class="md:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="bg-white rounded-xl shadow p-4 space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="font-medium">Comentarios</div>
+      </div>
+      <div id="discussion"
+           hx-get="{% url 'discussion_partial' t.id %}"
+           hx-trigger="load, revealed"
+           hx-target="#discussion"
+           hx-swap="innerHTML">
+        <div class="text-sm text-gray-500">Cargando comentarios…</div>
+      </div>
 
-
-    <!-- Historial -->
-  <div class="bg-white rounded-xl shadow p-4">
-    <div class="font-medium mb-2">Historial</div>
-    <div id="audit"
-         hx-get="{% url 'audit_partial' t.id %}"
-         hx-trigger="load, revealed"
-         hx-target="#audit"
-         hx-swap="innerHTML">
-      <div class="text-sm text-gray-500">Cargando historial…</div>
-    </div>
-  </div>
-
-  <!-- Comentarios + Adjuntos -->
-  <div class="bg-white rounded-xl shadow p-4 md:col-span-2">
-    <div class="font-medium mb-2">Comentarios y archivos</div>
-    <p class="text-xs text-gray-500 mb-3">Registra los avances agregando un comentario y, si es necesario, adjunta un archivo de respaldo.</p>
-
-    <div id="discussion"
-         hx-get="{% url 'discussion_partial' t.id %}"
-         hx-trigger="load, revealed"
-         hx-target="#discussion"
-         hx-swap="innerHTML">
-      <div class="text-sm text-gray-500">Cargando historial…</div>
-    </div>
-
-    <form class="mt-4 space-y-3" method="post" enctype="multipart/form-data"
-          hx-post="{% url 'add_comment' t.id %}"
-          hx-target="#discussion" hx-swap="innerHTML">
-      {% csrf_token %}
-      <label class="block text-sm font-medium">Nuevo comentario</label>
-      <textarea name="body" class="w-full border rounded px-3 py-2 text-sm" rows="3" placeholder="Describe la actualización realizada" required></textarea>
-      <div class="flex flex-wrap items-center gap-3">
+      <form class="space-y-3" method="post"
+            hx-post="{% url 'add_comment' t.id %}"
+            hx-target="#discussion" hx-swap="innerHTML">
+        {% csrf_token %}
+        <label class="block text-sm font-medium">Nuevo comentario</label>
+        <textarea name="body" class="w-full border rounded px-3 py-2 text-sm" rows="3" placeholder="Describe la actualización" required></textarea>
         {% if can_mark_internal %}
         <label class="text-sm inline-flex items-center gap-2">
           <input type="checkbox" name="is_internal"> Interno
         </label>
         {% endif %}
-        {% if can_upload %}
-        <label class="text-sm inline-flex items-center gap-2">
-          <span class="hidden md:inline">Adjuntar archivo (opcional):</span>
-          <input type="file" name="file" class="text-sm" />
-        </label>
+        <button class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm shadow">Guardar comentario</button>
+      </form>
+    </div>
+
+    <div class="bg-white rounded-xl shadow p-4">
+      <div class="flex items-center justify-between mb-2">
+        <div class="font-medium">Historial general</div>
+        {% if request.user.is_staff %}
+        <a href="{% url 'logs_list' %}?model=ticket&obj_id={{ t.id }}" class="text-xs text-blue-600 hover:underline">Ver en logs</a>
         {% endif %}
       </div>
-      <button class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm shadow">Guardar actualización</button>
-    </form>
+      <div id="audit"
+           hx-get="{% url 'audit_partial' t.id %}"
+           hx-trigger="load, revealed"
+           hx-target="#audit"
+           hx-swap="innerHTML">
+        <div class="text-sm text-gray-500">Cargando historial…</div>
+      </div>
+    </div>
   </div>
 
 </div>

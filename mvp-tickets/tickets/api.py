@@ -1,7 +1,6 @@
 # tickets/api.py
 
 # ------------------------- IMPORTS -------------------------
-import uuid  # para generar códigos únicos de ticket (ej: TCK-AB12CD34)
 from django.utils import timezone  # para sellos de tiempo (resolved_at / closed_at)
 from django.contrib.auth import get_user_model  # para obtener el modelo de usuario (custom o por defecto)
 
@@ -85,8 +84,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     # --------- Crear ticket ---------
     def perform_create(self, serializer):
-        code = f"TCK-{uuid.uuid4().hex[:8].upper()}"
-        serializer.save(status=Ticket.OPEN, code=code)
+        serializer.save(status=Ticket.OPEN)
 
         # Auditoría de creación
         AuditLog.objects.create(
