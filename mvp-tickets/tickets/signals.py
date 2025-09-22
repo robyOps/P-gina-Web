@@ -144,21 +144,76 @@ def on_audit_log(sender, instance: AuditLog, created, **kwargs):
 
     meta = instance.meta or {}
     message = messages.get(instance.action, "")
+    status_map = dict(Ticket.STATUS_CHOICES)
+
+    def _username_from_meta(key_id: str, key_name: str) -> str:
+        username = meta.get(key_name)
+        if username:
+            return username
+        user_id = meta.get(key_id)
+        if not user_id:
+            return "Sin asignar"
+        try:
+            return (
+                User.objects.only("username")
+                .get(id=user_id)
+                .username
+            )
+        except User.DoesNotExist:
+            return "Sin asignar"
 
     if instance.action == "COMMENT":
         author = getattr(instance.actor, "username", "usuario")
         preview = (meta.get("body_preview") or "").strip()
+        scope = "interno" if meta.get("internal") else "público"
         if preview:
-            message = f"{author} comentó: {preview}"
+            message = f"{author} comentó ({scope}): {preview}"
         else:
-            message = f"{author} agregó un comentario."
-    elif instance.action == "STATUS" and meta.get("with_comment"):
-        author = getattr(instance.actor, "username", "usuario")
-        preview = (meta.get("body_preview") or "").strip()
-        if preview:
-            message = f"{author} cambió estado y comentó: {preview}"
+            message = f"{author} agregó un comentario {scope}."
+        if meta.get("with_attachment"):
+            filename = meta.get("filename") or "archivo adjunto"
+            message += f" Adjuntó {filename}."
+    elif instance.action == "ASSIGN":
+        from_name = _username_from_meta("from", "from_username")
+        to_name = _username_from_meta("to", "to_username")
+        if meta.get("from") and meta.get("from") != meta.get("to"):
+            message = f"Reasignado de {from_name} a {to_name}."
         else:
-            message = f"{author} cambió el estado con comentario adicional."
+            message = f"Asignado a {to_name}."
+        reason = (meta.get("reason") or "").strip()
+        if reason:
+            message += f" Motivo: {reason}."
+        if meta.get("title_changed"):
+            title_from = (meta.get("title_from") or "").strip()
+            title_to = (meta.get("title_to") or "").strip()
+            if title_from or title_to:
+                message += f" Título: '{title_from or '—'}' → '{title_to or '—'}'."
+    elif instance.action == "STATUS":
+        from_label = meta.get("from_label") or status_map.get(meta.get("from"))
+        to_label = meta.get("to_label") or status_map.get(meta.get("to"))
+        from_label = from_label or "Sin estado"
+        to_label = to_label or "Sin estado"
+        message = f"Estado: {from_label} → {to_label}."
+        if meta.get("with_comment"):
+            preview = (meta.get("body_preview") or "").strip()
+            if preview:
+                scope = "interno" if meta.get("internal") else "público"
+                message += f" Comentario {scope}: {preview}."
+    elif instance.action == "ATTACH":
+        filename = meta.get("filename")
+        if filename:
+            filename = filename.rsplit("/", 1)[-1]
+            message = f"Adjunto agregado: {filename}."
+        else:
+            message = "Adjunto agregado al ticket."
+    elif instance.action == "SLA_WARN":
+        remaining = meta.get("remaining_h")
+        if remaining is not None:
+            message = f"Alerta SLA: {remaining}h restantes."
+    elif instance.action == "SLA_BREACH":
+        overdue = meta.get("overdue_h")
+        if overdue is not None:
+            message = f"SLA vencido hace {overdue}h."
 
     EventLog.objects.create(
         actor=instance.actor,

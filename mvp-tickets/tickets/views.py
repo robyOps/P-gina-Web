@@ -472,7 +472,9 @@ def ticket_create(request):
                     action="ASSIGN",
                     meta={
                         "from": None,
+                        "from_username": None,
                         "to": assignee.id,
+                        "to_username": assignee.username,
                         "reason": "",
                     },
                 )
@@ -625,6 +627,12 @@ def add_comment(request, pk):
             size=uploaded_file.size,
         )
 
+    attachment_name = None
+    if attachment:
+        attachment_name = attachment.file.name.rsplit("/", 1)[-1]
+    elif uploaded_file:
+        attachment_name = getattr(uploaded_file, "name", None)
+
     # Registrar en auditoría y dejar trazabilidad para el EventLog
     AuditLog.objects.create(
         ticket=t,
@@ -634,6 +642,7 @@ def add_comment(request, pk):
             "internal": bool(is_internal),
             "comment_id": comment.id,
             "with_attachment": bool(attachment),
+            "filename": attachment_name,
             "body_preview": body[:120],
         },
     )
@@ -704,7 +713,9 @@ def ticket_assign(request, pk):
         action="ASSIGN",
         meta={
             "from": prev.id if prev else None,
+            "from_username": getattr(prev, "username", None) if prev else None,
             "to": to_user.id,
+            "to_username": to_user.username,
             "reason": reason,
             "title_changed": title_changed,
             "title_from": previous_title,
@@ -744,6 +755,7 @@ def ticket_transition(request, pk):
         )
         return redirect("ticket_detail", pk=t.pk)
 
+    previous_status = t.status
     t.status = next_status
     if next_status == Ticket.RESOLVED:
         t.resolved_at = timezone.now()
@@ -757,12 +769,17 @@ def ticket_transition(request, pk):
             ticket=t, author=u, body=comment, is_internal=is_internal
         )
 
+    previous_status = getattr(t, "_old_status", None) or previous_status
+    status_map = dict(Ticket.STATUS_CHOICES)
     AuditLog.objects.create(
         ticket=t,
-       actor=u,
+        actor=u,
         action="STATUS",
         meta={
+            "from": previous_status,
+            "from_label": status_map.get(previous_status),
             "to": next_status,
+            "to_label": status_map.get(next_status),
             "with_comment": bool(comment),
             "internal": bool(is_internal),
             "comment_id": getattr(comment_obj, "id", None),
@@ -1038,12 +1055,122 @@ def audit_partial(request, pk):
         return HttpResponseForbidden("No autorizado")
 
     # Traemos los últimos 50 eventos (del más nuevo al más antiguo)
-    logs = (t.audit_logs
-              .select_related("actor")
-              .values("action","actor__username","meta","created_at")
-              .order_by("-created_at")[:50])
+    logs = list(
+        t.audit_logs.select_related("actor").order_by("-created_at")[:50]
+    )
 
-    return TemplateResponse(request, "tickets/partials/audit.html", {"t": t, "logs": logs})
+    action_labels = {
+        "CREATE": "Creación",
+        "ASSIGN": "Asignación",
+        "STATUS": "Estado",
+        "COMMENT": "Comentario",
+        "ATTACH": "Adjunto",
+        "SLA_WARN": "Alerta SLA",
+        "SLA_BREACH": "SLA vencido",
+    }
+    status_map = dict(Ticket.STATUS_CHOICES)
+
+    user_ids: set[int] = set()
+    for log in logs:
+        meta = log.meta or {}
+        for key in ("from", "to"):
+            val = meta.get(key)
+            if isinstance(val, int):
+                user_ids.add(val)
+            elif isinstance(val, str) and val.isdigit():
+                user_ids.add(int(val))
+
+    user_map = {
+        user.id: user.username
+        for user in User.objects.filter(id__in=user_ids).only("id", "username")
+    }
+
+    def _user_name(meta: dict, key_id: str, key_name: str) -> str:
+        if meta.get(key_name):
+            return meta[key_name]
+        val = meta.get(key_id)
+        if not val:
+            return "Sin asignar"
+        if isinstance(val, str) and val.isdigit():
+            val = int(val)
+        return user_map.get(val, "Sin asignar")
+
+    entries = []
+    for log in logs:
+        meta = log.meta or {}
+        action = log.action
+        description = ""
+        notes: list[str] = []
+        comment_text = ""
+        comment_is_internal = False
+
+        if action == "CREATE":
+            description = "Ticket creado."
+        elif action == "ASSIGN":
+            from_name = _user_name(meta, "from", "from_username")
+            to_name = _user_name(meta, "to", "to_username")
+            if meta.get("from") and meta.get("from") != meta.get("to"):
+                description = f"Reasignado de {from_name} a {to_name}."
+            else:
+                description = f"Asignado a {to_name}."
+            reason = (meta.get("reason") or "").strip()
+            if reason:
+                notes.append(f"Motivo: {reason}")
+            if meta.get("title_changed"):
+                title_from = (meta.get("title_from") or "").strip() or "—"
+                title_to = (meta.get("title_to") or "").strip() or "—"
+                notes.append(f"Título: '{title_from}' → '{title_to}'")
+        elif action == "STATUS":
+            from_label = meta.get("from_label") or status_map.get(meta.get("from"))
+            to_label = meta.get("to_label") or status_map.get(meta.get("to"))
+            description = f"Estado cambiado de {from_label or 'Sin estado'} a {to_label or 'Sin estado'}."
+            if meta.get("with_comment"):
+                preview = (meta.get("body_preview") or "").strip()
+                if preview:
+                    comment_text = preview
+                    comment_is_internal = bool(meta.get("internal"))
+                else:
+                    notes.append("Incluyó un comentario adicional.")
+        elif action == "COMMENT":
+            scope = "interno" if meta.get("internal") else "público"
+            description = f"Comentario {scope}."
+            comment_text = (meta.get("body_preview") or "").strip()
+            if meta.get("with_attachment"):
+                filename = meta.get("filename") or "archivo adjunto"
+                notes.append(f"Adjunto: {filename}")
+        elif action == "ATTACH":
+            description = "Archivo adjunto agregado."
+        elif action == "SLA_WARN":
+            description = "Advertencia SLA: el ticket está próximo a vencer."
+            remaining = meta.get("remaining_h")
+            if remaining is not None:
+                notes.append(f"Horas restantes: {remaining}")
+        elif action == "SLA_BREACH":
+            description = "El SLA del ticket fue incumplido."
+            overdue = meta.get("overdue_h")
+            if overdue is not None:
+                notes.append(f"Horas de retraso: {overdue}")
+        else:
+            description = action_labels.get(action, action)
+
+        entries.append(
+            {
+                "action": action,
+                "action_label": action_labels.get(action, action),
+                "actor": getattr(log.actor, "username", "(sistema)"),
+                "created_at": localtime(log.created_at),
+                "description": description,
+                "notes": notes,
+                "comment": comment_text,
+                "comment_is_internal": comment_is_internal,
+            }
+        )
+
+    return TemplateResponse(
+        request,
+        "tickets/partials/audit.html",
+        {"t": t, "entries": entries},
+    )
 
 
 @login_required
@@ -1277,8 +1404,33 @@ def logs_list(request):
 
     params = request.GET.copy()
     params.pop("page", None)
+    action_labels = {
+        "CREATE": "Creación",
+        "ASSIGN": "Asignación",
+        "STATUS": "Estado",
+        "COMMENT": "Comentario",
+        "ATTACH": "Adjunto",
+        "SLA_WARN": "Alerta SLA",
+        "SLA_BREACH": "SLA vencido",
+    }
+    model_labels = {"ticket": "Ticket"}
+    rows = []
+    for item in page_obj:
+        rows.append(
+            {
+                "created_at": localtime(item.created_at),
+                "actor": getattr(item.actor, "username", "(sistema)"),
+                "model": model_labels.get(item.model, item.model),
+                "obj_id": item.obj_id,
+                "action": action_labels.get(item.action, item.action),
+                "message": item.message,
+                "url": reverse("ticket_detail", args=[item.obj_id]) if item.model == "ticket" else "",
+            }
+        )
+
     ctx = {
         "logs": page_obj,
+        "rows": rows,
         "page_obj": page_obj,
         "querystring": params.urlencode(),
         "filters": request.GET,
