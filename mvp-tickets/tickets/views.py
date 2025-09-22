@@ -345,10 +345,30 @@ def ticket_create(request):
     if request.method == "POST":
         form = TicketCreateForm(request.POST, user=request.user)
         if form.is_valid():
+            assignee = None
+            if "assignee" in form.cleaned_data:
+                assignee = form.cleaned_data.get("assignee")
             t = form.save(commit=False)
             t.requester = request.user
             t.status = Ticket.OPEN
+            if assignee:
+                t.assigned_to = assignee
             t.save()
+
+            if assignee:
+                TicketAssignment.objects.create(
+                    ticket=t, from_user=request.user, to_user=assignee, reason=""
+                )
+                AuditLog.objects.create(
+                    ticket=t,
+                    actor=request.user,
+                    action="ASSIGN",
+                    meta={
+                        "from": None,
+                        "to": assignee.id,
+                        "reason": "",
+                    },
+                )
 
             # ⬇️ Si no se asignó manualmente, intenta auto-asignar por reglas
             if not t.assigned_to_id:
