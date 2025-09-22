@@ -326,3 +326,31 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notif({self.user_id}) {self.message[:20]}"
+
+
+class FAQ(models.Model):
+    """Entradas de preguntas frecuentes administradas por técnicos y administradores."""
+
+    question = models.CharField(max_length=255)
+    answer = models.TextField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="faqs_created",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="faqs_updated",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["question"]
+
+    def __str__(self):
+        return self.question

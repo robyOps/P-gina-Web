@@ -23,11 +23,11 @@ from django.utils.timezone import localtime
 
 
 from django.shortcuts import render
-from .forms import AutoAssignRuleForm
-from .models import AutoAssignRule
+from .forms import AutoAssignRuleForm, FAQForm
+from .models import AutoAssignRule, FAQ
 
 # --- Stdlib ---
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from io import BytesIO
 from urllib.parse import urlencode
@@ -158,12 +158,119 @@ def dashboard(request):
         ],
     })
 
+    urgent_candidates = (
+        qs.filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
+        .select_related("priority")
+        .order_by("created_at")
+    )
+    urgent_tickets = []
+    for ticket in urgent_candidates:
+        sla_hours = getattr(ticket.priority, "sla_hours", 72) or 72
+        if ticket.is_overdue or ticket.is_warning or sla_hours <= 24:
+            urgent_tickets.append(ticket)
+    urgent_tickets.sort(key=lambda t: t.remaining_hours)
+
+    cutoff = timezone.now() - timedelta(days=60)
+    failure_qs = qs.filter(created_at__gte=cutoff)
+    failure_rows = (
+        failure_qs.values("category__name")
+        .annotate(total=Count("id"))
+        .order_by("-total", "category__name")[:8]
+    )
+    failure_labels = [row["category__name"] or "Sin categoría" for row in failure_rows]
+    failure_totals = [row["total"] for row in failure_rows]
+    failures_chart_data = json.dumps(
+        {
+            "labels": failure_labels,
+            "data": failure_totals,
+            "since": cutoff.date().isoformat(),
+        }
+    )
+
     ctx = {
         "counts": counts,
         "chart_data": chart_data,
         "scope": scope,
+        "urgent_tickets": urgent_tickets,
+        "failures_chart_data": failures_chart_data,
+        "has_failures_data": bool(failure_totals),
+        "failures_since": cutoff,
     }
     return render(request, "dashboard.html", ctx)
+
+
+@login_required
+def faq_list(request):
+    """Listado de preguntas frecuentes y formulario de alta rápida."""
+    user = request.user
+    can_manage = is_admin(user) or is_tech(user)
+    faqs = FAQ.objects.all()
+
+    form = FAQForm()
+    if request.method == "POST":
+        if not can_manage:
+            return HttpResponseForbidden("No autorizado")
+        form = FAQForm(request.POST)
+        if form.is_valid():
+            faq = form.save(commit=False)
+            faq.created_by = user
+            faq.updated_by = user
+            faq.save()
+            messages.success(request, "Pregunta frecuente creada.")
+            return redirect("faq_list")
+
+    ctx = {
+        "faqs": faqs,
+        "form": form,
+        "can_manage": can_manage,
+    }
+    return render(request, "tickets/faq.html", ctx)
+
+
+@login_required
+def faq_edit(request, pk):
+    """Editar una pregunta frecuente existente."""
+    faq = get_object_or_404(FAQ, pk=pk)
+    user = request.user
+    if not (is_admin(user) or is_tech(user)):
+        return HttpResponseForbidden("No autorizado")
+
+    if request.method == "POST":
+        form = FAQForm(request.POST, instance=faq)
+        if form.is_valid():
+            updated = form.save(commit=False)
+            if not updated.created_by_id:
+                updated.created_by = user
+            updated.updated_by = user
+            updated.save()
+            messages.success(request, "Pregunta frecuente actualizada.")
+            return redirect("faq_list")
+    else:
+        form = FAQForm(instance=faq)
+
+    return render(
+        request,
+        "tickets/faq_form.html",
+        {
+            "form": form,
+            "faq": faq,
+        },
+    )
+
+
+@login_required
+@require_POST
+def faq_delete(request, pk):
+    """Elimina una pregunta frecuente."""
+    user = request.user
+    if not (is_admin(user) or is_tech(user)):
+        return HttpResponseForbidden("No autorizado")
+
+    faq = get_object_or_404(FAQ, pk=pk)
+    faq.delete()
+    messages.success(request, "Pregunta frecuente eliminada.")
+    return redirect("faq_list")
+
 
 @login_required
 def tickets_home(request):
@@ -572,9 +679,21 @@ def ticket_assign(request, pk):
             return redirect("ticket_detail", pk=t.pk)
 
     reason = (request.POST.get("reason") or "").strip()
+    new_title = (request.POST.get("new_title") or "").strip()
     prev = t.assigned_to
+    previous_title = t.title
+
+    can_rename = is_admin(u) or (is_tech(u) and str(u.id) == to_user_id)
+    title_changed = False
+    if can_rename and new_title and new_title != t.title:
+        t.title = new_title
+        title_changed = True
+
     t.assigned_to = to_user
-    t.save(update_fields=["assigned_to", "updated_at"])
+    update_fields = ["assigned_to", "updated_at"]
+    if title_changed:
+        update_fields.append("title")
+    t.save(update_fields=update_fields)
 
     TicketAssignment.objects.create(
         ticket=t, from_user=u, to_user=to_user, reason=reason
@@ -583,14 +702,24 @@ def ticket_assign(request, pk):
         ticket=t,
         actor=u,
         action="ASSIGN",
-        meta={"from": prev.id if prev else None, "to": to_user.id, "reason": reason},
+        meta={
+            "from": prev.id if prev else None,
+            "to": to_user.id,
+            "reason": reason,
+            "title_changed": title_changed,
+            "title_from": previous_title,
+            "title_to": t.title,
+        },
     )
 
     link = reverse("ticket_detail", args=[t.pk])
     create_notification(to_user, f"Ticket {t.code} te ha sido asignado", link)
     create_notification(t.requester, f"Ticket {t.code} asignado a {to_user.username}", link)
 
-    messages.success(request, f"Ticket asignado a {to_user.username}.")
+    msg = f"Ticket asignado a {to_user.username}."
+    if title_changed:
+        msg += " Título actualizado."
+    messages.success(request, msg)
     return redirect("ticket_detail", pk=t.pk)
 
 

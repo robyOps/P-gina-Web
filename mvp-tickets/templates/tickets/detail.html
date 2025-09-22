@@ -97,6 +97,10 @@
               <div class="text-xs text-gray-500">Este ticket ya está asignado a ti.</div>
             {% else %}
               <input type="hidden" name="to_user_id" value="{{ request.user.id }}">
+              <label class="block text-sm">Nuevo título (opcional)</label>
+              <input type="text" name="new_title" value="{{ t.title }}"
+                     class="w-full border rounded px-3 py-2 text-sm"
+                     placeholder="Define un título más descriptivo" />
               <label class="block text-sm">Motivo (opcional)</label>
               <input type="text" name="reason" class="w-full border rounded px-3 py-2 text-sm" placeholder="Auto-asignación" />
               <button class="btn bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm mt-2 shadow">Auto-asignarme</button>

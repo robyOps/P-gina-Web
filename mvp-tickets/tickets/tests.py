@@ -67,7 +67,7 @@ class TicketCreationAssignmentTests(TestCase):
         self.admin = User.objects.create_superuser(
             username="admin", email="admin@example.com", password="pass"
         )
-        self.tech_group = Group.objects.create(name=ROLE_TECH)
+        self.tech_group, _ = Group.objects.get_or_create(name=ROLE_TECH)
         self.tech = User.objects.create_user(
             username="tech", email="tech@example.com", password="pass"
         )

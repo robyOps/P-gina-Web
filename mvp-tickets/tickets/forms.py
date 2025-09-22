@@ -3,8 +3,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from accounts.roles import ROLE_ADMIN, ROLE_TECH
-from .models import Ticket
-from .models import AutoAssignRule
+from .models import Ticket, AutoAssignRule, FAQ
 
 User = get_user_model()
 
@@ -70,3 +69,17 @@ class AutoAssignRuleForm(forms.ModelForm):
             self.fields["tech"].queryset = User.objects.none()
         self.fields["category"].required = False
         self.fields["area"].required = False
+
+
+class FAQForm(forms.ModelForm):
+    class Meta:
+        model = FAQ
+        fields = ["question", "answer"]
+        widgets = {
+            "question": forms.TextInput(
+                attrs={"class": "border rounded px-3 py-2 w-full", "maxlength": 255}
+            ),
+            "answer": forms.Textarea(
+                attrs={"class": "border rounded px-3 py-2 w-full", "rows": 4}
+            ),
+        }
