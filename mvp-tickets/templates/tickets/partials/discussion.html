@@ -18,7 +18,6 @@
           <p class="mt-2 whitespace-pre-line">{{ c.body }}</p>
         </li>
       {% empty %}
-        <li class="text-gray-500">Sin comentarios registrados.</li>
       {% endfor %}
     </ul>
   </section>
@@ -38,7 +37,6 @@
           <div class="text-xs text-gray-500">{{ a.size }} bytes</div>
         </li>
       {% empty %}
-        <li class="text-gray-500">Sin archivos adjuntos.</li>
       {% endfor %}
     </ul>
     {% if not can_upload_files %}

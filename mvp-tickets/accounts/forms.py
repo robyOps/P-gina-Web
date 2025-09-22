@@ -63,7 +63,11 @@ class RoleForm(forms.ModelForm):
             codename__in=PERMISSION_LABELS.keys()
         ).order_by("content_type__app_label", "codename"),
         required=False,
-        widget=forms.CheckboxSelectMultiple,
+        widget=forms.CheckboxSelectMultiple(
+            attrs={
+                "class": "permission-grid grid sm:grid-cols-2 gap-3 list-none max-h-96 overflow-y-auto p-3 border border-gray-200 rounded-lg bg-white/60",
+            }
+        ),
     )
 
     class Meta:
