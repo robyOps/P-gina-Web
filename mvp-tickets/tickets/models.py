@@ -28,12 +28,26 @@ class Ticket(models.Model):
         (CLOSED, "Cerrado"),
     ]
 
+    INCIDENT = "INCIDENT"
+    REQUEST = "REQUEST"
+    KIND_CHOICES = [
+        (INCIDENT, "Incidente"),
+        (REQUEST, "Solicitud"),
+    ]
+
     # Código legible del ticket (único). Ej: TCK-AB12CD34
     code = models.CharField(max_length=20, unique=True)
 
     # Campos básicos: título y descripción
     title = models.CharField(max_length=200)
     description = models.TextField()
+
+    kind = models.CharField(
+        max_length=20,
+        choices=KIND_CHOICES,
+        default=REQUEST,
+        help_text="Clasificación funcional del ticket (incidente o solicitud)",
+    )
 
     # Quién solicitó (usuario autenticado) -> si se borra el usuario, se borran sus tickets (CASCADE)
     requester = models.ForeignKey(

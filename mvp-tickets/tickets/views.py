@@ -107,9 +107,14 @@ def discussion_payload(ticket: Ticket, user) -> dict:
     if not (is_admin(user) or is_tech(user)):
         comments_qs = comments_qs.filter(is_internal=False)
 
+    attachments_qs = TicketAttachment.objects.filter(ticket=ticket).order_by("-uploaded_at")
+    can_manage_attachments = can_upload_attachments(ticket, user)
+
     return {
         "t": ticket,
         "comments": comments_qs,
+        "attachments": attachments_qs,
+        "can_upload_files": can_manage_attachments,
     }
 
 
@@ -123,8 +128,12 @@ def dashboard(request):
         qs = base
         scope = "global"
     elif is_tech(u):
-        qs = base.filter(assigned_to=u)
-        scope = "de tus tickets asignados"
+        if u.has_perm("tickets.view_all_tickets"):
+            qs = base
+            scope = "de todos los tickets"
+        else:
+            qs = base.filter(assigned_to=u)
+            scope = "de tus tickets asignados"
     else:
         qs = base.filter(requester=u)
         scope = "de tus tickets"
@@ -167,6 +176,7 @@ def tickets_home(request):
     """
     u = request.user
     base_qs = Ticket.objects.select_related("category", "priority", "assigned_to")
+    can_view_all = u.has_perm("tickets.view_all_tickets") if is_tech(u) else False
 
     inbox = (request.GET.get("inbox") or "").strip().lower()
     inbox_options: list[tuple[str, str]] = []
@@ -180,14 +190,20 @@ def tickets_home(request):
             ("personal", "Bandeja personal"),
         ]
     elif is_tech(u):
-        default_inbox = "personal"
-        if inbox not in {"general", "personal"}:
+        allowed_inboxes = {"personal"}
+        if can_view_all:
+            allowed_inboxes.add("general")
+        default_inbox = "general" if can_view_all else "personal"
+        if inbox not in allowed_inboxes:
             inbox = default_inbox
-        qs = base_qs if inbox == "general" else base_qs.filter(assigned_to=u)
-        inbox_options = [
-            ("personal", "Bandeja personal"),
-            ("general", "Bandeja general"),
-        ]
+        if inbox == "general" and can_view_all:
+            qs = base_qs
+        else:
+            qs = base_qs.filter(assigned_to=u)
+        inbox_options = []
+        if can_view_all:
+            inbox_options.append(("general", "Bandeja general"))
+        inbox_options.append(("personal", "Bandeja personal"))
     else:
         qs = base_qs.filter(requester=u)
         inbox = ""
@@ -231,6 +247,7 @@ def tickets_home(request):
         "priority__name",
         "assigned_to__username",
         "created_at",
+        "kind",
     }
     sort_key = sort.lstrip("-")
     if sort_key in allowed_sorts:
@@ -322,7 +339,7 @@ def tickets_home(request):
 def ticket_create(request):
     ...
     if request.method == "POST":
-        form = TicketCreateForm(request.POST)
+        form = TicketCreateForm(request.POST, user=request.user)
         if form.is_valid():
             t = form.save(commit=False)
             t.requester = request.user
@@ -345,7 +362,7 @@ def ticket_create(request):
             return redirect("ticket_detail", pk=t.pk)
         messages.error(request, "Revisa los campos del formulario.")
     else:
-        form = TicketCreateForm()
+        form = TicketCreateForm(user=request.user)
     return TemplateResponse(request, "tickets/new.html", {"form": form})
 
 
@@ -395,6 +412,7 @@ def ticket_detail(request, pk):
         "is_admin_u": is_admin_u,
         "is_tech_u": is_tech_u,
         "can_mark_internal": is_admin_u or is_tech_u,
+        "can_upload_files": can_upload_attachments(t, u),
     }
     return TemplateResponse(request, "tickets/detail.html", ctx)
 

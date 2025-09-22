@@ -10,7 +10,7 @@ class TicketSerializer(serializers.ModelSerializer):
         model = Ticket
         fields = [
             "id", "code", "title", "description",
-            "category", "priority", "area",
+            "category", "priority", "area", "kind",
             "status", "assigned_to",
             "created_at", "updated_at", "resolved_at", "closed_at",
             "requester",
