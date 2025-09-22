@@ -16,7 +16,6 @@ class ReportsExportExcelTests(TestCase):
         cat = Category.objects.create(name="Cat")
         pri = Priority.objects.create(name="Baja")
         Ticket.objects.create(
-            code="T1",
             title="Test",
             description="d",
             requester=self.user,
@@ -41,7 +40,7 @@ class ReportsExportExcelTests(TestCase):
         headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
         self.assertIn("Código", headers)
         first_row = [cell.value for cell in next(ws.iter_rows(min_row=2, max_row=2))]
-        self.assertEqual(first_row[0], "T1")
+        self.assertEqual(first_row[0], "1")
 
 
 class UploadValidatorTests(TestCase):

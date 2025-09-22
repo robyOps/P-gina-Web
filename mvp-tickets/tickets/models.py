@@ -5,6 +5,7 @@ from django.db import models                     # tipos de campo y utilidades d
 from django.conf import settings                 # para referenciar al modelo de usuario activo (AUTH_USER_MODEL)
 from catalog.models import Category, Priority, Area  # catálogos externos (llaves foráneas)
 from django.core.exceptions import ValidationError
+import uuid
 
 # Para cálculo de SLA y tiempos
 from datetime import timedelta
@@ -76,6 +77,21 @@ class Ticket(models.Model):
     def __str__(self):
         # Representación legible en admin/shell
         return f"{self.code} — {self.title}"
+
+    def save(self, *args, **kwargs):
+        """Genera un código secuencial basado en el ID primario."""
+        creating = self.pk is None
+        if creating and not self.code:
+            # Evita colisiones con el unique index usando un valor temporal único
+            self.code = f"_TMP-{uuid.uuid4().hex}"
+
+        super().save(*args, **kwargs)
+
+        if creating:
+            desired = str(self.pk)
+            if self.code != desired:
+                type(self).objects.filter(pk=self.pk).update(code=desired)
+                self.code = desired
 
     # ------------------------- SLA (helpers) -------------------------
     @property

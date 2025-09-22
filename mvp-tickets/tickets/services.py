@@ -2,9 +2,14 @@
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import AuditLog, Ticket, AutoAssignRule, TicketAssignment
+from django.urls import reverse
+from django.contrib.auth import get_user_model
+from .models import AuditLog, Ticket, AutoAssignRule, TicketAssignment, Notification
 from django.db.models import Q
 from openpyxl import Workbook
+from accounts.roles import ROLE_TECH, ROLE_ADMIN
+
+User = get_user_model()
 
 def _has_log(t, action: str) -> bool:
     return AuditLog.objects.filter(ticket=t, action=action).exists()
@@ -26,6 +31,14 @@ def run_sla_check(*, warn_ratio: float = 0.8, dry_run: bool = False) -> dict:
 
     warned = breached = 0
 
+    role_users = []
+    if not dry_run:
+        role_users = list(
+            User.objects.filter(
+                is_active=True, groups__name__in=[ROLE_TECH, ROLE_ADMIN]
+            ).distinct()
+        )
+
     for t in qs:
         sla_hours = t.sla_hours_value
         due = t.due_at
@@ -38,7 +51,7 @@ def run_sla_check(*, warn_ratio: float = 0.8, dry_run: bool = False) -> dict:
                 if not dry_run:
                     AuditLog.objects.create(ticket=t, actor=None, action="SLA_BREACH",
                                             meta={"due_at": due.isoformat(), "resolved_at": t.resolved_at.isoformat()})
-                    _email_breach(t)
+                    _email_breach(t, role_users)
                 breached += 1
             continue
 
@@ -47,7 +60,7 @@ def run_sla_check(*, warn_ratio: float = 0.8, dry_run: bool = False) -> dict:
             if not dry_run:
                 AuditLog.objects.create(ticket=t, actor=None, action="SLA_BREACH",
                                         meta={"due_at": due.isoformat(), "overdue_h": int((now - due).total_seconds() // 3600)})
-                _email_breach(t)
+                _email_breach(t, role_users)
             breached += 1
             continue
 
@@ -56,37 +69,64 @@ def run_sla_check(*, warn_ratio: float = 0.8, dry_run: bool = False) -> dict:
             if not dry_run:
                 AuditLog.objects.create(ticket=t, actor=None, action="SLA_WARN",
                                         meta={"due_at": due.isoformat(), "remaining_h": int((due - now).total_seconds() // 3600)})
-                _email_warn(t)
+                _email_warn(t, role_users)
             warned += 1
 
     return {"warnings": warned, "breaches": breached}
 
 
-def _email_warn(t: Ticket):
-    to = [getattr(t.assigned_to, "email", None)]
-    to = [x for x in to if x]
-    if to:
+def _create_notifications(users, message: str, ticket: Ticket):
+    link = reverse("ticket_detail", args=[ticket.pk])
+    notifications = [Notification(user=user, message=message, url=link) for user in users]
+    if notifications:
+        Notification.objects.bulk_create(notifications)
+
+
+def _email_warn(t: Ticket, role_users):
+    recipients = {user for user in role_users if user}
+    if t.assigned_to and t.assigned_to.is_active:
+        recipients.add(t.assigned_to)
+    recipients = {u for u in recipients if getattr(u, "is_active", False)}
+    emails = [getattr(u, "email", None) for u in recipients]
+    emails = [email for email in emails if email]
+    if emails:
         send_mail(
             subject=f"[{t.code}] SLA por vencer",
             message=f"El ticket {t.code} ({t.title}) está por vencer su SLA.",
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=to,
+            recipient_list=emails,
             fail_silently=True,
         )
+    if recipients:
+        _create_notifications(
+            recipients,
+            f"El ticket {t.code} está por vencer su SLA.",
+            t,
+        )
 
-def _email_breach(t: Ticket):
-    to = [
-        getattr(t.assigned_to, "email", None),
-        getattr(t.requester, "email", None),
-    ]
-    to = [x for x in to if x]
-    if to:
+
+def _email_breach(t: Ticket, role_users=None):
+    recipients = set(role_users or [])
+    if t.assigned_to and t.assigned_to.is_active:
+        recipients.add(t.assigned_to)
+    if t.requester and getattr(t.requester, "is_active", False):
+        recipients.add(t.requester)
+    recipients = {u for u in recipients if getattr(u, "is_active", False)}
+    emails = [getattr(u, "email", None) for u in recipients]
+    emails = [email for email in emails if email]
+    if emails:
         send_mail(
             subject=f"[{t.code}] SLA VENCIDO",
             message=f"El ticket {t.code} ({t.title}) ha vencido su SLA.",
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=to,
+            recipient_list=emails,
             fail_silently=True,
+        )
+    if recipients:
+        _create_notifications(
+            recipients,
+            f"El ticket {t.code} ha vencido su SLA.",
+            t,
         )
 
 def apply_auto_assign(ticket: Ticket, actor=None) -> bool:

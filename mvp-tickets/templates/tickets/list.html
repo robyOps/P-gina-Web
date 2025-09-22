@@ -24,6 +24,17 @@
   <a href="{% url 'ticket_create' %}" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm shadow">Nuevo ticket</a>
 </div>
 
+{% if inbox_links %}
+<div class="mb-4 inline-flex flex-wrap gap-2 text-sm">
+  {% for option in inbox_links %}
+    <a href="{{ option.url }}"
+       class="px-3 py-1.5 rounded border shadow-sm {% if current_inbox == option.value %}bg-blue-600 text-white border-blue-600{% else %}bg-white hover:bg-gray-100{% endif %}">
+      {{ option.label }}
+    </a>
+  {% endfor %}
+</div>
+{% endif %}
+
 <form method="get" class="mb-3 flex flex-wrap items-end gap-3 text-sm">
   <div>
     <label class="block text-xs">Buscar</label>
@@ -43,8 +54,17 @@
     <input name="category" value="{{ filters.category }}" class="border rounded px-2 py-1" placeholder="1" />
   </div>
   <div>
-    <label class="block text-xs">Prioridad (id)</label>
-    <input name="priority" value="{{ filters.priority }}" class="border rounded px-2 py-1" placeholder="2" />
+    <label class="block text-xs">Prioridad</label>
+    <select name="priority" class="border rounded px-2 py-1">
+      <option value="" {% if not filters.priority %}selected{% endif %}>(Todas)</option>
+      {% for p in priorities %}
+        <option value="{{ p.id }}" {% if filters.priority|stringformat:'s' == p.id|stringformat:'s' %}selected{% endif %}>{{ p.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="flex items-center gap-2">
+    <label class="block text-xs">Alertas SLA</label>
+    <input type="checkbox" name="alerts" value="1" class="h-4 w-4" {% if filters.alerts %}checked{% endif %}>
   </div>
   <div>
     <label class="block text-xs">Por página</label>
@@ -91,7 +111,7 @@
     </thead>
     <tbody>
       {% for t in tickets %}
-      <tr class="border-t hover:bg-gray-50">
+      <tr class="border-t {% if t.is_overdue %}bg-red-50{% elif t.is_warning %}bg-yellow-50{% else %}hover:bg-gray-50{% endif %}">
         <td class="p-2">
           <a class="text-blue-600 hover:underline" href="{% url 'ticket_detail' t.id %}">{{ t.code }}</a>
         </td>
@@ -149,48 +169,6 @@
   </div>
   {% endif %}
 </div>
-
-{% if other_tickets %}
-<h2 class="text-xl font-semibold mt-8 mb-4">Tickets de otros técnicos</h2>
-<div class="w-full bg-white rounded-xl shadow overflow-hidden">
-  <table class="w-full text-sm">
-    <thead class="bg-gray-100">
-      <tr>
-        <th class="text-left p-2">Código
-          <a href="?sort=code{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
-          <a href="?sort=-code{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
-        </th>
-        <th class="text-left p-2">Título
-          <a href="?sort=title{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-up"></i></a>
-          <a href="?sort=-title{{ qs_no_sort }}" class="ml-1"><i class="bi bi-arrow-down"></i></a>
-        </th>
-        <th class="text-left p-2">Estado</th>
-        <th class="text-left p-2">Categoría</th>
-        <th class="text-left p-2">Prioridad</th>
-        <th class="text-left p-2">Asignado</th>
-        <th class="text-left p-2">SLA</th>
-        <th class="text-left p-2">Creado</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for t in other_tickets %}
-      <tr class="border-t hover:bg-gray-50">
-        <td class="p-2">
-          <a class="text-blue-600 hover:underline" href="{% url 'ticket_detail' t.id %}">{{ t.code }}</a>
-        </td>
-        <td class="p-2">{{ t.title }}</td>
-        <td class="p-2">{{ t.get_status_display }}</td>
-        <td class="p-2">{{ t.category.name }}</td>
-        <td class="p-2">{{ t.priority.name }}</td>
-        <td class="p-2">{% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}-{% endif %}</td>
-        <td class="p-2">{% if t.is_overdue %}<span class="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700 border border-red-200">SLA vencido</span>{% elif t.is_warning %}<span class="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 border border-yellow-200">Por vencer (~{{ t.remaining_hours|floatformat:0 }}h)</span>{% endif %}{% if t.is_critical %} <span class="text-xs px-2 py-0.5 rounded bg-red-600 text-white">CRITICAL</span>{% endif %}</td>
-        <td class="p-2">{{ t.created_at }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endif %}
 {% endblock %}
 
 
