@@ -1,3 +1,6 @@
+from accounts.roles import ROLE_ADMIN, ROLE_TECH
+
+
 PERMISSION_LABELS = {
     "add_ticket": "Puede agregar ticket",
     "change_ticket": "Puede cambiar ticket",
@@ -53,4 +56,29 @@ PERMISSION_LABELS = {
     "change_session": "Puede cambiar sesión",
     "delete_session": "Puede eliminar sesión",
     "view_session": "Puede ver sesión",
+}
+
+
+PERMISSION_TEMPLATES = {
+    ROLE_ADMIN: {
+        "label": "Administrador",
+        "description": "Acceso completo a la configuración, catálogos y tickets.",
+        "codenames": list(PERMISSION_LABELS.keys()),
+    },
+    ROLE_TECH: {
+        "label": "Técnico",
+        "description": "Enfoque operativo: trabajar tickets, comentar y gestionar adjuntos.",
+        "codenames": [
+            "view_ticket",
+            "change_ticket",
+            "transition_ticket",
+            "view_all_tickets",
+            "comment_internal",
+            "add_ticketcomment",
+            "change_ticketcomment",
+            "view_ticketcomment",
+            "add_ticketattachment",
+            "view_ticketattachment",
+        ],
+    },
 }

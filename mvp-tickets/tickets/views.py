@@ -213,9 +213,12 @@ def tickets_home(request):
     category = (request.GET.get("category") or "").strip()
     priority = (request.GET.get("priority") or "").strip()
     alerts_only = request.GET.get("alerts") == "1"
+    hide_closed = request.GET.get("hide_closed", "0")
+    if hide_closed not in {"0", "1"}:
+        hide_closed = "0"
 
-    # Por defecto ocultar CLOSED si no hay filtro de estado
-    if not status:
+    # Ocultar tickets cerrados solo si el usuario lo solicita explícitamente
+    if hide_closed == "1" and not status:
         qs = qs.exclude(status=Ticket.CLOSED)
 
     if status:
@@ -323,6 +326,7 @@ def tickets_home(request):
             "category": category,
             "priority": priority,
             "alerts": "1" if alerts_only else "",
+            "hide_closed": hide_closed,
         },
         "statuses": statuses,
         "qs_no_page": qs_no_page,  # opcional para los links de paginación

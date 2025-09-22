@@ -66,6 +66,10 @@
     <label class="block text-xs">Alertas SLA</label>
     <input type="checkbox" name="alerts" value="1" class="h-4 w-4" {% if filters.alerts %}checked{% endif %}>
   </div>
+  <div class="flex items-center gap-2">
+    <label class="block text-xs">Ocultar cerrados</label>
+    <input type="checkbox" name="hide_closed" value="1" class="h-4 w-4" {% if filters.hide_closed == '1' %}checked{% endif %}>
+  </div>
   <div>
     <label class="block text-xs">Por página</label>
     <input name="page_size" value="{{ page_size }}" class="border rounded px-2 py-1 w-20" />
@@ -165,7 +169,7 @@
     <div>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} resultados)</div>
     <div class="space-x-1">
       {# Construye querystring preservando filtros, cambiando solo page #}
-      {% with qsp="q="|add:filters.q|urlencode|add:"&status="|add:filters.status|add:"&category="|add:filters.category|add:"&priority="|add:filters.priority|add:"&page_size="|add:page_size %}
+      {% with qsp="q="|add:filters.q|urlencode|add:"&status="|add:filters.status|add:"&category="|add:filters.category|add:"&priority="|add:filters.priority|add:"&alerts="|add:filters.alerts|add:"&hide_closed="|add:filters.hide_closed|add:"&page_size="|add:page_size %}
         {% if page_obj.has_previous %}
           <a class="btn px-2 py-1 border rounded hover:bg-gray-100" href="?{{ qsp }}&page=1">&laquo; Primero</a>
           <a class="btn px-2 py-1 border rounded hover:bg-gray-100" href="?{{ qsp }}&page={{ page_obj.previous_page_number }}">Anterior</a>

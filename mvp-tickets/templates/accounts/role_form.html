@@ -7,7 +7,7 @@
   {% if is_new %}Nuevo rol{% else %}Editar rol{% endif %}
 </h1>
 
-<form method="post" class="bg-white rounded-xl shadow p-4 space-y-4">
+<form id="role-form" method="post" class="bg-white rounded-xl shadow p-4 space-y-4">
   {% csrf_token %}
   <div>
     <label class="block text-xs">Nombre</label>
@@ -17,9 +17,38 @@
 
   <div>
     <div class="font-medium mb-2">Permisos</div>
+    {% if permission_templates %}
+      <div class="mb-3 space-y-2 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs sm:text-sm text-blue-900">
+        <div class="font-semibold">Plantillas rápidas</div>
+        <p class="text-blue-900/80">Usa una plantilla base y luego ajusta manualmente los permisos que necesites.</p>
+        <div class="flex flex-wrap gap-2">
+          {% for tpl in permission_templates %}
+            <button type="button"
+                    class="permission-template-btn px-3 py-1.5 rounded border border-blue-200 bg-white text-blue-700 hover:bg-blue-100 transition"
+                    data-template-key="{{ tpl.key }}">
+              {{ tpl.label }}
+            </button>
+          {% endfor %}
+          <button type="button"
+                  class="permission-template-clear px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+                  data-action="clear-permissions">
+            Limpiar selección
+          </button>
+        </div>
+        <ul class="list-disc ml-5 space-y-1">
+          {% for tpl in permission_templates %}
+            {% if tpl.description %}
+              <li><span class="font-semibold">{{ tpl.label }}:</span> {{ tpl.description }}</li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+        <p data-template-feedback class="hidden text-green-700"></p>
+      </div>
+    {% endif %}
     <div class="space-y-1">
       {{ form.permissions }}
     </div>
+    <p class="text-xs text-gray-500 mt-2">Puedes marcar o desmarcar permisos individuales en cualquier momento.</p>
     {% if form.permissions.errors %}<div class="text-red-600 text-xs">{{ form.permissions.errors }}</div>{% endif %}
   </div>
 
@@ -30,4 +59,61 @@
     <a href="{% url 'accounts:roles_list' %}" class="px-4 py-2 rounded border">Cancelar</a>
   </div>
 </form>
+{% endblock %}
+
+{% block body_extra %}
+  {{ block.super }}
+  {% if permission_templates %}
+    <script>
+      (function() {
+        const form = document.getElementById('role-form');
+        if (!form) {
+          return;
+        }
+        const templates = {{ permission_templates_json|safe }};
+        const templateMap = {};
+        templates.forEach((item) => {
+          templateMap[item.key] = item.permission_ids || [];
+        });
+
+        const checkboxes = Array.from(form.querySelectorAll('input[name="permissions"]'));
+        const feedback = form.querySelector('[data-template-feedback]');
+
+        const showFeedback = (message, tone) => {
+          if (!feedback) {
+            return;
+          }
+          feedback.textContent = message;
+          feedback.classList.remove('hidden', 'text-green-700', 'text-gray-600');
+          feedback.classList.add(tone === 'info' ? 'text-gray-600' : 'text-green-700');
+        };
+
+        const applySelection = (ids) => {
+          const allowed = new Set(ids);
+          checkboxes.forEach((input) => {
+            input.checked = allowed.has(input.value);
+          });
+        };
+
+        form.querySelectorAll('[data-template-key]').forEach((btn) => {
+          btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            const key = btn.getAttribute('data-template-key');
+            const ids = templateMap[key] || [];
+            applySelection(ids);
+            showFeedback(`Plantilla "${btn.textContent.trim()}" aplicada.`, 'success');
+          });
+        });
+
+        const clearBtn = form.querySelector('[data-action="clear-permissions"]');
+        if (clearBtn) {
+          clearBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            applySelection([]);
+            showFeedback('Selección limpia, ahora puedes elegir permisos manualmente.', 'info');
+          });
+        }
+      })();
+    </script>
+  {% endif %}
 {% endblock %}

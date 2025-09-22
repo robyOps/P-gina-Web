@@ -2,15 +2,56 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
+import json
+from typing import Any
+
 from django.template.response import TemplateResponse
 from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
 from .forms import UserCreateForm, UserEditForm, RoleForm
+from accounts.permissions import PERMISSION_TEMPLATES
 from accounts.roles import is_admin, ROLE_ADMIN
 
 User = get_user_model()
+
+
+def _build_permission_templates(form: RoleForm) -> list[dict[str, Any]]:
+    """Construye payload (id de permisos) para las plantillas rápidas de roles."""
+
+    available = form.fields["permissions"].queryset
+    id_by_code = {p.codename: str(p.id) for p in available}
+    templates: list[dict[str, Any]] = []
+    for key, config in PERMISSION_TEMPLATES.items():
+        codes = config.get("codenames", [])
+        ids = [id_by_code[c] for c in codes if c in id_by_code]
+        if not ids:
+            continue
+        template_key = str(key).lower()
+        templates.append(
+            {
+                "key": template_key,
+                "label": config.get("label", str(key)),
+                "description": config.get("description", ""),
+                "permission_ids": ids,
+            }
+        )
+    templates.sort(key=lambda t: t["label"].lower())
+    return templates
+
+
+def _role_form_context(form: RoleForm, **extra) -> dict:
+    """Contexto común para crear/editar roles con plantillas predefinidas."""
+
+    permission_templates = _build_permission_templates(form)
+    ctx = {
+        "form": form,
+        "permission_templates": permission_templates,
+        "permission_templates_json": json.dumps(permission_templates, ensure_ascii=False),
+    }
+    ctx.update(extra)
+    return ctx
 
 
 @login_required
@@ -143,7 +184,8 @@ def role_create(request):
     else:
         form = RoleForm()
 
-    return TemplateResponse(request, "accounts/role_form.html", {"form": form, "is_new": True})
+    ctx = _role_form_context(form, is_new=True)
+    return TemplateResponse(request, "accounts/role_form.html", ctx)
 
 
 @login_required
@@ -165,7 +207,8 @@ def role_edit(request, pk):
     else:
         form = RoleForm(instance=role)
 
-    return TemplateResponse(request, "accounts/role_form.html", {"form": form, "is_new": False, "obj": role})
+    ctx = _role_form_context(form, is_new=False, obj=role)
+    return TemplateResponse(request, "accounts/role_form.html", ctx)
 
 
 
