@@ -21,12 +21,6 @@
       {% if form.title.errors %}<div class="text-red-600 text-xs">{{ form.title.errors }}</div>{% endif %}
     </div>
 
-    <div class="md:col-span-2">
-      <label class="block text-xs">Descripción</label>
-      {{ form.description|add_class:"border rounded px-3 py-2 w-full" }}
-      {% if form.description.errors %}<div class="text-red-600 text-xs">{{ form.description.errors }}</div>{% endif %}
-    </div>
-
     <div>
       <label class="block text-xs">Categoría</label>
       {{ form.category|add_class:"border rounded px-3 py-2 w-full" }}
@@ -53,6 +47,13 @@
       {% if form.assignee.errors %}<div class="text-red-600 text-xs">{{ form.assignee.errors }}</div>{% endif %}
     </div>
     {% endif %}
+  </div>
+
+  <div>
+    <label class="block text-xs">Descripción detallada</label>
+    {{ form.description|add_class:"border rounded px-3 py-2 w-full" }}
+    {% if form.description.errors %}<div class="text-red-600 text-xs">{{ form.description.errors }}</div>{% endif %}
+    <p class="text-[11px] text-gray-500 mt-1">Incluye todo el contexto necesario para que el técnico pueda resolver el caso.</p>
   </div>
 
   <div class="pt-2">

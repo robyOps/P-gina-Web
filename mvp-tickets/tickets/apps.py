@@ -5,5 +5,7 @@ class TicketsConfig(AppConfig):
     name = "tickets"
 
     def ready(self):
-        from . import signals  # importa señales al arrancar
-        from . import models_reservas  # registra modelos de reservas
+        """Hook de arranque: registra señales del app de tickets."""
+        # Importación lazy para evitar efectos secundarios al evaluar configuración.
+        # Solo mantenemos señales relacionadas a tickets ya que el módulo de reservas fue removido.
+        from . import signals  # noqa: F401

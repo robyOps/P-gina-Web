@@ -7,7 +7,6 @@
   <select name="model" class="border p-1">
     <option value="">Modelo</option>
     <option value="ticket" {% if filters.model == 'ticket' %}selected{% endif %}>Ticket</option>
-    <option value="reservation" {% if filters.model == 'reservation' %}selected{% endif %}>Reserva</option>
   </select>
   <input type="text" name="action" value="{{ filters.action }}" placeholder="Acción" class="border p-1" />
   <input type="text" name="resource" value="{{ filters.resource }}" placeholder="Recurso" class="border p-1" />

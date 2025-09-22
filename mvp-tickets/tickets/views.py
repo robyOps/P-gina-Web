@@ -90,6 +90,36 @@ def _parse_date_param(s: str | None):
         return None
 
 
+def can_upload_attachments(ticket: Ticket, user) -> bool:
+    """Regla centralizada de quién puede subir/consultar adjuntos."""
+
+    return bool(
+        is_admin(user)
+        or (is_tech(user) and ticket.assigned_to_id in (None, user.id))
+        or ticket.requester_id == user.id
+    )
+
+
+def discussion_payload(ticket: Ticket, user) -> dict:
+    """Construye el contexto con comentarios y adjuntos visibles para el usuario."""
+
+    comments_qs = TicketComment.objects.filter(ticket=ticket).order_by("created_at")
+    if not (is_admin(user) or is_tech(user)):
+        comments_qs = comments_qs.filter(is_internal=False)
+
+    attachments_qs = TicketAttachment.objects.none()
+    if can_upload_attachments(ticket, user):
+        attachments_qs = TicketAttachment.objects.filter(ticket=ticket).order_by("-uploaded_at")
+
+    return {
+        "t": ticket,
+        "comments": comments_qs,
+        "attachments": attachments_qs,
+        "can_upload": can_upload_attachments(ticket, user),
+        "can_mark_internal": is_admin(user) or is_tech(user),
+    }
+
+
 # ----------------- vistas UI -----------------
 @login_required
 def dashboard(request):
@@ -222,6 +252,15 @@ def tickets_home(request):
     page_obj = paginator.get_page(request.GET.get("page"))
     other_tickets = list(other_qs[:50]) if other_qs is not None else []
 
+    # Resumen exclusivo para técnicos: permite decidir si autoasignarse.
+    tech_counters = None
+    if is_tech(u):
+        tech_counters = {
+            "assigned": Ticket.objects.exclude(status=Ticket.CLOSED).filter(assigned_to=u).count(),
+            "total": Ticket.objects.exclude(status=Ticket.CLOSED).count(),
+            "unassigned": Ticket.objects.exclude(status=Ticket.CLOSED).filter(assigned_to__isnull=True).count(),
+        }
+
     # Para el combo de estados (clave y etiqueta en español)
     statuses = Ticket.STATUS_CHOICES
 
@@ -251,6 +290,7 @@ def tickets_home(request):
         "qs_no_page": qs_no_page,  # opcional para los links de paginación
         "qs_no_sort": qs_no_sort,
         "other_tickets": other_tickets,
+        "tech_counters": tech_counters,
     }
     return TemplateResponse(request, "tickets/list.html", ctx)
 
@@ -332,6 +372,8 @@ def ticket_detail(request, pk):
         "tech_users": tech_users,
         "is_admin_u": is_admin_u,
         "is_tech_u": is_tech_u,
+        "can_upload": can_upload_attachments(t, u),
+        "can_mark_internal": is_admin_u or is_tech_u,
     }
     return TemplateResponse(request, "tickets/detail.html", ctx)
 
@@ -357,37 +399,20 @@ def ticket_print(request, pk):
 
 # --------- partials HTMX ---------
 @login_required
-def comments_partial(request, pk):
+def discussion_partial(request, pk):
+    """HTMX: renderiza comentarios y adjuntos en un solo bloque."""
+
     t = get_object_or_404(Ticket, pk=pk)
     u = request.user
     if not (is_admin(u) or is_tech(u) or t.requester_id == u.id):
         return HttpResponseForbidden("No autorizado")
-    qs = TicketComment.objects.filter(ticket=t).order_by("created_at")
-    if not (is_admin(u) or is_tech(u)):
-        qs = qs.filter(is_internal=False)
-    return TemplateResponse(
-        request, "tickets/partials/comments.html", {"t": t, "comments": qs}
-    )
 
-
-@login_required
-def attachments_partial(request, pk):
-    t = get_object_or_404(Ticket, pk=pk)
-    u = request.user
-    if not (
-        is_admin(u)
-        or (is_tech(u) and t.assigned_to_id in (None, u.id))
-        or t.requester_id == u.id
-    ):
-        return HttpResponseForbidden("No autorizado")
-    qs = TicketAttachment.objects.filter(ticket=t).order_by("-uploaded_at")
-    return TemplateResponse(
-        request, "tickets/partials/attachments.html", {"t": t, "attachments": qs}
-    )
+    payload = discussion_payload(t, u)
+    return TemplateResponse(request, "tickets/partials/discussion.html", payload)
 
 
 # --------- acciones UI ---------
-@login_required 
+@login_required
 @require_http_methods(["POST"])
 def add_comment(request, pk):
     t = get_object_or_404(Ticket, pk=pk)
@@ -404,58 +429,47 @@ def add_comment(request, pk):
         # SOLICITANTE no puede marcar interno
         is_internal = False
 
-    # Crear comentario
-    c = TicketComment.objects.create(
+    uploaded_file = request.FILES.get("file")
+    if uploaded_file and not can_upload_attachments(t, u):
+        return HttpResponseForbidden("No autorizado a adjuntar")
+
+    if uploaded_file:
+        try:
+            validate_upload(uploaded_file)
+        except UploadValidationError as e:
+            return HttpResponseBadRequest(str(e))
+
+    # Crear comentario principal
+    comment = TicketComment.objects.create(
         ticket=t, author=u, body=body, is_internal=is_internal
     )
 
-    # Registrar en auditoría
+    attachment = None
+    if uploaded_file:
+        content_type = getattr(uploaded_file, "content_type", "") or ""
+        attachment = TicketAttachment.objects.create(
+            ticket=t,
+            uploaded_by=u,
+            file=uploaded_file,
+            content_type=content_type,
+            size=uploaded_file.size,
+        )
+
+    # Registrar en auditoría y dejar trazabilidad para el EventLog
     AuditLog.objects.create(
         ticket=t,
         actor=u,
         action="COMMENT",
-        meta={"internal": bool(is_internal)}
+        meta={
+            "internal": bool(is_internal),
+            "comment_id": comment.id,
+            "with_attachment": bool(attachment),
+            "body_preview": body[:120],
+        },
     )
 
-    # Volver a cargar la lista de comentarios (ocultando internos a requester)
-    qs = TicketComment.objects.filter(ticket=t).order_by("created_at")
-    if not (is_admin(u) or is_tech(u)):
-        qs = qs.filter(is_internal=False)
-
-    return TemplateResponse(
-        request, "tickets/partials/comments.html", {"t": t, "comments": qs}
-    )
-
-
-@login_required
-@require_http_methods(["POST"])
-def add_attachment(request, pk):
-    """Sube adjunto desde la UI (misma política que la API)."""
-    t = get_object_or_404(Ticket, pk=pk)
-    u = request.user
-    if not (
-        is_admin(u)
-        or (is_tech(u) and t.assigned_to_id in (None, u.id))
-        or t.requester_id == u.id
-    ):
-        return HttpResponseForbidden("No autorizado")
-
-    f = request.FILES.get("file")
-    if not f:
-        return HttpResponseBadRequest("Archivo requerido")
-    try:
-        validate_upload(f)
-    except UploadValidationError as e:
-        return HttpResponseBadRequest(str(e))
-
-    content_type = getattr(f, "content_type", "") or ""
-    TicketAttachment.objects.create(
-        ticket=t,
-        uploaded_by=u,
-        file=f,
-        content_type=content_type,
-        size=f.size,
-    )
+    payload = discussion_payload(t, u)
+    return TemplateResponse(request, "tickets/partials/discussion.html", payload)
 
 
 @login_required
@@ -545,8 +559,9 @@ def ticket_transition(request, pk):
         t.closed_at = timezone.now()
     t.save()
 
+    comment_obj = None
     if comment:
-        TicketComment.objects.create(
+        comment_obj = TicketComment.objects.create(
             ticket=t, author=u, body=comment, is_internal=is_internal
         )
 
@@ -558,6 +573,8 @@ def ticket_transition(request, pk):
             "to": next_status,
             "with_comment": bool(comment),
             "internal": bool(is_internal),
+            "comment_id": getattr(comment_obj, "id", None),
+            "body_preview": comment_obj.body[:120] if comment_obj else "",
         },
     )
 
@@ -1041,7 +1058,7 @@ def reports_export_pdf(request):
 def logs_list(request):
     qs = EventLog.objects.select_related("actor").all()
     model = request.GET.get("model")
-    if model in {"ticket", "reservation"}:
+    if model == "ticket":
         qs = qs.filter(model=model)
     obj_id = request.GET.get("obj_id")
     if obj_id:
