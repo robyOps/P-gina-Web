@@ -140,7 +140,13 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         AuditLog.objects.create(
             ticket=ticket, actor=u, action="ASSIGN",
-            meta={"from": prev.id if prev else None, "to": to_user.id, "reason": reason},
+            meta={
+                "from": prev.id if prev else None,
+                "from_username": getattr(prev, "username", None) if prev else None,
+                "to": to_user.id,
+                "to_username": to_user.username,
+                "reason": reason,
+            },
         )
 
         return Response({"message": "Asignado", "from": prev.id if prev else None, "to": to_user.id}, status=200)
@@ -180,6 +186,8 @@ class TicketViewSet(viewsets.ModelViewSet):
         if not (is_admin(u) or (is_tech(u) and ticket.assigned_to_id == u.id)):
             return Response({"detail": "No autorizado a cambiar estado"}, status=403)
 
+        previous_status = ticket.status
+        status_map = dict(Ticket.STATUS_CHOICES)
         ticket.status = next_status
         if next_status == Ticket.RESOLVED:
             ticket.resolved_at = timezone.now()
@@ -196,7 +204,10 @@ class TicketViewSet(viewsets.ModelViewSet):
         AuditLog.objects.create(
             ticket=ticket, actor=u, action="STATUS",
             meta={
+                "from": previous_status,
+                "from_label": status_map.get(previous_status),
                 "to": next_status,
+                "to_label": status_map.get(next_status),
                 "with_comment": bool(comment),
                 "internal": bool(is_internal),
                 "comment_id": getattr(comment_obj, "id", None),
@@ -298,8 +309,14 @@ class TicketViewSet(viewsets.ModelViewSet):
         )
 
         AuditLog.objects.create(
-            ticket=ticket, actor=u, action="ATTACH",
-            meta={"filename": att.file.name, "size": att.size, "content_type": att.content_type},
+            ticket=ticket,
+            actor=u,
+            action="ATTACH",
+            meta={
+                "filename": att.file.name.rsplit("/", 1)[-1],
+                "size": att.size,
+                "content_type": att.content_type,
+            },
         )
 
         return Response(TicketAttachmentSerializer(att).data, status=201)

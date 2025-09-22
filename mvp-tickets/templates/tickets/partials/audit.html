@@ -1,17 +1,28 @@
 <div class="divide-y">
-  {% for log in logs %}
-    <div class="py-2 text-sm">
-      <div class="flex items-center gap-2">
-        <span class="px-2 py-0.5 rounded border bg-gray-50">{{ log.action }}</span>
+  {% for entry in entries %}
+    <div class="py-2 text-sm space-y-1">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="px-2 py-0.5 rounded border bg-gray-50">{{ entry.action_label }}</span>
         <span class="text-gray-600">por</span>
-        <span class="font-medium">{{ log.actor__username|default:"(sistema)" }}</span>
-        <span class="text-gray-500 text-xs">· {{ log.created_at }}</span>
+        <span class="font-medium">{{ entry.actor|default:"(sistema)" }}</span>
+        <span class="text-gray-500 text-xs">· {{ entry.created_at }}</span>
       </div>
-      {% if log.meta %}
-        <div class="mt-1 text-xs text-gray-700">
-          {% for k,v in log.meta.items %}
-            <span class="inline-block mr-2"><span class="text-gray-500">{{ k }}:</span> {{ v }}</span>
+      {% if entry.description %}
+        <div class="text-gray-700">{{ entry.description }}</div>
+      {% endif %}
+      {% if entry.notes %}
+        <ul class="text-xs text-gray-600 space-y-0.5">
+          {% for note in entry.notes %}
+            <li>• {{ note }}</li>
           {% endfor %}
+        </ul>
+      {% endif %}
+      {% if entry.comment %}
+        <div class="text-xs bg-gray-50 border rounded px-3 py-2 text-gray-700">
+          {{ entry.comment|linebreaksbr }}
+          {% if entry.comment_is_internal %}
+            <span class="block text-[10px] uppercase text-amber-600 mt-1">Comentario interno</span>
+          {% endif %}
         </div>
       {% endif %}
     </div>

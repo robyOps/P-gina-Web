@@ -149,7 +149,13 @@ def apply_auto_assign(ticket: Ticket, actor=None) -> bool:
     )
     AuditLog.objects.create(
         ticket=ticket, actor=actor, action="ASSIGN",
-        meta={"from": prev.id if prev else None, "to": rule.tech_id, "reason": "auto-assign"},
+        meta={
+            "from": prev.id if prev else None,
+            "from_username": getattr(prev, "username", None) if prev else None,
+            "to": rule.tech_id,
+            "to_username": getattr(rule.tech, "username", None),
+            "reason": "auto-assign",
+        },
     )
     return True
 

@@ -4,10 +4,6 @@
 <h1 class="text-xl font-bold mb-4">Logs</h1>
 <form method="get" class="mb-4 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
   <input type="text" name="actor" value="{{ filters.actor }}" placeholder="Actor" class="border p-1" />
-  <select name="model" class="border p-1">
-    <option value="">Modelo</option>
-    <option value="ticket" {% if filters.model == 'ticket' %}selected{% endif %}>Ticket</option>
-  </select>
   <input type="text" name="action" value="{{ filters.action }}" placeholder="Acción" class="border p-1" />
   <input type="text" name="resource" value="{{ filters.resource }}" placeholder="Recurso" class="border p-1" />
   <label class="flex flex-col">
@@ -19,6 +15,9 @@
     <input type="date" name="to" value="{{ filters.to }}" class="border p-1" />
   </label>
   <input type="hidden" name="obj_id" value="{{ filters.obj_id }}" />
+  {% if filters.model %}
+  <input type="hidden" name="model" value="{{ filters.model }}" />
+  {% endif %}
   <button class="btn bg-blue-500 text-white px-2 py-1 col-span-2 md:col-span-3">Filtrar</button>
 </form>
 <table class="w-full text-sm bg-white shadow rounded">
@@ -26,21 +25,27 @@
     <tr class="border-b">
       <th class="p-2 text-left">Fecha</th>
       <th class="p-2 text-left">Actor</th>
-      <th class="p-2 text-left">Modelo</th>
+      <th class="p-2 text-left">Tipo</th>
       <th class="p-2 text-left">ID</th>
       <th class="p-2 text-left">Acción</th>
       <th class="p-2 text-left">Mensaje</th>
     </tr>
   </thead>
   <tbody>
-    {% for log in logs %}
+    {% for row in rows %}
     <tr class="border-b">
-      <td class="p-2">{{ log.created_at }}</td>
-      <td class="p-2">{{ log.actor }}</td>
-      <td class="p-2">{{ log.model }}</td>
-      <td class="p-2">{{ log.obj_id }}</td>
-      <td class="p-2">{{ log.action }}</td>
-      <td class="p-2">{{ log.message }}</td>
+      <td class="p-2">{{ row.created_at }}</td>
+      <td class="p-2">{{ row.actor }}</td>
+      <td class="p-2">{{ row.model }}</td>
+      <td class="p-2">
+        {% if row.url %}
+          <a href="{{ row.url }}" class="text-blue-600 hover:underline">{{ row.obj_id }}</a>
+        {% else %}
+          {{ row.obj_id }}
+        {% endif %}
+      </td>
+      <td class="p-2">{{ row.action }}</td>
+      <td class="p-2">{{ row.message }}</td>
     </tr>
     {% empty %}
     <tr><td colspan="6" class="p-2 text-center text-gray-500">Sin registros</td></tr>
