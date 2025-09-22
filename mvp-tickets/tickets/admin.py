@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import EventLog
+from .models import EventLog, FAQ
 
 
 @admin.register(EventLog)
@@ -20,3 +20,10 @@ class EventLogAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(FAQ)
+class FAQAdmin(admin.ModelAdmin):
+    list_display = ("question", "created_by", "updated_by", "updated_at")
+    search_fields = ("question", "answer")
+    readonly_fields = ("created_at", "updated_at")

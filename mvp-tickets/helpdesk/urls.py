@@ -23,6 +23,9 @@ urlpatterns = [
     path("tickets/<int:pk>/assign/", ticket_views.ticket_assign, name="ticket_assign"),
     path("tickets/<int:pk>/transition/", ticket_views.ticket_transition, name="ticket_transition"),
     path("notifications/", ticket_views.notifications_list, name="notifications_list"),
+    path("faq/", ticket_views.faq_list, name="faq_list"),
+    path("faq/<int:pk>/edit/", ticket_views.faq_edit, name="faq_edit"),
+    path("faq/<int:pk>/delete/", ticket_views.faq_delete, name="faq_delete"),
 
     # Partials/acciones HTMX
     path("tickets/<int:pk>/discussion/partial/", ticket_views.discussion_partial, name="discussion_partial"),

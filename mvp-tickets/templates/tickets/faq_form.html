@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Editar pregunta frecuente{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Editar pregunta frecuente</h1>
+<p class="text-gray-600 mb-6">Actualiza el contenido y guarda los cambios para mantener la información al día.</p>
+
+<div class="bg-white rounded-xl shadow p-5">
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+      <label class="block text-sm font-medium mb-1">Pregunta</label>
+      {{ form.question }}
+      {% for error in form.question.errors %}
+        <p class="text-xs text-red-600 mt-1">{{ error }}</p>
+      {% endfor %}
+    </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">Respuesta</label>
+      {{ form.answer }}
+      {% for error in form.answer.errors %}
+        <p class="text-xs text-red-600 mt-1">{{ error }}</p>
+      {% endfor %}
+    </div>
+    <div class="flex items-center gap-3">
+      <button class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm shadow" type="submit">Guardar cambios</button>
+      <a href="{% url 'faq_list' %}" class="text-sm text-gray-600 hover:underline">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
