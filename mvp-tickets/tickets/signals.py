@@ -141,10 +141,29 @@ def on_audit_log(sender, instance: AuditLog, created, **kwargs):
         "SLA_WARN": "Advertencia SLA.",
         "SLA_BREACH": "Incumplimiento SLA.",
     }
+
+    meta = instance.meta or {}
+    message = messages.get(instance.action, "")
+
+    if instance.action == "COMMENT":
+        author = getattr(instance.actor, "username", "usuario")
+        preview = (meta.get("body_preview") or "").strip()
+        if preview:
+            message = f"{author} comentó: {preview}"
+        else:
+            message = f"{author} agregó un comentario."
+    elif instance.action == "STATUS" and meta.get("with_comment"):
+        author = getattr(instance.actor, "username", "usuario")
+        preview = (meta.get("body_preview") or "").strip()
+        if preview:
+            message = f"{author} cambió estado y comentó: {preview}"
+        else:
+            message = f"{author} cambió el estado con comentario adicional."
+
     EventLog.objects.create(
         actor=instance.actor,
         model="ticket",
         obj_id=instance.ticket_id,
         action=instance.action,
-        message=messages.get(instance.action, ""),
+        message=message,
     )

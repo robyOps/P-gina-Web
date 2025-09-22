@@ -3,6 +3,23 @@
 {% block content %}
 <h1 class="text-xl font-semibold mb-4">Mis tickets</h1>
 
+{% if tech_counters %}
+<div class="mb-4 grid gap-2 md:grid-cols-3 text-sm">
+  <div class="bg-white shadow rounded p-3">
+    <div class="text-xs uppercase text-gray-500">Asignados a ti</div>
+    <div class="text-2xl font-semibold">{{ tech_counters.assigned }}</div>
+  </div>
+  <div class="bg-white shadow rounded p-3">
+    <div class="text-xs uppercase text-gray-500">Tickets activos totales</div>
+    <div class="text-2xl font-semibold">{{ tech_counters.total }}</div>
+  </div>
+  <div class="bg-white shadow rounded p-3">
+    <div class="text-xs uppercase text-gray-500">Pendientes de asignación</div>
+    <div class="text-2xl font-semibold">{{ tech_counters.unassigned }}</div>
+  </div>
+</div>
+{% endif %}
+
 <div class="mb-3 flex items-center gap-2">
   <a href="{% url 'ticket_create' %}" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm shadow">Nuevo ticket</a>
 </div>

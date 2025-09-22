@@ -1,0 +1,49 @@
+{# Historial combinado de comentarios y adjuntos para HTMX #}
+<div class="space-y-6 text-sm">
+  <section>
+    <h3 class="text-base font-semibold mb-2">Historial de comentarios</h3>
+    <ul class="space-y-3">
+      {% for c in comments %}
+        <li class="border rounded-lg p-3 {% if c.is_internal %}bg-yellow-50 border-yellow-200{% else %}bg-gray-50 border-gray-200{% endif %}">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="font-medium">{{ c.author.get_full_name|default:c.author.username }}</span>
+            <span class="text-xs text-gray-500">{{ c.created_at }}</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">
+            {% if c.is_internal %}
+              Nota interna registrada por {{ c.author.get_full_name|default:c.author.username }}:
+            {% else %}
+              {{ c.author.get_full_name|default:c.author.username }} comentó:
+            {% endif %}
+          </p>
+          <p class="mt-2 whitespace-pre-line">{{ c.body }}</p>
+        </li>
+      {% empty %}
+        <li class="text-gray-500">Sin comentarios registrados.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section>
+    <h3 class="text-base font-semibold mb-2">Adjuntos del ticket</h3>
+    {% if can_upload %}
+      {% if attachments %}
+        <ul class="space-y-2">
+          {% for a in attachments %}
+            <li class="flex items-center justify-between gap-2 border rounded p-2 bg-white">
+              <span>
+                <span class="font-medium">{{ a.file.name|cut:"attachments/" }}</span>
+                <span class="text-xs text-gray-500 block">Subido por {{ a.uploaded_by.get_full_name|default:a.uploaded_by.username }} el {{ a.uploaded_at }}</span>
+              </span>
+              <a href="{{ a.file.url }}" class="text-blue-600 hover:underline" target="_blank">Descargar</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-gray-500">Aún no hay archivos adjuntos.</p>
+      {% endif %}
+    {% else %}
+      <p class="text-gray-500">No tienes permisos para ver los adjuntos de este ticket.</p>
+    {% endif %}
+  </section>
+</div>

@@ -189,12 +189,21 @@ class TicketViewSet(viewsets.ModelViewSet):
             ticket.closed_at = timezone.now()
         ticket.save()
 
+        comment_obj = None
         if comment:
-            TicketComment.objects.create(ticket=ticket, author=u, body=comment, is_internal=is_internal)
+            comment_obj = TicketComment.objects.create(
+                ticket=ticket, author=u, body=comment, is_internal=is_internal
+            )
 
         AuditLog.objects.create(
             ticket=ticket, actor=u, action="STATUS",
-            meta={"to": next_status, "with_comment": bool(comment), "internal": bool(is_internal)},
+            meta={
+                "to": next_status,
+                "with_comment": bool(comment),
+                "internal": bool(is_internal),
+                "comment_id": getattr(comment_obj, "id", None),
+                "body_preview": comment_obj.body[:120] if comment_obj else "",
+            },
         )
 
         return Response({"message": "Estado actualizado", "status": next_status}, status=200)
@@ -224,13 +233,20 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         ser = TicketCommentSerializer(data=data, context={"request": request})
         ser.is_valid(raise_exception=True)
-        ser.save()  # author se resuelve en el serializer (HiddenField)
+        comment = ser.save()  # author se resuelve en el serializer (HiddenField)
 
         AuditLog.objects.create(
-            ticket=ticket, actor=request.user, action="COMMENT",
-            meta={"internal": bool(ser.validated_data.get("is_internal", False))},
+            ticket=ticket,
+            actor=request.user,
+            action="COMMENT",
+            meta={
+                "internal": bool(ser.validated_data.get("is_internal", False)),
+                "comment_id": comment.id,
+                "with_attachment": False,
+                "body_preview": comment.body[:120],
+            },
         )
-        return Response(ser.data, status=201)
+        return Response(TicketCommentSerializer(comment).data, status=201)
 
     # ---------- Adjuntos (GET lista / POST subir) ----------
     @action(detail=True, methods=["get", "post"], parser_classes=[MultiPartParser, FormParser])

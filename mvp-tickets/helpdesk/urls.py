@@ -25,10 +25,8 @@ urlpatterns = [
     path("notifications/", ticket_views.notifications_list, name="notifications_list"),
 
     # Partials/acciones HTMX
-    path("tickets/<int:pk>/comments/partial/", ticket_views.comments_partial, name="comments_partial"),
-    path("tickets/<int:pk>/attachments/partial/", ticket_views.attachments_partial, name="attachments_partial"),
+    path("tickets/<int:pk>/discussion/partial/", ticket_views.discussion_partial, name="discussion_partial"),
     path("tickets/<int:pk>/comments/add/", ticket_views.add_comment, name="add_comment"),
-    path("tickets/<int:pk>/attachments/add/", ticket_views.add_attachment, name="add_attachment"),
     path("tickets/<int:pk>/audit/partial/", ticket_views.audit_partial, name="audit_partial"),
 
     path("logs/", ticket_views.logs_list, name="logs_list"),
@@ -58,8 +56,6 @@ urlpatterns = [
 
     # --- API bajo /api/ ---
     path("api/", include("helpdesk.api_urls")),
-    path('api/booking/', include('tickets.urls_reservas')),
-    path('booking/', include('tickets.urls_reservas_ui')),
     path('api-auth/', include('rest_framework.urls')),
 
     path("auto-assign/", ticket_views.auto_rules_list, name="auto_rules_list"),
