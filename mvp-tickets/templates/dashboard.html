@@ -3,196 +3,288 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="space-y-10">
-  <section class="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-    <article class="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-      <div class="flex flex-col gap-4">
-        <span class="inline-flex items-center gap-2 text-sm font-medium text-slate-500">
-          <i class="bi bi-speedometer"></i>
-          Panel principal
-        </span>
-        <h1 class="text-3xl md:text-4xl font-semibold text-slate-900 tracking-tight">Dashboard</h1>
-        <p class="text-base text-slate-600 max-w-2xl">Un vistazo {{ scope }} a la salud del helpdesk y al pulso de las solicitudes de soporte. Todo en un solo lugar, sin distracciones.</p>
-        <div class="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-          <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1">
-            <i class="bi bi-circle-fill text-[10px] text-sky-400"></i>
-            Seguimiento activo
-          </div>
-          <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1">
-            <i class="bi bi-arrow-repeat"></i>
-            Actualización en tiempo real
-          </div>
-        </div>
-      </div>
-    </article>
-    <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
-      <div>
-        <h2 class="text-lg font-semibold text-slate-800">Resumen rápido</h2>
-        <p class="mt-1 text-sm text-slate-500">Indicadores clave de tus operaciones hoy.</p>
-      </div>
-      <dl class="mt-6 grid grid-cols-2 gap-4 text-sm text-slate-600">
-        <div>
-          <dt class="text-slate-400">Tickets abiertos</dt>
-          <dd class="mt-1 text-2xl font-semibold text-slate-900">{{ counts.open }}</dd>
-        </div>
-        <div>
-          <dt class="text-slate-400">En progreso</dt>
-          <dd class="mt-1 text-2xl font-semibold text-slate-900">{{ counts.in_progress }}</dd>
-        </div>
-        <div>
-          <dt class="text-slate-400">Resueltos</dt>
-          <dd class="mt-1 text-2xl font-semibold text-slate-900">{{ counts.resolved }}</dd>
-        </div>
-        <div>
-          <dt class="text-slate-400">Cerrados</dt>
-          <dd class="mt-1 text-2xl font-semibold text-slate-900">{{ counts.closed }}</dd>
-        </div>
-      </dl>
-    </article>
-  </section>
+<div class="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+  <!-- Capas decorativas -->
+  <div class="pointer-events-none absolute inset-0">
+    <div class="absolute -left-24 top-0 h-72 w-72 rounded-full bg-sky-500/20 blur-3xl sm:h-96 sm:w-96"></div>
+    <div class="absolute -bottom-32 right-0 h-80 w-80 rounded-full bg-fuchsia-500/10 blur-[120px] sm:h-96 sm:w-96"></div>
+    <div class="absolute inset-x-1/4 top-1/2 h-60 w-[38rem] -translate-y-1/2 rounded-full bg-emerald-400/10 blur-3xl"></div>
+  </div>
 
-  <section class="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
-    <article class="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
-      <div class="flex flex-col gap-6">
-        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
-          <div>
-            <h2 class="text-2xl font-semibold text-slate-900">Estado de los tickets</h2>
-            <p class="mt-1 text-sm text-slate-500">Distribución general por estado y evolución diaria.</p>
-          </div>
-          <span class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-1 text-xs font-medium text-sky-600">
-            <i class="bi bi-activity text-sm"></i>
-            Datos en vivo
-          </span>
-        </div>
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <article class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-            <span class="text-xs uppercase tracking-wide text-slate-400">Abiertos</span>
-            <p class="mt-3 text-3xl font-semibold text-slate-800">{{ counts.open }}</p>
-          </article>
-          <article class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-            <span class="text-xs uppercase tracking-wide text-slate-400">En progreso</span>
-            <p class="mt-3 text-3xl font-semibold text-slate-800">{{ counts.in_progress }}</p>
-          </article>
-          <article class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-            <span class="text-xs uppercase tracking-wide text-slate-400">Resueltos</span>
-            <p class="mt-3 text-3xl font-semibold text-slate-800">{{ counts.resolved }}</p>
-          </article>
-          <article class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-            <span class="text-xs uppercase tracking-wide text-slate-400">Cerrados</span>
-            <p class="mt-3 text-3xl font-semibold text-slate-800">{{ counts.closed }}</p>
-          </article>
-        </div>
-      </div>
-    </article>
-    <article class="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
-      <h3 class="text-lg font-semibold text-slate-800">Distribución actual</h3>
-      <p class="mt-1 text-sm text-slate-500">Una fotografía equilibrada de las cargas de trabajo.</p>
-      <div class="mt-6 flex items-center justify-center">
-        <div class="relative h-60 w-60 sm:h-64 sm:w-64">
-          <canvas id="statusChart"></canvas>
-        </div>
-      </div>
-    </article>
-  </section>
-
-  <section class="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-      <div>
-        <h2 class="text-xl font-semibold text-slate-900">Tickets urgentes</h2>
-        <p class="text-sm text-slate-500">Ordenados por prioridad y tiempo restante para actuar.</p>
-      </div>
-      <span class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-4 py-1 text-xs font-medium text-rose-500">
-        <i class="bi bi-lightning-charge-fill text-sm"></i>
-        Atención prioritaria
-      </span>
-    </div>
-    {% if urgent_tickets %}
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
-          <thead>
-            <tr class="text-left text-slate-400 uppercase text-xs tracking-wide">
-              <th class="pb-3 pr-3">Código</th>
-              <th class="pb-3 pr-3">Título</th>
-              <th class="pb-3 pr-3">Prioridad</th>
-              <th class="pb-3 pr-3">Asignado</th>
-              <th class="pb-3">Horas restantes</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            {% for ticket in urgent_tickets %}
-            <tr class="transition duration-200 hover:bg-rose-50/80">
-              <td class="py-3 pr-3 font-semibold text-slate-700">
-                <a href="{% url 'ticket_detail' ticket.id %}">{{ ticket.code }}</a>
-              </td>
-              <td class="py-3 pr-3 text-slate-600">{{ ticket.title }}</td>
-              <td class="py-3 pr-3">
-                <span class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-600">
-                  <i class="bi bi-exclamation-triangle-fill"></i>
-                  {{ ticket.priority.name }}
+  <div class="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+    <div class="space-y-14">
+      <!-- Hero principal -->
+      <section class="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/10 p-10 shadow-[0_25px_60px_-20px_rgba(15,23,42,0.65)] backdrop-blur-2xl">
+        <div class="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-80"></div>
+        <div class="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div class="max-w-2xl space-y-5">
+            <span class="inline-flex items-center gap-2 self-start rounded-full border border-white/30 bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-slate-200">Centro de mando</span>
+            <div>
+              <h1 class="text-3xl font-semibold tracking-tight text-white sm:text-4xl md:text-5xl">Elevemos la experiencia del helpdesk</h1>
+              <p class="mt-4 max-w-xl text-base text-slate-200/80 sm:text-lg">Monitoriza el pulso {{ scope }} de la operación, anticipa incidencias críticas y coordina equipos con un panel inspirado en la próxima generación de soporte al cliente.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 text-sm">
+              <span class="inline-flex items-center gap-2 rounded-full bg-emerald-400/20 px-4 py-1.5 font-medium text-emerald-200">
+                <span class="relative flex h-2 w-2">
+                  <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75"></span>
+                  <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-200"></span>
                 </span>
-              </td>
-              <td class="py-3 pr-3 text-slate-500">{% if ticket.assigned_to %}{{ ticket.assigned_to.username }}{% else %}-{% endif %}</td>
-              <td class="py-3 text-slate-700 font-semibold">{{ ticket.remaining_hours|floatformat:1 }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center text-sm text-emerald-600">
-        <i class="bi bi-emoji-smile text-lg mr-1"></i>
-        No hay tickets urgentes en este momento.
-      </div>
-    {% endif %}
-  </section>
-
-  <section class="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
-    <div class="flex flex-col gap-6">
-      <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-        <div>
-          <h2 class="text-xl font-semibold text-slate-900">Tendencias de fallas</h2>
-          <p class="text-sm text-slate-500">Explora las categorías que generan más incidencias recientes y prioriza acciones preventivas.</p>
-        </div>
-        {% if has_failures_data %}
-          <span class="text-xs text-slate-400">Datos recopilados desde {{ failures_since|localtime|date:"d/m/Y" }}.</span>
-        {% endif %}
-      </div>
-
-      {% if has_failures_data %}
-        <div class="grid grid-cols-1 xl:grid-cols-[2.2fr_1fr] gap-6">
-          <div class="rounded-2xl border border-slate-100 bg-slate-50 p-5">
-            <div class="relative h-72 sm:h-80">
-              <canvas id="failuresChart"></canvas>
+                Actualización en vivo
+              </span>
+              <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 font-medium text-slate-100">
+                <i class="bi bi-cpu"></i>
+                Optimización continua
+              </span>
+              <a href="#tendencias" class="group inline-flex items-center gap-2 rounded-full border border-white/20 bg-transparent px-5 py-2 text-sm font-semibold text-sky-200 transition hover:border-sky-400/60 hover:text-sky-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-200" aria-label="Explorar tendencias de fallas">
+                Ver análisis
+                <i class="bi bi-arrow-right-short text-base transition-transform group-hover:translate-x-1"></i>
+              </a>
             </div>
           </div>
-          <div class="rounded-2xl border border-slate-100 bg-white p-5">
-            <h3 class="text-lg font-semibold text-slate-800 mb-3">Fallas más comunes</h3>
-            <p class="text-xs text-slate-500 mb-4">Top de categorías detectadas en los últimos 60 días.</p>
-            <ul class="space-y-3">
-              {% for failure in failure_breakdown %}
-              <li class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-                <div class="flex items-center gap-3">
-                  <span class="inline-flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold text-slate-700" style="background-color: {{ failure.color }}33; border: 1px solid {{ failure.color }}55;">
-                    {{ forloop.counter }}
-                  </span>
-                  <span class="text-sm font-medium text-slate-600">{{ failure.label }}</span>
-                </div>
-                <span class="text-sm font-semibold text-slate-700">{{ failure.total }}</span>
-              </li>
-              {% endfor %}
-            </ul>
+          <div class="flex flex-col items-start gap-4 rounded-3xl border border-sky-400/40 bg-gradient-to-br from-sky-500/20 to-sky-500/5 px-8 py-6 text-slate-100 shadow-[0_18px_50px_-35px_rgba(56,189,248,0.9)]">
+            <span class="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-sky-200"><i class="bi bi-lightning-charge-fill"></i> Ritmo diario</span>
+            <p class="text-4xl font-semibold text-white">{{ counts.open }}<span class="text-base font-medium text-slate-200/70"> tickets activos</span></p>
+            <p class="text-sm text-slate-200/80">Mantén a tu equipo sincronizado con tareas prioritarias y respuestas inmediatas.</p>
+            <button type="button" class="inline-flex items-center gap-2 rounded-full bg-white/90 px-5 py-2 text-sm font-semibold text-slate-900 shadow-[0_10px_30px_-12px_rgba(15,118,110,0.8)] transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" aria-label="Descargar reporte diario">
+              <i class="bi bi-download"></i>
+              Descargar reporte
+            </button>
           </div>
         </div>
-      {% else %}
-        <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-6 text-center text-sm text-indigo-600">
-          <i class="bi bi-info-circle-fill text-base mr-1"></i>
-          No hay registros recientes suficientes para mostrar tendencias de fallas.
-        </div>
-      {% endif %}
-    </div>
-  </section>
-</div>
+      </section>
 
+      {% with open_progress=counts.open|add:counts.in_progress %}
+      {% with resolved_closed=counts.resolved|add:counts.closed %}
+      {% with total=open_progress|add:resolved_closed %}
+      <!-- Métricas clave -->
+      <section class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <article class="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-6 shadow-[0_25px_40px_-28px_rgba(148,163,184,0.8)] backdrop-blur-2xl transition duration-300 hover:-translate-y-1 hover:border-sky-300/60">
+          <div class="absolute -right-10 top-[-40%] h-40 w-40 rounded-full bg-sky-400/10 blur-2xl transition duration-300 group-hover:bg-sky-400/20"></div>
+          <div class="relative flex items-start justify-between">
+            <div class="space-y-4">
+              <span class="inline-flex items-center gap-2 rounded-full bg-sky-500/20 px-3 py-1 text-xs font-semibold text-sky-100"><i class="bi bi-infinity"></i> Abiertos</span>
+              <p class="text-4xl font-semibold text-white">{{ counts.open }}</p>
+              <p class="text-xs text-slate-200/70">Revisa SLA y evita cuellos de botella.</p>
+            </div>
+            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-sky-400/20 text-2xl text-sky-100 shadow-inner shadow-sky-500/40"><i class="bi bi-life-preserver"></i></span>
+          </div>
+          {% if total %}
+          <div class="relative mt-6 h-2 w-full overflow-hidden rounded-full bg-white/10">
+            <div class="h-full rounded-full bg-gradient-to-r from-sky-400 to-emerald-400" style="width: {% widthratio counts.open total 100 %}%;"></div>
+          </div>
+          {% endif %}
+        </article>
+
+        <article class="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-6 shadow-[0_25px_40px_-28px_rgba(148,163,184,0.8)] backdrop-blur-2xl transition duration-300 hover:-translate-y-1 hover:border-violet-300/60">
+          <div class="absolute -left-12 top-1/3 h-36 w-36 rounded-full bg-violet-500/20 blur-2xl transition duration-300 group-hover:bg-violet-500/30"></div>
+          <div class="relative flex items-start justify-between">
+            <div class="space-y-4">
+              <span class="inline-flex items-center gap-2 rounded-full bg-violet-500/20 px-3 py-1 text-xs font-semibold text-violet-100"><i class="bi bi-lightbulb"></i> En progreso</span>
+              <p class="text-4xl font-semibold text-white">{{ counts.in_progress }}</p>
+              <p class="text-xs text-slate-200/70">Seguimiento activo con especialistas.</p>
+            </div>
+            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-violet-400/20 text-2xl text-violet-100 shadow-inner shadow-violet-500/40"><i class="bi bi-gear-wide-connected"></i></span>
+          </div>
+          {% if total %}
+          <div class="relative mt-6 h-2 w-full overflow-hidden rounded-full bg-white/10">
+            <div class="h-full rounded-full bg-gradient-to-r from-violet-400 via-fuchsia-400 to-rose-400" style="width: {% widthratio counts.in_progress total 100 %}%;"></div>
+          </div>
+          {% endif %}
+        </article>
+
+        <article class="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-6 shadow-[0_25px_40px_-28px_rgba(148,163,184,0.8)] backdrop-blur-2xl transition duration-300 hover:-translate-y-1 hover:border-emerald-300/60">
+          <div class="absolute -right-12 bottom-0 h-36 w-36 rounded-full bg-emerald-500/20 blur-2xl transition duration-300 group-hover:bg-emerald-500/30"></div>
+          <div class="relative flex items-start justify-between">
+            <div class="space-y-4">
+              <span class="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100"><i class="bi bi-patch-check"></i> Resueltos</span>
+              <p class="text-4xl font-semibold text-white">{{ counts.resolved }}</p>
+              <p class="text-xs text-slate-200/70">Evidencia de eficiencia de respuesta.</p>
+            </div>
+            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-400/20 text-2xl text-emerald-100 shadow-inner shadow-emerald-500/40"><i class="bi bi-graph-up-arrow"></i></span>
+          </div>
+          {% if total %}
+          <div class="relative mt-6 h-2 w-full overflow-hidden rounded-full bg-white/10">
+            <div class="h-full rounded-full bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-300" style="width: {% widthratio counts.resolved total 100 %}%;"></div>
+          </div>
+          {% endif %}
+        </article>
+
+        <article class="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-6 shadow-[0_25px_40px_-28px_rgba(148,163,184,0.8)] backdrop-blur-2xl transition duration-300 hover:-translate-y-1 hover:border-amber-300/60">
+          <div class="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-amber-400/20 blur-2xl transition duration-300 group-hover:bg-amber-400/30"></div>
+          <div class="relative flex items-start justify-between">
+            <div class="space-y-4">
+              <span class="inline-flex items-center gap-2 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-semibold text-amber-100"><i class="bi bi-archive"></i> Cerrados</span>
+              <p class="text-4xl font-semibold text-white">{{ counts.closed }}</p>
+              <p class="text-xs text-slate-200/70">Casos documentados y archivados.</p>
+            </div>
+            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-400/20 text-2xl text-amber-100 shadow-inner shadow-amber-500/40"><i class="bi bi-shield-lock"></i></span>
+          </div>
+          {% if total %}
+          <div class="relative mt-6 h-2 w-full overflow-hidden rounded-full bg-white/10">
+            <div class="h-full rounded-full bg-gradient-to-r from-amber-300 via-orange-300 to-rose-300" style="width: {% widthratio counts.closed total 100 %}%;"></div>
+          </div>
+          {% endif %}
+        </article>
+      </section>
+
+      <!-- Insights comparativos -->
+      <section class="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+        <article class="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/10 p-8 shadow-[0_30px_60px_-35px_rgba(56,189,248,0.8)] backdrop-blur-2xl">
+          <div class="absolute inset-0 bg-gradient-to-br from-sky-500/15 via-transparent to-emerald-400/10 opacity-80"></div>
+          <div class="relative space-y-6">
+            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 class="text-2xl font-semibold text-white">Visión operativa</h2>
+                <p class="text-sm text-slate-200/80">Contextualiza el equilibrio entre backlog y capacidad de resolución.</p>
+              </div>
+              <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-slate-100"><i class="bi bi-diagram-3"></i> Inteligencia</span>
+            </div>
+            <div class="grid gap-6 sm:grid-cols-2">
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-500/20">
+                <p class="text-sm font-semibold text-slate-100">Índice de resolución</p>
+                {% if total %}
+                <p class="mt-3 text-4xl font-semibold text-emerald-200">{% widthratio counts.resolved total 100 %}<span class="text-2xl align-top font-semibold">%</span></p>
+                {% else %}
+                <p class="mt-3 text-4xl font-semibold text-emerald-200">0<span class="text-2xl align-top font-semibold">%</span></p>
+                {% endif %}
+                <p class="mt-2 text-xs text-slate-200/70">Porcentaje de tickets resueltos frente al total registrado.</p>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-fuchsia-500/20">
+                <p class="text-sm font-semibold text-slate-100">Brecha operativa</p>
+                {% if total %}
+                <p class="mt-3 text-4xl font-semibold text-rose-200">{% widthratio open_progress total 100 %}<span class="text-2xl align-top font-semibold">%</span></p>
+                {% else %}
+                <p class="mt-3 text-4xl font-semibold text-rose-200">0<span class="text-2xl align-top font-semibold">%</span></p>
+                {% endif %}
+                <p class="mt-2 text-xs text-slate-200/70">Carga acumulada pendiente de resolver y coordinación inmediata.</p>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="relative flex flex-col justify-between overflow-hidden rounded-[2rem] border border-white/10 bg-white/10 p-8 shadow-[0_30px_60px_-35px_rgba(244,114,182,0.6)] backdrop-blur-2xl">
+          <div class="absolute inset-0 bg-gradient-to-br from-fuchsia-500/20 via-transparent to-sky-400/20 opacity-70"></div>
+          <div class="relative flex flex-col gap-4">
+            <h3 class="text-lg font-semibold text-white">Distribución actual</h3>
+            <p class="text-sm text-slate-200/80">Una visión envolvente del estado de los tickets al momento.</p>
+            <div class="relative mx-auto mt-4 h-60 w-60">
+              <canvas id="statusChart" aria-label="Gráfico circular de estado de tickets"></canvas>
+              <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <span class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-300">Total</span>
+                <p class="mt-2 text-3xl font-semibold text-white">{{ total }}</p>
+              </div>
+            </div>
+            <p class="relative mt-4 text-xs text-slate-300/80">Los colores vibrantes ayudan a distinguir cargas y priorizar asignaciones en segundos.</p>
+          </div>
+        </article>
+      </section>
+
+      <!-- Tickets urgentes -->
+      <section class="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/10 p-8 shadow-[0_40px_80px_-50px_rgba(248,113,113,0.8)] backdrop-blur-2xl">
+        <div class="absolute inset-0 bg-gradient-to-br from-rose-500/15 via-transparent to-amber-400/20 opacity-80"></div>
+        <div class="relative flex flex-col gap-6">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 class="text-2xl font-semibold text-white">Tickets urgentes</h2>
+              <p class="text-sm text-slate-200/80">Atiende incidentes críticos con un vistazo al tiempo restante y responsables.</p>
+            </div>
+            <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-rose-100"><i class="bi bi-lightning-charge"></i> Atención prioritaria</span>
+          </div>
+          {% if urgent_tickets %}
+          <ul class="space-y-4" role="list">
+            {% for ticket in urgent_tickets %}
+            <li class="relative flex flex-col gap-3 rounded-3xl border border-white/10 bg-gradient-to-r from-rose-500/20 via-white/5 to-transparent p-5 shadow-[0_18px_36px_-28px_rgba(244,63,94,0.9)] transition duration-300 hover:-translate-y-0.5 hover:border-rose-300/70">
+              <span class="absolute left-0 top-1/2 hidden h-px w-8 -translate-x-full -translate-y-1/2 bg-gradient-to-r from-transparent via-rose-400/60 to-rose-200 sm:block"></span>
+              <div class="flex flex-wrap items-center justify-between gap-3 text-sm">
+                <a href="{% url 'ticket_detail' ticket.id %}" class="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1 font-semibold text-white transition hover:bg-white/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" aria-label="Abrir ticket {{ ticket.code }}">
+                  <i class="bi bi-hash"></i>
+                  {{ ticket.code }}
+                </a>
+                <span class="inline-flex items-center gap-2 rounded-full bg-rose-500/20 px-3 py-1 text-xs font-semibold text-rose-100"><i class="bi bi-exclamation-triangle-fill"></i> {{ ticket.priority.name }}</span>
+              </div>
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-base font-semibold text-white">{{ ticket.title }}</p>
+                <div class="flex items-center gap-3 text-sm text-slate-200/80">
+                  <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1"><i class="bi bi-person-circle"></i>{% if ticket.assigned_to %}{{ ticket.assigned_to.username }}{% else %}-{% endif %}</span>
+                  <span class="inline-flex items-center gap-2 rounded-full bg-amber-400/20 px-3 py-1 text-amber-100"><i class="bi bi-hourglass-split"></i>{{ ticket.remaining_hours|floatformat:1 }} h</span>
+                </div>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="flex flex-col items-center justify-center gap-4 rounded-3xl border border-emerald-400/30 bg-emerald-500/10 p-10 text-center text-sm text-emerald-100">
+            <i class="bi bi-emoji-smile text-3xl"></i>
+            <p class="max-w-md text-base">No hay tickets urgentes en este momento. Tu equipo mantiene el control absoluto.</p>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- Tendencias de fallas -->
+      <section id="tendencias" class="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/10 p-8 shadow-[0_40px_80px_-50px_rgba(59,130,246,0.85)] backdrop-blur-2xl">
+        <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-transparent to-sky-400/15 opacity-80"></div>
+        <div class="relative flex flex-col gap-6">
+          <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 class="text-2xl font-semibold text-white">Tendencias de fallas</h2>
+              <p class="text-sm text-slate-200/80">Detecta patrones, dimensiona impacto y acciona planes preventivos.</p>
+            </div>
+            {% if has_failures_data %}
+            <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-slate-100"><i class="bi bi-clock-history"></i> Datos desde {{ failures_since|localtime|date:"d/m/Y" }}</span>
+            {% endif %}
+          </div>
+
+          {% if has_failures_data %}
+          <div class="grid gap-8 xl:grid-cols-[2fr_1fr]">
+            <div class="relative rounded-[1.75rem] border border-white/10 bg-gradient-to-br from-sky-500/10 via-transparent to-transparent p-6 shadow-inner shadow-sky-500/30">
+              <div class="relative h-80">
+                <canvas id="failuresChart" aria-label="Gráfico de líneas con tendencias de fallas"></canvas>
+              </div>
+            </div>
+            <div class="relative flex flex-col gap-5 rounded-[1.75rem] border border-white/10 bg-white/5 p-6 shadow-inner shadow-indigo-500/20">
+              <h3 class="text-lg font-semibold text-white">Top categorías</h3>
+              <p class="text-xs text-slate-200/70">Observa los focos principales con indicadores visuales y colorimetría dedicada.</p>
+              <ul class="space-y-4" role="list">
+                {% for failure in failure_breakdown %}
+                <li class="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <span class="flex h-10 w-10 items-center justify-center rounded-full font-semibold text-white" style="background: linear-gradient(135deg, {{ failure.color }}aa, {{ failure.color }}55);">{{ forloop.counter }}</span>
+                      <span class="text-sm font-semibold text-slate-100">{{ failure.label }}</span>
+                    </div>
+                    <span class="text-sm font-semibold text-white">{{ failure.total }}</span>
+                  </div>
+                  <div class="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                    {% if failure_breakdown.0.total %}
+                    <div class="h-full rounded-full" style="background: linear-gradient(90deg, {{ failure.color }}dd, {{ failure.color }}66); width: {% widthratio failure.total failure_breakdown.0.total 100 %}%;"></div>
+                    {% else %}
+                    <div class="h-full rounded-full" style="background: linear-gradient(90deg, {{ failure.color }}dd, {{ failure.color }}66); width: 0;"></div>
+                    {% endif %}
+                  </div>
+                  <div class="flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-widest text-slate-200/70">
+                    <span class="rounded-full border border-white/20 px-2 py-1" style="color: {{ failure.color }}; border-color: {{ failure.color }}55;">Prioridad analítica</span>
+                    <span class="rounded-full border border-white/20 px-2 py-1">Impacto sostenido</span>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+          {% else %}
+          <div class="flex flex-col items-center justify-center gap-4 rounded-3xl border border-indigo-400/30 bg-indigo-500/10 p-10 text-center text-sm text-indigo-100">
+            <i class="bi bi-info-circle text-3xl"></i>
+            <p class="max-w-md text-base">No hay registros recientes suficientes para mostrar tendencias de fallas. Mantén la monitorización para descubrir patrones emergentes.</p>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+      {% endwith %}
+      {% endwith %}
+      {% endwith %}
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block body_extra %}
@@ -203,22 +295,36 @@
     const failuresConfig = {{ failures_chart_data|safe }};
     const hasFailureData = {{ has_failures_data|yesno:"true,false" }};
 
-    const statusCtx = document.getElementById('statusChart');
-    if (statusCtx) {
+    const statusCanvas = document.getElementById('statusChart');
+    if (statusCanvas) {
+      const statusCtx = statusCanvas.getContext('2d');
+
       new Chart(statusCtx, {
         type: 'doughnut',
         data: {
           labels: statusConfig.labels,
           datasets: [{
             data: statusConfig.data,
-            backgroundColor: ['#cfe6ff', '#ffe6c7', '#c7f2f2', '#dcd9ff'],
-            borderColor: '#ffffff',
-            borderWidth: 3,
-            hoverOffset: 12,
-          }],
+            backgroundColor: [
+              'rgba(56, 189, 248, 0.85)',
+              'rgba(168, 85, 247, 0.85)',
+              'rgba(16, 185, 129, 0.9)',
+              'rgba(251, 191, 36, 0.85)'
+            ],
+            hoverBackgroundColor: [
+              'rgba(56, 189, 248, 1)',
+              'rgba(168, 85, 247, 1)',
+              'rgba(16, 185, 129, 1)',
+              'rgba(251, 191, 36, 1)'
+            ],
+            borderColor: 'rgba(15, 23, 42, 0.45)',
+            borderWidth: 2,
+            hoverOffset: 14,
+            cutout: '70%',
+            spacing: 6
+          }]
         },
         options: {
-          cutout: '62%',
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
@@ -227,25 +333,38 @@
               labels: {
                 usePointStyle: true,
                 padding: 18,
-                color: '#475569',
-                font: { size: 13, family: '"Inter", ui-sans-serif, system-ui' },
-              },
+                color: '#E2E8F0',
+                font: {
+                  size: 13,
+                  family: '"Inter", ui-sans-serif, system-ui'
+                }
+              }
             },
             tooltip: {
-              backgroundColor: '#0f172a',
-              titleColor: '#f8fafc',
-              bodyColor: '#e2e8f0',
-              padding: 12,
-              cornerRadius: 12,
-            },
-          },
-        },
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              titleColor: '#F8FAFC',
+              bodyColor: '#E2E8F0',
+              padding: 14,
+              cornerRadius: 14,
+              displayColors: false,
+              callbacks: {
+                label: (context) => `${context.label}: ${context.parsed}`
+              }
+            }
+          }
+        }
       });
     }
 
     if (hasFailureData) {
-      const failureCtx = document.getElementById('failuresChart');
-      if (failureCtx) {
+      const failureCanvas = document.getElementById('failuresChart');
+      if (failureCanvas) {
+        const failureCtx = failureCanvas.getContext('2d');
+        const gradient = failureCtx.createLinearGradient(0, 0, 0, failureCanvas.height);
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.55)');
+        gradient.addColorStop(0.5, 'rgba(168, 85, 247, 0.35)');
+        gradient.addColorStop(1, 'rgba(15, 118, 110, 0)');
+
         new Chart(failureCtx, {
           type: 'line',
           data: {
@@ -253,56 +372,63 @@
             datasets: [{
               label: 'Tickets',
               data: failuresConfig.data,
-              backgroundColor: 'rgba(96, 165, 250, 0.25)',
-              borderColor: 'rgba(59, 130, 246, 0.9)',
-              borderWidth: 2,
-              pointBackgroundColor: '#60a5fa',
-              pointBorderColor: '#fff',
-              pointRadius: 4,
-              pointHoverRadius: 6,
+              backgroundColor: gradient,
+              borderColor: 'rgba(96, 165, 250, 0.9)',
+              borderWidth: 3,
+              pointBackgroundColor: '#38bdf8',
+              pointBorderColor: '#0f172a',
+              pointBorderWidth: 2,
+              pointRadius: 5,
+              pointHoverRadius: 8,
+              pointHoverBorderWidth: 2,
               fill: true,
-              tension: 0.35,
-            }],
+              tension: 0.35
+            }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: {
-                display: false,
-              },
+              legend: { display: false },
               tooltip: {
-                backgroundColor: '#0f172a',
-                titleColor: '#f8fafc',
-                bodyColor: '#e2e8f0',
-                padding: 12,
-                cornerRadius: 12,
-              },
+                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                titleColor: '#F8FAFC',
+                bodyColor: '#E2E8F0',
+                padding: 14,
+                cornerRadius: 14,
+                callbacks: {
+                  label: (context) => `Tickets: ${context.parsed.y}`
+                }
+              }
             },
             scales: {
               x: {
-                ticks: {
-                  color: '#64748b',
-                  font: { size: 11 },
-                  maxRotation: 0,
-                  minRotation: 0,
-                },
                 grid: {
-                  color: 'rgba(148, 163, 184, 0.18)',
+                  color: 'rgba(148, 163, 184, 0.12)'
                 },
+                ticks: {
+                  color: '#CBD5F5',
+                  font: {
+                    size: 11,
+                    family: '"Inter", ui-sans-serif, system-ui'
+                  }
+                }
               },
               y: {
                 beginAtZero: true,
-                ticks: {
-                  stepSize: 1,
-                  color: '#64748b',
-                },
                 grid: {
-                  color: 'rgba(203, 213, 225, 0.3)',
+                  color: 'rgba(148, 163, 184, 0.1)'
                 },
-              },
-            },
-          },
+                ticks: {
+                  color: '#CBD5F5',
+                  font: {
+                    size: 11,
+                    family: '"Inter", ui-sans-serif, system-ui'
+                  }
+                }
+              }
+            }
+          }
         });
       }
     }
