@@ -4,89 +4,37 @@
 
 {% block content %}
 <div class="space-y-10 py-6">
-  <section class="rounded-3xl border border-slate-200 bg-white p-10 shadow-sm">
-    <div class="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-      <div class="max-w-2xl space-y-4">
-        <span class="inline-flex items-center gap-2 self-start rounded-full bg-sky-100 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-sky-700">Centro de mando</span>
-        <div class="space-y-3">
-          <h1 class="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Elevemos la experiencia del helpdesk</h1>
-          <p class="text-base text-slate-600 sm:text-lg">Monitoriza el pulso {{ scope }} de la operación, anticipa incidencias críticas y coordina equipos con un panel pensado para fondos claros.</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-3 text-sm text-slate-600">
-          <span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 font-medium text-emerald-700"><span class="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>Actualización en vivo</span>
-          <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 font-medium text-slate-600"><i class="bi bi-cpu"></i>Optimización continua</span>
-        </div>
-      </div>
-      <div class="rounded-3xl border border-sky-100 bg-sky-50 px-8 py-6 text-slate-800 shadow-inner">
-        <span class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600"><i class="bi bi-lightning-charge-fill"></i> Ritmo diario</span>
-        <p class="mt-4 text-4xl font-semibold text-slate-900">{{ counts.open }}<span class="text-base font-medium text-slate-500"> tickets activos</span></p>
-        <p class="mt-2 text-sm text-slate-600">Mantén a tu equipo sincronizado con tareas prioritarias y respuestas inmediatas.</p>
-        <a href="#tendencias" class="mt-6 inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900" aria-label="Explorar tendencias de fallas">
-          Ver análisis
-          <i class="bi bi-arrow-right-short text-base"></i>
-        </a>
-      </div>
-    </div>
-  </section>
-
-  {% with open_progress=counts.open|add:counts.in_progress %}
-  {% with resolved_closed=counts.resolved|add:counts.closed %}
-  {% with total=open_progress|add:resolved_closed %}
   <section class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-    <article class="flex flex-col gap-5 rounded-3xl border border-sky-100 bg-sky-50/60 p-6 shadow-sm">
+    <article class="flex flex-col gap-5 rounded-3xl border border-sky-200 bg-sky-50 p-6 shadow-sm">
       <div class="flex items-center justify-between">
-        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-700"><i class="bi bi-infinity"></i> Abiertos</span>
+        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-600"><i class="bi bi-infinity"></i> Abiertos</span>
         <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl text-sky-500 shadow-sm"><i class="bi bi-life-preserver"></i></span>
       </div>
-      <p class="text-4xl font-semibold text-slate-900">{{ counts.open }}</p>
-      <p class="text-sm text-slate-600">Revisa SLA y evita cuellos de botella.</p>
-      {% if total %}
-      <div class="relative mt-auto h-2 w-full overflow-hidden rounded-full bg-white/80">
-        <div class="h-full rounded-full bg-gradient-to-r from-sky-400 to-emerald-400" style="width: {% widthratio counts.open total 100 %}%;"></div>
-      </div>
-      {% endif %}
+      <p class="text-5xl font-semibold text-slate-900">{{ counts.open }}</p>
     </article>
 
-    <article class="flex flex-col gap-5 rounded-3xl border border-violet-100 bg-violet-50/80 p-6 shadow-sm">
+    <article class="flex flex-col gap-5 rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
       <div class="flex items-center justify-between">
-        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-violet-600"><i class="bi bi-lightbulb"></i> En progreso</span>
-        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl text-violet-500 shadow-sm"><i class="bi bi-gear-wide-connected"></i></span>
+        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-amber-600"><i class="bi bi-lightbulb"></i> En progreso</span>
+        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl text-amber-500 shadow-sm"><i class="bi bi-gear-wide-connected"></i></span>
       </div>
-      <p class="text-4xl font-semibold text-slate-900">{{ counts.in_progress }}</p>
-      <p class="text-sm text-slate-600">Seguimiento activo con especialistas.</p>
-      {% if total %}
-      <div class="relative mt-auto h-2 w-full overflow-hidden rounded-full bg-white/80">
-        <div class="h-full rounded-full bg-gradient-to-r from-violet-400 via-fuchsia-400 to-rose-300" style="width: {% widthratio counts.in_progress total 100 %}%;"></div>
-      </div>
-      {% endif %}
+      <p class="text-5xl font-semibold text-slate-900">{{ counts.in_progress }}</p>
     </article>
 
-    <article class="flex flex-col gap-5 rounded-3xl border border-emerald-100 bg-emerald-50/70 p-6 shadow-sm">
+    <article class="flex flex-col gap-5 rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
       <div class="flex items-center justify-between">
         <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-600"><i class="bi bi-graph-up-arrow"></i> Resueltos (mes)</span>
         <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl text-emerald-500 shadow-sm"><i class="bi bi-check-circle"></i></span>
       </div>
-      <p class="text-4xl font-semibold text-slate-900">{{ counts.resolved }}</p>
-      <p class="text-sm text-slate-600">Evidencia de eficiencia de respuesta.</p>
-      {% if total %}
-      <div class="relative mt-auto h-2 w-full overflow-hidden rounded-full bg-white/80">
-        <div class="h-full rounded-full bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-300" style="width: {% widthratio counts.resolved total 100 %}%;"></div>
-      </div>
-      {% endif %}
+      <p class="text-5xl font-semibold text-slate-900">{{ counts.resolved }}</p>
     </article>
 
-    <article class="flex flex-col gap-5 rounded-3xl border border-amber-100 bg-amber-50/70 p-6 shadow-sm">
+    <article class="flex flex-col gap-5 rounded-3xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
       <div class="flex items-center justify-between">
-        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-amber-600"><i class="bi bi-archive"></i> Cerrados (mes)</span>
-        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl text-amber-500 shadow-sm"><i class="bi bi-shield-lock"></i></span>
+        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-rose-600"><i class="bi bi-archive"></i> Cerrados (mes)</span>
+        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl text-rose-500 shadow-sm"><i class="bi bi-shield-lock"></i></span>
       </div>
-      <p class="text-4xl font-semibold text-slate-900">{{ counts.closed }}</p>
-      <p class="text-sm text-slate-600">Casos documentados y archivados.</p>
-      {% if total %}
-      <div class="relative mt-auto h-2 w-full overflow-hidden rounded-full bg-white/80">
-        <div class="h-full rounded-full bg-gradient-to-r from-amber-300 via-orange-300 to-rose-200" style="width: {% widthratio counts.closed total 100 %}%;"></div>
-      </div>
-      {% endif %}
+      <p class="text-5xl font-semibold text-slate-900">{{ counts.closed }}</p>
     </article>
   </section>
 
@@ -136,14 +84,14 @@
           <h2 class="text-2xl font-semibold text-slate-900">Distribución actual</h2>
           <p class="text-sm text-slate-600">Una visión clara del estado de los tickets al momento.</p>
         </div>
-        <div class="mx-auto mt-4 h-64 w-full max-w-xs">
+        <div class="mx-auto mt-4 h-80 w-full max-w-md">
           <canvas id="statusChart" aria-label="Gráfico circular de estado de tickets"></canvas>
         </div>
         <div id="statusFilters" class="mt-6 flex flex-wrap gap-3">
           <label class="status-chip flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50" data-index="0">
             <input type="checkbox" class="status-toggle sr-only" data-index="0" checked>
             <span class="flex items-center gap-2">
-              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #8ecae6"></span>
+              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #38bdf8"></span>
               Abiertos
             </span>
             <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.open }}</span>
@@ -151,7 +99,7 @@
           <label class="status-chip flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50" data-index="1">
             <input type="checkbox" class="status-toggle sr-only" data-index="1" checked>
             <span class="flex items-center gap-2">
-              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #cdb4db"></span>
+              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #facc15"></span>
               En progreso
             </span>
             <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.in_progress }}</span>
@@ -159,7 +107,7 @@
           <label class="status-chip flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50" data-index="2">
             <input type="checkbox" class="status-toggle sr-only" data-index="2" checked>
             <span class="flex items-center gap-2">
-              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #bde0fe"></span>
+              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #4ade80"></span>
               Resueltos (mes)
             </span>
             <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.resolved }}</span>
@@ -167,7 +115,7 @@
           <label class="status-chip flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50" data-index="3">
             <input type="checkbox" class="status-toggle sr-only" data-index="3" checked>
             <span class="flex items-center gap-2">
-              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #ffe5d9"></span>
+              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #fb7185"></span>
               Cerrados (mes)
             </span>
             <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.closed }}</span>
@@ -194,7 +142,7 @@
         {% if has_failures_data %}
         <div class="relative rounded-[1.75rem] border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-6 shadow-inner">
           <div class="relative h-80">
-            <canvas id="failuresChart" aria-label="Gráfico de líneas con tendencias de fallas"></canvas>
+            <canvas id="failuresChart" aria-label="Gráfico de barras con tendencias de fallas"></canvas>
           </div>
         </div>
         {% else %}
@@ -242,9 +190,6 @@
       </div>
     </article>
   </section>
-  {% endwith %}
-  {% endwith %}
-  {% endwith %}
 </div>
 {% endblock %}
 
@@ -261,7 +206,7 @@
 
     if (statusCanvas) {
       const statusCtx = statusCanvas.getContext('2d');
-      const pastelPalette = ['#8ecae6', '#cdb4db', '#bde0fe', '#ffe5d9'];
+      const statusPalette = ['#38bdf8', '#facc15', '#4ade80', '#fb7185'];
 
       statusChart = new Chart(statusCtx, {
         type: 'doughnut',
@@ -269,12 +214,12 @@
           labels: statusConfig.labels,
           datasets: [{
             data: statusConfig.data,
-            backgroundColor: pastelPalette,
-            hoverBackgroundColor: pastelPalette.map(color => color),
-            borderColor: '#ffffff',
-            borderWidth: 2,
-            hoverOffset: 12,
-            cutout: '68%',
+            backgroundColor: statusPalette,
+            hoverBackgroundColor: statusPalette.map(color => color),
+            borderColor: '#f8fafc',
+            borderWidth: 3,
+            hoverOffset: 10,
+            cutout: '0%',
             spacing: 4
           }]
         },
@@ -289,7 +234,7 @@
                 padding: 16,
                 color: '#475569',
                 font: {
-                  size: 13,
+                  size: 14,
                   family: '"Inter", ui-sans-serif, system-ui'
                 }
               }
@@ -339,29 +284,24 @@
       const failureCanvas = document.getElementById('failuresChart');
       if (failureCanvas) {
         const failureCtx = failureCanvas.getContext('2d');
-        const gradient = failureCtx.createLinearGradient(0, 0, 0, failureCanvas.height);
-        gradient.addColorStop(0, 'rgba(134, 182, 246, 0.7)');
-        gradient.addColorStop(0.5, 'rgba(166, 196, 255, 0.4)');
-        gradient.addColorStop(1, 'rgba(226, 232, 240, 0)');
+        const barGradient = failureCtx.createLinearGradient(0, 0, 0, failureCanvas.height);
+        barGradient.addColorStop(0, 'rgba(56, 189, 248, 0.9)');
+        barGradient.addColorStop(1, 'rgba(59, 130, 246, 0.4)');
 
         new Chart(failureCtx, {
-          type: 'line',
+          type: 'bar',
           data: {
             labels: failuresConfig.labels,
             datasets: [{
               label: 'Tickets',
               data: failuresConfig.data,
-              backgroundColor: gradient,
-              borderColor: '#60a5fa',
-              borderWidth: 3,
-              pointBackgroundColor: '#3b82f6',
-              pointBorderColor: '#ffffff',
-              pointBorderWidth: 2,
-              pointRadius: 4,
-              pointHoverRadius: 7,
-              pointHoverBorderWidth: 2,
-              fill: true,
-              tension: 0.35
+              backgroundColor: barGradient,
+              borderColor: '#0ea5e9',
+              borderWidth: 1,
+              borderRadius: 14,
+              borderSkipped: false,
+              hoverBackgroundColor: '#38bdf8',
+              maxBarThickness: 36
             }]
           },
           options: {
@@ -383,12 +323,12 @@
             scales: {
               x: {
                 grid: {
-                  color: 'rgba(148, 163, 184, 0.15)'
+                  color: 'rgba(148, 163, 184, 0.12)'
                 },
                 ticks: {
-                  color: '#64748b',
+                  color: '#475569',
                   font: {
-                    size: 11,
+                    size: 12,
                     family: '"Inter", ui-sans-serif, system-ui'
                   }
                 }
@@ -396,12 +336,12 @@
               y: {
                 beginAtZero: true,
                 grid: {
-                  color: 'rgba(148, 163, 184, 0.12)'
+                  color: 'rgba(148, 163, 184, 0.1)'
                 },
                 ticks: {
-                  color: '#64748b',
+                  color: '#475569',
                   font: {
-                    size: 11,
+                    size: 12,
                     family: '"Inter", ui-sans-serif, system-ui'
                   }
                 }
