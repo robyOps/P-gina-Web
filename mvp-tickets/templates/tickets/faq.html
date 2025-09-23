@@ -30,30 +30,35 @@
 </div>
 {% endif %}
 
-<div class="space-y-4">
+<div class="space-y-4" id="faq-accordion">
   {% if faqs %}
     {% for faq in faqs %}
-    <div class="bg-white rounded-xl shadow p-5">
-      <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-3">
-        <h3 class="text-lg font-semibold text-gray-900">{{ faq.question }}</h3>
-        {% if can_manage %}
-        <div class="flex items-center gap-2 text-sm">
-          <a href="{% url 'faq_edit' faq.id %}" class="text-blue-600 hover:underline">Editar</a>
-          <form method="post" action="{% url 'faq_delete' faq.id %}" onsubmit="return confirm('¿Seguro que deseas eliminar esta pregunta?');">
-            {% csrf_token %}
-            <button type="submit" class="text-red-600 hover:underline">Eliminar</button>
-          </form>
+    <div class="bg-white rounded-xl shadow" data-accordion-item>
+      <button type="button" class="w-full px-5 py-4 text-left flex items-center justify-between gap-4" data-accordion-toggle aria-expanded="false">
+        <span class="text-lg font-semibold text-gray-900">{{ faq.question }}</span>
+        <i class="bi bi-chevron-down text-gray-500 transition-transform duration-200" aria-hidden="true"></i>
+      </button>
+      <div class="px-5 pb-5 hidden" data-accordion-panel>
+        <p class="text-gray-700 whitespace-pre-line">{{ faq.answer }}</p>
+        <div class="text-xs text-gray-500 mt-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <span>
+            Actualizado {{ faq.updated_at|date:"d/m/Y H:i" }}
+            {% if faq.updated_by %}
+              por {{ faq.updated_by.username }}
+            {% elif faq.created_by %}
+              por {{ faq.created_by.username }}
+            {% endif %}
+          </span>
+          {% if can_manage %}
+          <div class="flex items-center gap-3 text-sm">
+            <a href="{% url 'faq_edit' faq.id %}" class="text-blue-600 hover:underline">Editar</a>
+            <form method="post" action="{% url 'faq_delete' faq.id %}" onsubmit="return confirm('¿Seguro que deseas eliminar esta pregunta?');">
+              {% csrf_token %}
+              <button type="submit" class="text-red-600 hover:underline">Eliminar</button>
+            </form>
+          </div>
+          {% endif %}
         </div>
-        {% endif %}
-      </div>
-      <p class="text-gray-700 whitespace-pre-line">{{ faq.answer }}</p>
-      <div class="text-xs text-gray-500 mt-3">
-        Actualizado {{ faq.updated_at|date:"d/m/Y H:i" }}
-        {% if faq.updated_by %}
-          por {{ faq.updated_by.username }}
-        {% elif faq.created_by %}
-          por {{ faq.created_by.username }}
-        {% endif %}
       </div>
     </div>
     {% endfor %}
@@ -63,4 +68,28 @@
     </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block body_extra %}
+{{ block.super }}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const accordionItems = document.querySelectorAll('#faq-accordion [data-accordion-item]');
+
+    accordionItems.forEach(item => {
+      const toggle = item.querySelector('[data-accordion-toggle]');
+      const panel = item.querySelector('[data-accordion-panel]');
+      const icon = toggle.querySelector('i');
+
+      toggle.addEventListener('click', () => {
+        const isOpen = !panel.classList.contains('hidden');
+        panel.classList.toggle('hidden');
+        toggle.setAttribute('aria-expanded', String(!isOpen));
+        if (icon) {
+          icon.classList.toggle('rotate-180', !isOpen);
+        }
+      });
+    });
+  });
+</script>
 {% endblock %}

@@ -91,8 +91,10 @@
         <button type="button" data-chart-target="failures" class="chart-toggle px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100">Fallas</button>
       </div>
     </div>
-    <div id="chart-status" class="chart-panel">
-      <canvas id="statusChart"></canvas>
+    <div id="chart-status" class="chart-panel flex justify-center">
+      <div class="relative h-48 w-48 md:h-56 md:w-56">
+        <canvas id="statusChart"></canvas>
+      </div>
     </div>
     <div id="chart-failures" class="chart-panel hidden">
       {% if has_failures_data %}
@@ -128,6 +130,8 @@
         }]
       },
       options: {
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: { legend: { position: 'bottom' } }
       }
     });
