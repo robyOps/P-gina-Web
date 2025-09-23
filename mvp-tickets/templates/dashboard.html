@@ -3,109 +3,185 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-3">Dashboard</h1>
-<p class="mb-6 text-gray-600">Resumen {{ scope }} de la operación del helpdesk.</p>
+<div class="space-y-10">
+  <div>
+    <h1 class="text-3xl font-semibold text-slate-800 mb-2">Dashboard</h1>
+    <p class="text-gray-600 max-w-3xl">Un vistazo {{ scope }} a lo que está ocurriendo en el helpdesk en este momento.</p>
+  </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-  <div class="p-4 rounded-lg shadow bg-blue-100">
-    <div class="flex items-center">
-      <i class="bi bi-ticket-perforated text-3xl text-blue-700 mr-3"></i>
-      <div>
-        <div class="text-sm text-blue-700">Abiertos</div>
-        <div class="text-2xl font-semibold">{{ counts.open }}</div>
+  <section class="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-r from-blue-50 via-sky-50 to-indigo-50 p-6 md:p-10 shadow-inner">
+    <div class="absolute -top-24 -right-20 h-64 w-64 rounded-full bg-blue-200/40 blur-3xl"></div>
+    <div class="absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-indigo-200/30 blur-3xl"></div>
+    <div class="relative flex flex-col items-center gap-10">
+      <div class="text-center max-w-2xl">
+        <h2 class="text-2xl font-semibold text-slate-800">Estado general de los tickets</h2>
+        <p class="mt-2 text-sm text-slate-600">Visualiza de un vistazo cómo se distribuyen los tickets por estado y sigue las cifras clave sin perder ningún detalle.</p>
+      </div>
+      <div class="flex flex-col items-center w-full gap-8">
+        <div class="flex justify-center w-full">
+          <div class="relative h-64 w-64 sm:h-80 sm:w-80 lg:h-96 lg:w-96 drop-shadow-2xl">
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
+        <div class="w-full">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="relative overflow-hidden rounded-2xl border border-blue-200 bg-white/90 shadow-lg">
+              <div class="absolute inset-0 bg-gradient-to-br from-blue-100/80 via-blue-100/40 to-white opacity-80"></div>
+              <div class="relative flex items-center justify-between px-6 py-5">
+                <div class="flex items-center gap-4">
+                  <span class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 text-2xl text-blue-600">
+                    <i class="bi bi-ticket-perforated"></i>
+                  </span>
+                  <div>
+                    <p class="text-sm font-medium text-blue-500 uppercase tracking-wide">Abiertos</p>
+                    <p class="text-2xl font-semibold text-slate-800">{{ counts.open }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="relative overflow-hidden rounded-2xl border border-amber-200 bg-white/90 shadow-lg">
+              <div class="absolute inset-0 bg-gradient-to-br from-amber-100/80 via-amber-50/40 to-white opacity-90"></div>
+              <div class="relative flex items-center justify-between px-6 py-5">
+                <div class="flex items-center gap-4">
+                  <span class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-2xl text-amber-500">
+                    <i class="bi bi-play-circle"></i>
+                  </span>
+                  <div>
+                    <p class="text-sm font-medium text-amber-500 uppercase tracking-wide">En progreso</p>
+                    <p class="text-2xl font-semibold text-slate-800">{{ counts.in_progress }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="relative overflow-hidden rounded-2xl border border-emerald-200 bg-white/90 shadow-lg">
+              <div class="absolute inset-0 bg-gradient-to-br from-emerald-100/80 via-emerald-50/40 to-white opacity-90"></div>
+              <div class="relative flex items-center justify-between px-6 py-5">
+                <div class="flex items-center gap-4">
+                  <span class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-2xl text-emerald-600">
+                    <i class="bi bi-check-circle"></i>
+                  </span>
+                  <div>
+                    <p class="text-sm font-medium text-emerald-600 uppercase tracking-wide">Resueltos (mes)</p>
+                    <p class="text-2xl font-semibold text-slate-800">{{ counts.resolved }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-lg">
+              <div class="absolute inset-0 bg-gradient-to-br from-slate-200/70 via-slate-100/40 to-white opacity-90"></div>
+              <div class="relative flex items-center justify-between px-6 py-5">
+                <div class="flex items-center gap-4">
+                  <span class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-500/10 text-2xl text-slate-600">
+                    <i class="bi bi-archive"></i>
+                  </span>
+                  <div>
+                    <p class="text-sm font-medium text-slate-600 uppercase tracking-wide">Cerrados (mes)</p>
+                    <p class="text-2xl font-semibold text-slate-800">{{ counts.closed }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-  <div class="p-4 rounded-lg shadow bg-yellow-100">
-    <div class="flex items-center">
-      <i class="bi bi-play-circle text-3xl text-yellow-600 mr-3"></i>
-      <div>
-        <div class="text-sm text-yellow-600">En progreso</div>
-        <div class="text-2xl font-semibold">{{ counts.in_progress }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="p-4 rounded-lg shadow bg-green-100">
-    <div class="flex items-center">
-      <i class="bi bi-check-circle text-3xl text-green-600 mr-3"></i>
-      <div>
-        <div class="text-sm text-green-600">Resueltos (mes)</div>
-        <div class="text-2xl font-semibold">{{ counts.resolved }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="p-4 rounded-lg shadow bg-gray-200">
-    <div class="flex items-center">
-      <i class="bi bi-archive text-3xl text-gray-700 mr-3"></i>
-      <div>
-        <div class="text-sm text-gray-700">Cerrados (mes)</div>
-        <div class="text-2xl font-semibold">{{ counts.closed }}</div>
-      </div>
-    </div>
-  </div>
-</div>
+  </section>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  <div class="bg-white rounded-xl shadow p-5">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold">Tickets urgentes</h2>
-      <span class="text-xs text-gray-500">Ordenados por prioridad de atención</span>
+  <section class="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <div>
+        <h2 class="text-xl font-semibold text-slate-800">Tickets urgentes</h2>
+        <p class="text-sm text-slate-500">Ordenados por prioridad y tiempo restante para actuar.</p>
+      </div>
+      <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-4 py-1 text-xs font-medium text-rose-600">
+        <i class="bi bi-lightning-charge-fill text-sm"></i>
+        Atención prioritaria
+      </span>
     </div>
     {% if urgent_tickets %}
       <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
           <thead>
-            <tr class="text-left text-gray-500 uppercase text-xs tracking-wide">
-              <th class="pb-2 pr-3">Código</th>
-              <th class="pb-2 pr-3">Título</th>
-              <th class="pb-2 pr-3">Prioridad</th>
-              <th class="pb-2 pr-3">Asignado</th>
-              <th class="pb-2">Horas restantes</th>
+            <tr class="text-left text-slate-400 uppercase text-xs tracking-wide">
+              <th class="pb-3 pr-3">Código</th>
+              <th class="pb-3 pr-3">Título</th>
+              <th class="pb-3 pr-3">Prioridad</th>
+              <th class="pb-3 pr-3">Asignado</th>
+              <th class="pb-3">Horas restantes</th>
             </tr>
           </thead>
-          <tbody class="divide-y">
+          <tbody class="divide-y divide-slate-100">
             {% for ticket in urgent_tickets %}
-            <tr class="hover:bg-gray-50">
-              <td class="py-2 pr-3 font-medium text-blue-600">
+            <tr class="transition hover:bg-slate-50/70">
+              <td class="py-3 pr-3 font-semibold text-blue-600">
                 <a href="{% url 'ticket_detail' ticket.id %}">{{ ticket.code }}</a>
               </td>
-              <td class="py-2 pr-3">{{ ticket.title }}</td>
-              <td class="py-2 pr-3">{{ ticket.priority.name }}</td>
-              <td class="py-2 pr-3">{% if ticket.assigned_to %}{{ ticket.assigned_to.username }}{% else %}-{% endif %}</td>
-              <td class="py-2">{{ ticket.remaining_hours|floatformat:1 }}</td>
+              <td class="py-3 pr-3 text-slate-700">{{ ticket.title }}</td>
+              <td class="py-3 pr-3">
+                <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">{{ ticket.priority.name }}</span>
+              </td>
+              <td class="py-3 pr-3 text-slate-600">{% if ticket.assigned_to %}{{ ticket.assigned_to.username }}{% else %}-{% endif %}</td>
+              <td class="py-3 text-slate-700">{{ ticket.remaining_hours|floatformat:1 }}</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     {% else %}
-      <p class="text-sm text-gray-600">No hay tickets urgentes en este momento.</p>
+      <div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-6 text-center text-sm text-emerald-700">
+        <i class="bi bi-emoji-smile text-lg mr-1"></i>
+        No hay tickets urgentes en este momento.
+      </div>
     {% endif %}
-  </div>
+  </section>
 
-  <div class="bg-white rounded-xl shadow p-5">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold">Visualización de datos</h2>
-      <div class="inline-flex rounded border border-gray-200 overflow-hidden">
-        <button type="button" data-chart-target="status" class="chart-toggle px-3 py-1.5 text-sm bg-blue-600 text-white">Estados</button>
-        <button type="button" data-chart-target="failures" class="chart-toggle px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100">Fallas</button>
+  <section class="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
+    <div class="flex flex-col gap-6">
+      <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-semibold text-slate-800">Tendencias de fallas</h2>
+          <p class="text-sm text-slate-500">Explora las categorías que generan más incidencias recientes y prioriza acciones preventivas.</p>
+        </div>
+        {% if has_failures_data %}
+          <span class="text-xs text-slate-400">Datos recopilados desde {{ failures_since|localtime|date:"d/m/Y" }}.</span>
+        {% endif %}
       </div>
-    </div>
-    <div id="chart-status" class="chart-panel flex justify-center">
-      <div class="relative h-48 w-48 md:h-56 md:w-56">
-        <canvas id="statusChart"></canvas>
-      </div>
-    </div>
-    <div id="chart-failures" class="chart-panel hidden">
+
       {% if has_failures_data %}
-        <canvas id="failuresChart"></canvas>
-        <p class="text-xs text-gray-500 mt-2">Datos recopilados desde {{ failures_since|localtime|date:"d/m/Y" }}.</p>
+        <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+          <div class="xl:col-span-3">
+            <div class="relative h-72 sm:h-80">
+              <canvas id="failuresChart"></canvas>
+            </div>
+          </div>
+          <div class="xl:col-span-2">
+            <div class="rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
+              <h3 class="text-lg font-semibold text-slate-800 mb-3">Fallas más comunes</h3>
+              <p class="text-xs text-slate-500 mb-4">Top de categorías detectadas en los últimos 60 días.</p>
+              <ul class="space-y-3">
+                {% for failure in failure_breakdown %}
+                <li class="flex items-center justify-between rounded-2xl border border-white/60 bg-white/90 px-4 py-3 shadow-sm">
+                  <div class="flex items-center gap-3">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white" style="background-color: {{ failure.color }};">
+                      {{ forloop.counter }}
+                    </span>
+                    <span class="text-sm font-medium text-slate-700">{{ failure.label }}</span>
+                  </div>
+                  <span class="text-sm font-semibold text-slate-900">{{ failure.total }}</span>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
       {% else %}
-        <p class="text-sm text-gray-600">No hay registros recientes suficientes para mostrar tendencias de fallas.</p>
+        <div class="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-6 text-center text-sm text-indigo-700">
+          <i class="bi bi-info-circle-fill text-base mr-1"></i>
+          No hay registros recientes suficientes para mostrar tendencias de fallas.
+        </div>
       {% endif %}
     </div>
-    <p class="text-xs text-gray-500 mt-3">Selecciona la pestaña para alternar entre la distribución de estados y las categorías de fallas más repetidas.</p>
-  </div>
+  </section>
 </div>
 
 {% endblock %}
@@ -119,84 +195,97 @@
     const hasFailureData = {{ has_failures_data|yesno:"true,false" }};
 
     const statusCtx = document.getElementById('statusChart');
-    const statusChart = new Chart(statusCtx, {
-      type: 'pie',
-      data: {
-        labels: statusConfig.labels,
-        datasets: [{
-          data: statusConfig.data,
-          backgroundColor: ['#bfdbfe', '#fef3c7', '#bbf7d0', '#e5e7eb'],
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } }
-      }
-    });
-
-    let failuresChart = null;
-    const failureColors = ['#2563eb', '#7c3aed', '#f97316', '#059669', '#dc2626', '#0891b2', '#9333ea', '#f59e0b'];
-
-    function ensureFailuresChart() {
-      if (!hasFailureData || failuresChart) {
-        return;
-      }
-      const ctx = document.getElementById('failuresChart');
-      if (!ctx) {
-        return;
-      }
-      failuresChart = new Chart(ctx, {
-        type: 'bar',
+    if (statusCtx) {
+      new Chart(statusCtx, {
+        type: 'doughnut',
         data: {
-          labels: failuresConfig.labels,
+          labels: statusConfig.labels,
           datasets: [{
-            label: 'Tickets',
-            data: failuresConfig.data,
-            backgroundColor: failureColors.slice(0, failuresConfig.data.length)
-          }]
+            data: statusConfig.data,
+            backgroundColor: ['#2563eb', '#fbbf24', '#22c55e', '#94a3b8'],
+            borderWidth: 0,
+            hoverOffset: 16,
+          }],
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
+          cutout: '55%',
           plugins: {
-            legend: { display: false }
+            legend: {
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                padding: 18,
+                color: '#1f2937',
+                font: { size: 13 },
+              },
+            },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleColor: '#e2e8f0',
+              bodyColor: '#e2e8f0',
+              padding: 12,
+              cornerRadius: 12,
+            },
           },
-          scales: {
-            y: { beginAtZero: true, ticks: { stepSize: 1 } }
-          }
-        }
+        },
       });
     }
 
-    const panels = {
-      status: document.getElementById('chart-status'),
-      failures: document.getElementById('chart-failures')
-    };
-
-    const buttons = document.querySelectorAll('.chart-toggle');
-
-    function setActive(target) {
-      buttons.forEach(btn => {
-        const isActive = btn.dataset.chartTarget === target;
-        btn.classList.toggle('bg-blue-600', isActive);
-        btn.classList.toggle('text-white', isActive);
-        btn.classList.toggle('text-gray-600', !isActive);
-      });
-      Object.entries(panels).forEach(([key, el]) => {
-        if (!el) return;
-        el.classList.toggle('hidden', key !== target);
-      });
-      if (target === 'failures') {
-        ensureFailuresChart();
+    if (hasFailureData) {
+      const failureCtx = document.getElementById('failuresChart');
+      if (failureCtx) {
+        new Chart(failureCtx, {
+          type: 'bar',
+          data: {
+            labels: failuresConfig.labels,
+            datasets: [{
+              label: 'Tickets',
+              data: failuresConfig.data,
+              backgroundColor: failuresConfig.colors,
+              borderRadius: 14,
+              borderSkipped: false,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#111827',
+                titleColor: '#f1f5f9',
+                bodyColor: '#f1f5f9',
+                padding: 10,
+                cornerRadius: 10,
+              },
+            },
+            scales: {
+              x: {
+                ticks: {
+                  color: '#475569',
+                  font: { size: 11 },
+                  maxRotation: 35,
+                  minRotation: 0,
+                },
+                grid: { display: false },
+              },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                  color: '#475569',
+                },
+                grid: {
+                  color: 'rgba(148, 163, 184, 0.15)',
+                },
+              },
+            },
+          },
+        });
       }
     }
-
-    buttons.forEach(btn => {
-      btn.addEventListener('click', () => setActive(btn.dataset.chartTarget));
-    });
-
-    setActive('status');
   });
 </script>
 {% endblock %}
