@@ -5,34 +5,34 @@
 {% block content %}
 <div class="space-y-10 py-6">
   <section class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-    <article class="flex flex-col gap-5 rounded-3xl border border-sky-200 bg-sky-50 p-6 shadow-sm">
+    <article class="flex flex-col gap-4 rounded-3xl border border-sky-300 bg-sky-200 p-5 shadow-sm">
       <div class="flex items-center justify-between">
-        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-600"><i class="bi bi-infinity"></i> Abiertos</span>
-        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl text-sky-500 shadow-sm"><i class="bi bi-life-preserver"></i></span>
+        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-sky-700"><i class="bi bi-infinity"></i> Abiertos</span>
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl text-sky-600 shadow-sm"><i class="bi bi-life-preserver"></i></span>
       </div>
       <p class="text-5xl font-semibold text-slate-900">{{ counts.open }}</p>
     </article>
 
-    <article class="flex flex-col gap-5 rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+    <article class="flex flex-col gap-4 rounded-3xl border border-amber-300 bg-amber-200 p-5 shadow-sm">
       <div class="flex items-center justify-between">
-        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-amber-600"><i class="bi bi-lightbulb"></i> En progreso</span>
-        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl text-amber-500 shadow-sm"><i class="bi bi-gear-wide-connected"></i></span>
+        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-amber-700"><i class="bi bi-lightbulb"></i> En progreso</span>
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl text-amber-600 shadow-sm"><i class="bi bi-gear-wide-connected"></i></span>
       </div>
       <p class="text-5xl font-semibold text-slate-900">{{ counts.in_progress }}</p>
     </article>
 
-    <article class="flex flex-col gap-5 rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+    <article class="flex flex-col gap-4 rounded-3xl border border-emerald-300 bg-emerald-200 p-5 shadow-sm">
       <div class="flex items-center justify-between">
-        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-600"><i class="bi bi-graph-up-arrow"></i> Resueltos (mes)</span>
-        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl text-emerald-500 shadow-sm"><i class="bi bi-check-circle"></i></span>
+        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-emerald-700"><i class="bi bi-graph-up-arrow"></i> Resueltos (mes)</span>
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl text-emerald-600 shadow-sm"><i class="bi bi-check-circle"></i></span>
       </div>
       <p class="text-5xl font-semibold text-slate-900">{{ counts.resolved }}</p>
     </article>
 
-    <article class="flex flex-col gap-5 rounded-3xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
+    <article class="flex flex-col gap-4 rounded-3xl border border-rose-300 bg-rose-200 p-5 shadow-sm">
       <div class="flex items-center justify-between">
-        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-rose-600"><i class="bi bi-archive"></i> Cerrados (mes)</span>
-        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl text-rose-500 shadow-sm"><i class="bi bi-shield-lock"></i></span>
+        <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-rose-700"><i class="bi bi-archive"></i> Cerrados (mes)</span>
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl text-rose-600 shadow-sm"><i class="bi bi-shield-lock"></i></span>
       </div>
       <p class="text-5xl font-semibold text-slate-900">{{ counts.closed }}</p>
     </article>
@@ -51,9 +51,9 @@
         {% if urgent_tickets %}
         <ul class="space-y-4" role="list">
           {% for ticket in urgent_tickets %}
-          <li class="rounded-2xl border border-rose-100 bg-rose-50/60 p-5 shadow-sm transition hover:border-rose-200">
+          <li class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300">
             <div class="flex flex-wrap items-center justify-between gap-3 text-sm">
-              <a href="{% url 'ticket_detail' ticket.id %}" class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 font-semibold text-rose-600 transition hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400" aria-label="Abrir ticket {{ ticket.code }}">
+              <a href="{% url 'ticket_detail' ticket.id %}" class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-700 transition hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400" aria-label="Abrir ticket {{ ticket.code }}">
                 <i class="bi bi-hash"></i>
                 {{ ticket.code }}
               </a>
@@ -63,7 +63,7 @@
               <p class="text-base font-semibold text-slate-900">{{ ticket.title }}</p>
               <div class="flex items-center gap-3 text-sm text-slate-600">
                 <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1"><i class="bi bi-person-circle"></i>{% if ticket.assigned_to %}{{ ticket.assigned_to.username }}{% else %}-{% endif %}</span>
-                <span class="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-amber-600"><i class="bi bi-hourglass-split"></i>{{ ticket.remaining_hours|floatformat:1 }} h</span>
+                <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-rose-600"><i class="bi bi-hourglass-split"></i>{{ ticket.remaining_hours|floatformat:1 }} h</span>
               </div>
             </div>
           </li>
@@ -91,7 +91,7 @@
           <label class="status-chip flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50" data-index="0">
             <input type="checkbox" class="status-toggle sr-only" data-index="0" checked>
             <span class="flex items-center gap-2">
-              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #38bdf8"></span>
+              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #bae6fd"></span>
               Abiertos
             </span>
             <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.open }}</span>
@@ -99,7 +99,7 @@
           <label class="status-chip flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50" data-index="1">
             <input type="checkbox" class="status-toggle sr-only" data-index="1" checked>
             <span class="flex items-center gap-2">
-              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #facc15"></span>
+              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #fde68a"></span>
               En progreso
             </span>
             <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.in_progress }}</span>
@@ -107,7 +107,7 @@
           <label class="status-chip flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50" data-index="2">
             <input type="checkbox" class="status-toggle sr-only" data-index="2" checked>
             <span class="flex items-center gap-2">
-              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #4ade80"></span>
+              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #a7f3d0"></span>
               Resueltos (mes)
             </span>
             <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.resolved }}</span>
@@ -115,7 +115,7 @@
           <label class="status-chip flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50" data-index="3">
             <input type="checkbox" class="status-toggle sr-only" data-index="3" checked>
             <span class="flex items-center gap-2">
-              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #fb7185"></span>
+              <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #fecdd3"></span>
               Cerrados (mes)
             </span>
             <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.closed }}</span>
@@ -206,7 +206,7 @@
 
     if (statusCanvas) {
       const statusCtx = statusCanvas.getContext('2d');
-      const statusPalette = ['#38bdf8', '#facc15', '#4ade80', '#fb7185'];
+      const statusPalette = ['#bae6fd', '#fde68a', '#a7f3d0', '#fecdd3'];
 
       statusChart = new Chart(statusCtx, {
         type: 'doughnut',
