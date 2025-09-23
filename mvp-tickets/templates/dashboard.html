@@ -21,66 +21,50 @@
           Actualizado en tiempo real
         </span>
       </div>
-      <div class="grid grid-cols-1 xl:grid-cols-5 gap-6 items-stretch">
-        <div class="xl:col-span-2 flex justify-center">
-          <div class="relative h-64 w-64 sm:h-72 sm:w-72 lg:h-80 lg:w-80">
-            <canvas id="statusChart"></canvas>
+      <div class="flex flex-col gap-6">
+        <div class="overflow-x-auto pb-2">
+          <div class="flex gap-4 min-w-max pr-2">
+            <article class="flex w-64 flex-col rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-sky-50 to-sky-100/40 p-6 shadow-md">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-[0.35em] text-sky-500">Abiertos</span>
+                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-2xl text-sky-500">
+                  <i class="bi bi-envelope-open"></i>
+                </span>
+              </div>
+              <p class="mt-4 text-4xl font-semibold text-slate-800">{{ counts.open }}</p>
+            </article>
+            <article class="flex w-64 flex-col rounded-3xl border border-amber-100 bg-gradient-to-br from-white via-amber-50 to-amber-100/40 p-6 shadow-md">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-[0.35em] text-amber-500">En progreso</span>
+                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-2xl text-amber-500">
+                  <i class="bi bi-hourglass-split"></i>
+                </span>
+              </div>
+              <p class="mt-4 text-4xl font-semibold text-slate-800">{{ counts.in_progress }}</p>
+            </article>
+            <article class="flex w-64 flex-col rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-emerald-100/40 p-6 shadow-md">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">Resueltos</span>
+                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-2xl text-emerald-500">
+                  <i class="bi bi-patch-check"></i>
+                </span>
+              </div>
+              <p class="mt-4 text-4xl font-semibold text-slate-800">{{ counts.resolved }}</p>
+            </article>
+            <article class="flex w-64 flex-col rounded-3xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50 to-indigo-100/40 p-6 shadow-md">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-500">Cerrados</span>
+                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-2xl text-indigo-500">
+                  <i class="bi bi-archive-fill"></i>
+                </span>
+              </div>
+              <p class="mt-4 text-4xl font-semibold text-slate-800">{{ counts.closed }}</p>
+            </article>
           </div>
         </div>
-        <div class="xl:col-span-3">
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 h-full">
-            <div class="relative overflow-hidden rounded-3xl border border-blue-100 bg-blue-50/80 shadow-lg">
-              <div class="absolute inset-0 bg-gradient-to-r from-blue-100 via-blue-50 to-white opacity-80"></div>
-              <div class="relative flex items-center gap-4 px-5 py-5">
-                <span class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/20 text-2xl text-blue-600 shadow-inner">
-                  <i class="bi bi-ticket-perforated"></i>
-                </span>
-                <div class="flex-1">
-                  <p class="text-xs font-semibold text-blue-500 uppercase tracking-[0.2em]">Abiertos</p>
-                  <p class="text-3xl font-bold text-slate-900 leading-tight">{{ counts.open }}</p>
-                  <p class="text-xs text-slate-500">Tickets que necesitan tu magia ahora mismo.</p>
-                </div>
-              </div>
-            </div>
-            <div class="relative overflow-hidden rounded-3xl border border-amber-100 bg-amber-50/80 shadow-lg">
-              <div class="absolute inset-0 bg-gradient-to-r from-amber-100 via-amber-50 to-white opacity-80"></div>
-              <div class="relative flex items-center gap-4 px-5 py-5">
-                <span class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/20 text-2xl text-amber-500 shadow-inner">
-                  <i class="bi bi-play-circle"></i>
-                </span>
-                <div class="flex-1">
-                  <p class="text-xs font-semibold text-amber-500 uppercase tracking-[0.2em]">En progreso</p>
-                  <p class="text-3xl font-bold text-slate-900 leading-tight">{{ counts.in_progress }}</p>
-                  <p class="text-xs text-slate-500">Trabajándose con energía a tope.</p>
-                </div>
-              </div>
-            </div>
-            <div class="relative overflow-hidden rounded-3xl border border-emerald-100 bg-emerald-50/80 shadow-lg">
-              <div class="absolute inset-0 bg-gradient-to-r from-emerald-100 via-emerald-50 to-white opacity-80"></div>
-              <div class="relative flex items-center gap-4 px-5 py-5">
-                <span class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-2xl text-emerald-600 shadow-inner">
-                  <i class="bi bi-check-circle"></i>
-                </span>
-                <div class="flex-1">
-                  <p class="text-xs font-semibold text-emerald-600 uppercase tracking-[0.2em]">Resueltos (mes)</p>
-                  <p class="text-3xl font-bold text-slate-900 leading-tight">{{ counts.resolved }}</p>
-                  <p class="text-xs text-slate-500">Historias de éxito fresco saliendo del horno.</p>
-                </div>
-              </div>
-            </div>
-            <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-50/80 shadow-lg">
-              <div class="absolute inset-0 bg-gradient-to-r from-slate-200 via-slate-50 to-white opacity-80"></div>
-              <div class="relative flex items-center gap-4 px-5 py-5">
-                <span class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-500/15 text-2xl text-slate-600 shadow-inner">
-                  <i class="bi bi-archive"></i>
-                </span>
-                <div class="flex-1">
-                  <p class="text-xs font-semibold text-slate-600 uppercase tracking-[0.2em]">Cerrados (mes)</p>
-                  <p class="text-3xl font-bold text-slate-900 leading-tight">{{ counts.closed }}</p>
-                  <p class="text-xs text-slate-500">Trabajo impecable para presumir al equipo.</p>
-                </div>
-              </div>
-            </div>
+        <div class="flex justify-center">
+          <div class="relative h-64 w-64 sm:h-72 sm:w-72 lg:h-80 lg:w-80">
+            <canvas id="statusChart"></canvas>
           </div>
         </div>
       </div>
@@ -202,7 +186,7 @@
           labels: statusConfig.labels,
           datasets: [{
             data: statusConfig.data,
-            backgroundColor: ['#2563eb', '#f59e0b', '#10b981', '#64748b'],
+            backgroundColor: ['#93c5fd', '#fcd34d', '#86efac', '#cbd5f5'],
             borderColor: '#ffffff',
             borderWidth: 3,
             hoverOffset: 16,
