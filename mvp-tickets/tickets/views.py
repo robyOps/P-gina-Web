@@ -175,14 +175,43 @@ def dashboard(request):
     failure_rows = (
         failure_qs.values("category__name")
         .annotate(total=Count("id"))
-        .order_by("-total", "category__name")[:8]
+        .order_by("-total", "category__name")[:15]
     )
-    failure_labels = [row["category__name"] or "Sin categoría" for row in failure_rows]
-    failure_totals = [row["total"] for row in failure_rows]
+    palette = [
+        "#2563eb",
+        "#7c3aed",
+        "#f97316",
+        "#059669",
+        "#dc2626",
+        "#0891b2",
+        "#9333ea",
+        "#f59e0b",
+        "#0ea5e9",
+        "#14b8a6",
+        "#ef4444",
+        "#8b5cf6",
+        "#38bdf8",
+        "#34d399",
+        "#fb923c",
+    ]
+    failure_breakdown = []
+    for idx, row in enumerate(failure_rows):
+        label = row["category__name"] or "Sin categoría"
+        failure_breakdown.append(
+            {
+                "label": label,
+                "total": row["total"],
+                "color": palette[idx % len(palette)],
+            }
+        )
+
+    failure_labels = [item["label"] for item in failure_breakdown]
+    failure_totals = [item["total"] for item in failure_breakdown]
     failures_chart_data = json.dumps(
         {
             "labels": failure_labels,
             "data": failure_totals,
+            "colors": [item["color"] for item in failure_breakdown],
             "since": cutoff.date().isoformat(),
         }
     )
@@ -195,6 +224,7 @@ def dashboard(request):
         "failures_chart_data": failures_chart_data,
         "has_failures_data": bool(failure_totals),
         "failures_since": cutoff,
+        "failure_breakdown": failure_breakdown,
     }
     return render(request, "dashboard.html", ctx)
 
