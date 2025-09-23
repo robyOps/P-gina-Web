@@ -5,36 +5,36 @@
 {% block content %}
 <div class="space-y-10 py-6">
   <section class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-    <article class="flex flex-col gap-5 rounded-3xl border bg-white/95 p-6 shadow-sm" style="border-color: rgba(59, 130, 246, 0.55); background: linear-gradient(160deg, rgba(59, 130, 246, 0.18), rgba(255, 255, 255, 0.96));">
+    <article class="flex flex-col justify-between gap-4 rounded-3xl border bg-white/95 p-5 shadow-sm sm:p-6" style="border-color: rgba(76, 141, 247, 0.62); background: linear-gradient(155deg, rgba(76, 141, 247, 0.24), rgba(255, 255, 255, 0.98));">
       <div class="flex items-center justify-between">
-        <span class="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-base font-semibold text-sky-700"><i class="bi bi-infinity"></i> Abiertos</span>
-        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-3xl text-sky-500 shadow-sm"><i class="bi bi-life-preserver"></i></span>
+        <span class="inline-flex items-center gap-2 rounded-full bg-white/95 px-5 py-1.5 text-lg font-semibold text-sky-700"><i class="bi bi-infinity"></i> Abiertos</span>
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-2xl text-sky-500 shadow-sm"><i class="bi bi-life-preserver"></i></span>
       </div>
-      <p class="text-6xl font-semibold text-slate-900">{{ counts.open }}</p>
+      <p class="text-6xl font-semibold text-slate-900 sm:text-7xl">{{ counts.open }}</p>
     </article>
 
-    <article class="flex flex-col gap-5 rounded-3xl border bg-white/95 p-6 shadow-sm" style="border-color: rgba(234, 179, 8, 0.6); background: linear-gradient(160deg, rgba(234, 179, 8, 0.2), rgba(255, 255, 255, 0.96));">
+    <article class="flex flex-col justify-between gap-4 rounded-3xl border bg-white/95 p-5 shadow-sm sm:p-6" style="border-color: rgba(251, 191, 36, 0.64); background: linear-gradient(155deg, rgba(251, 191, 36, 0.26), rgba(255, 255, 255, 0.98));">
       <div class="flex items-center justify-between">
-        <span class="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-base font-semibold text-amber-700"><i class="bi bi-lightbulb"></i> En progreso</span>
-        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-3xl text-amber-500 shadow-sm"><i class="bi bi-gear-wide-connected"></i></span>
+        <span class="inline-flex items-center gap-2 rounded-full bg-white/95 px-5 py-1.5 text-lg font-semibold text-amber-700"><i class="bi bi-lightbulb"></i> En progreso</span>
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-2xl text-amber-500 shadow-sm"><i class="bi bi-gear-wide-connected"></i></span>
       </div>
-      <p class="text-6xl font-semibold text-slate-900">{{ counts.in_progress }}</p>
+      <p class="text-6xl font-semibold text-slate-900 sm:text-7xl">{{ counts.in_progress }}</p>
     </article>
 
-    <article class="flex flex-col gap-5 rounded-3xl border bg-white/95 p-6 shadow-sm" style="border-color: rgba(74, 222, 128, 0.6); background: linear-gradient(160deg, rgba(74, 222, 128, 0.22), rgba(255, 255, 255, 0.96));">
+    <article class="flex flex-col justify-between gap-4 rounded-3xl border bg-white/95 p-5 shadow-sm sm:p-6" style="border-color: rgba(52, 211, 153, 0.64); background: linear-gradient(155deg, rgba(52, 211, 153, 0.28), rgba(255, 255, 255, 0.98));">
       <div class="flex items-center justify-between">
-        <span class="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-base font-semibold text-emerald-700"><i class="bi bi-graph-up-arrow"></i> Resueltos (mes)</span>
-        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-3xl text-emerald-500 shadow-sm"><i class="bi bi-check-circle"></i></span>
+        <span class="inline-flex items-center gap-2 rounded-full bg-white/95 px-5 py-1.5 text-lg font-semibold text-emerald-700"><i class="bi bi-graph-up-arrow"></i> Resueltos (mes)</span>
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-2xl text-emerald-500 shadow-sm"><i class="bi bi-check-circle"></i></span>
       </div>
-      <p class="text-6xl font-semibold text-slate-900">{{ counts.resolved }}</p>
+      <p class="text-6xl font-semibold text-slate-900 sm:text-7xl">{{ counts.resolved }}</p>
     </article>
 
-    <article class="flex flex-col gap-5 rounded-3xl border bg-white/95 p-6 shadow-sm" style="border-color: rgba(248, 113, 113, 0.6); background: linear-gradient(160deg, rgba(248, 113, 113, 0.22), rgba(255, 255, 255, 0.96));">
+    <article class="flex flex-col justify-between gap-4 rounded-3xl border bg-white/95 p-5 shadow-sm sm:p-6" style="border-color: rgba(251, 113, 133, 0.64); background: linear-gradient(155deg, rgba(251, 113, 133, 0.28), rgba(255, 255, 255, 0.98));">
       <div class="flex items-center justify-between">
-        <span class="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-base font-semibold text-rose-700"><i class="bi bi-archive"></i> Cerrados (mes)</span>
-        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-3xl text-rose-500 shadow-sm"><i class="bi bi-shield-lock"></i></span>
+        <span class="inline-flex items-center gap-2 rounded-full bg-white/95 px-5 py-1.5 text-lg font-semibold text-rose-700"><i class="bi bi-archive"></i> Cerrados (mes)</span>
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-2xl text-rose-500 shadow-sm"><i class="bi bi-shield-lock"></i></span>
       </div>
-      <p class="text-6xl font-semibold text-slate-900">{{ counts.closed }}</p>
+      <p class="text-6xl font-semibold text-slate-900 sm:text-7xl">{{ counts.closed }}</p>
     </article>
   </section>
 
@@ -78,38 +78,38 @@
     <article class="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
       <div class="flex flex-col gap-6">
         <h2 class="text-2xl font-semibold text-slate-900">Distribución actual</h2>
-        <div class="mx-auto h-[26rem] w-full max-w-xl">
+        <div class="mx-auto h-[28rem] w-full max-w-2xl">
           <canvas id="statusChart" aria-label="Gráfico circular de estado de tickets"></canvas>
         </div>
         <div id="statusFilters" class="mt-6 flex flex-wrap gap-3">
-          <label class="status-chip flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-base font-semibold text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50" data-index="0">
+          <label class="status-chip flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-base font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-white" data-index="0">
             <input type="checkbox" class="status-toggle sr-only" data-index="0" checked>
             <span class="flex items-center gap-2">
-              <span class="inline-flex h-3 w-3 rounded-full" style="background-color: #3b82f6"></span>
+              <span class="inline-flex h-3 w-3 rounded-full" style="background-color: #4c8df7"></span>
               Abiertos
             </span>
             <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.open }}</span>
           </label>
-          <label class="status-chip flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-base font-semibold text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50" data-index="1">
+          <label class="status-chip flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-base font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-white" data-index="1">
             <input type="checkbox" class="status-toggle sr-only" data-index="1" checked>
             <span class="flex items-center gap-2">
-              <span class="inline-flex h-3 w-3 rounded-full" style="background-color: #eab308"></span>
+              <span class="inline-flex h-3 w-3 rounded-full" style="background-color: #fbbf24"></span>
               En progreso
             </span>
             <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.in_progress }}</span>
           </label>
-          <label class="status-chip flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-base font-semibold text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50" data-index="2">
+          <label class="status-chip flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-base font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-white" data-index="2">
             <input type="checkbox" class="status-toggle sr-only" data-index="2" checked>
             <span class="flex items-center gap-2">
-              <span class="inline-flex h-3 w-3 rounded-full" style="background-color: #4ade80"></span>
+              <span class="inline-flex h-3 w-3 rounded-full" style="background-color: #34d399"></span>
               Resueltos (mes)
             </span>
             <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.resolved }}</span>
           </label>
-          <label class="status-chip flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-base font-semibold text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50" data-index="3">
+          <label class="status-chip flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-base font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-white" data-index="3">
             <input type="checkbox" class="status-toggle sr-only" data-index="3" checked>
             <span class="flex items-center gap-2">
-              <span class="inline-flex h-3 w-3 rounded-full" style="background-color: #f87171"></span>
+              <span class="inline-flex h-3 w-3 rounded-full" style="background-color: #fb7185"></span>
               Cerrados (mes)
             </span>
             <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.closed }}</span>
@@ -186,7 +186,7 @@
 
     if (statusCanvas) {
       const statusCtx = statusCanvas.getContext('2d');
-      const statusPalette = ['#3b82f6', '#eab308', '#4ade80', '#f87171'];
+      const statusPalette = ['#4c8df7', '#fbbf24', '#34d399', '#fb7185'];
 
       statusChart = new Chart(statusCtx, {
         type: 'doughnut',
