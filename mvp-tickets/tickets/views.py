@@ -239,7 +239,7 @@ def faq_list(request):
     form = FAQForm()
     if request.method == "POST":
         if not can_manage:
-            return HttpResponseForbidden("No autorizado")
+            return HttpResponseForbidden("Sin autorización")
         form = FAQForm(request.POST)
         if form.is_valid():
             faq = form.save(commit=False)
@@ -263,7 +263,7 @@ def faq_edit(request, pk):
     faq = get_object_or_404(FAQ, pk=pk)
     user = request.user
     if not (is_admin(user) or is_tech(user)):
-        return HttpResponseForbidden("No autorizado")
+        return HttpResponseForbidden("Sin autorización")
 
     if request.method == "POST":
         form = FAQForm(request.POST, instance=faq)
@@ -294,7 +294,7 @@ def faq_delete(request, pk):
     """Elimina una pregunta frecuente."""
     user = request.user
     if not (is_admin(user) or is_tech(user)):
-        return HttpResponseForbidden("No autorizado")
+        return HttpResponseForbidden("Sin autorización")
 
     faq = get_object_or_404(FAQ, pk=pk)
     faq.delete()
@@ -478,7 +478,7 @@ def tickets_home(request):
 
 @login_required
 def ticket_create(request):
-    ...
+    """Renderiza el formulario de creación y procesa el envío del ticket."""
     if request.method == "POST":
         form = TicketCreateForm(request.POST, user=request.user)
         if form.is_valid():
@@ -521,7 +521,7 @@ def ticket_create(request):
             if t.assigned_to_id:
                 create_notification(t.assigned_to, f"Ticket {t.code} te ha sido asignado", link)
 
-            messages.success(request, f"Ticket creado: {t.code}")
+            messages.success(request, f"Ticket {t.code} creado con éxito.")
             return redirect("ticket_detail", pk=t.pk)
         messages.error(request, "Revisa los campos del formulario.")
     else:
@@ -547,7 +547,7 @@ def ticket_detail(request, pk):
     )
     u = request.user
     if not (is_admin(u) or is_tech(u) or t.requester_id == u.id):
-        return HttpResponseForbidden("No autorizado")
+        return HttpResponseForbidden("Sin autorización")
 
     # Panel de gestión
     is_admin_u = is_admin(u)
@@ -595,7 +595,7 @@ def ticket_print(request, pk):
         or (is_tech(u) and t.assigned_to_id in (None, u.id))
         or t.requester_id == u.id
     ):
-        return HttpResponseForbidden("No autorizado")
+        return HttpResponseForbidden("Sin autorización")
     return TemplateResponse(request, "tickets/print.html", {"t": t})
 
 
@@ -607,7 +607,7 @@ def discussion_partial(request, pk):
     t = get_object_or_404(Ticket, pk=pk)
     u = request.user
     if not (is_admin(u) or is_tech(u) or t.requester_id == u.id):
-        return HttpResponseForbidden("No autorizado")
+        return HttpResponseForbidden("Sin autorización")
 
     payload = discussion_payload(t, u)
     return TemplateResponse(request, "tickets/partials/discussion.html", payload)
@@ -620,7 +620,7 @@ def add_comment(request, pk):
     t = get_object_or_404(Ticket, pk=pk)
     u = request.user
     if not (is_admin(u) or is_tech(u) or t.requester_id == u.id):
-        return HttpResponseForbidden("No autorizado")
+        return HttpResponseForbidden("Sin autorización")
 
     body = (request.POST.get("body") or "").strip()
     if not body:
@@ -633,7 +633,7 @@ def add_comment(request, pk):
 
     uploaded_file = request.FILES.get("file")
     if uploaded_file and not can_upload_attachments(t, u):
-        return HttpResponseForbidden("No autorizado a adjuntar")
+        return HttpResponseForbidden("Sin autorización para adjuntar")
 
     if uploaded_file:
         try:
@@ -689,7 +689,7 @@ def ticket_assign(request, pk):
     u = request.user
 
     if not (is_admin(u) or is_tech(u)):
-        return HttpResponseForbidden("No autorizado para asignar")
+        return HttpResponseForbidden("Sin autorización para asignar")
 
     # ADMINISTRADOR: combo; TECNICO: autoasignación
     to_user_id = request.POST.get("to_user_id")
@@ -773,7 +773,7 @@ def ticket_transition(request, pk):
 
     allowed = allowed_transitions_for(t, u)
     if not allowed:
-        return HttpResponseForbidden("No autorizado a cambiar estado")
+        return HttpResponseForbidden("Sin autorización para cambiar estado")
 
     next_status = request.POST.get("next_status")
     comment = (request.POST.get("comment") or "").strip()
@@ -995,7 +995,7 @@ def ticket_pdf(request, pk):
         or (is_tech(u) and t.assigned_to_id in (None, u.id))
         or t.requester_id == u.id
     ):
-        return HttpResponseForbidden("No autorizado")
+        return HttpResponseForbidden("Sin autorización")
 
     template = get_template("tickets/print.html")
     html = template.render({"t": t, "for_pdf": True, "request": request})
@@ -1084,7 +1084,7 @@ def audit_partial(request, pk):
     u = request.user
     # Misma regla de visibilidad que attachments/comments:
     if not (is_admin(u) or is_tech(u) or t.requester_id == u.id):
-        return HttpResponseForbidden("No autorizado")
+        return HttpResponseForbidden("Sin autorización")
 
     # Traemos los últimos 50 eventos (del más nuevo al más antiguo)
     logs = list(
