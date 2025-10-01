@@ -188,6 +188,8 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         previous_status = ticket.status
         status_map = dict(Ticket.STATUS_CHOICES)
+        ticket._status_changed_by = u
+        ticket._skip_status_signal_audit = True
         ticket.status = next_status
         if next_status == Ticket.RESOLVED:
             ticket.resolved_at = timezone.now()

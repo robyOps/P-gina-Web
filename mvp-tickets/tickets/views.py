@@ -786,6 +786,8 @@ def ticket_transition(request, pk):
         return redirect("ticket_detail", pk=t.pk)
 
     previous_status = t.status
+    t._status_changed_by = u
+    t._skip_status_signal_audit = True
     t.status = next_status
     if next_status == Ticket.RESOLVED:
         t.resolved_at = timezone.now()
