@@ -3,41 +3,57 @@
 {% block title %}Roles{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <h1 class="text-xl font-semibold">Roles</h1>
-  <a href="{% url 'accounts:role_create' %}" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">Nuevo rol</a>
-</div>
+<section class="space-y-6">
+  <header class="flex flex-col gap-3 justify-between rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center">
+    <div>
+      <h1 class="text-2xl font-semibold text-slate-900">Roles</h1>
+      <p class="text-sm text-slate-600">Gestiona perfiles y permisos de forma clara para todo el equipo.</p>
+    </div>
+    <a href="{% url 'accounts:role_create' %}" class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700">
+      <i class="bi bi-plus-circle"></i>
+      Nuevo rol
+    </a>
+  </header>
 
-<table class="w-full bg-white rounded-xl shadow overflow-hidden text-sm">
-  <thead class="bg-gray-100">
-    <tr>
-      <th class="text-left p-2">Nombre</th>
-      <th class="text-left p-2">Permisos</th>
-      <th class="text-left p-2 w-32">Acciones</th>
-    </tr>
-  </thead>
-  <tbody>
+  {% if roles %}
+  <div class="grid gap-4 lg:grid-cols-2">
     {% for r in roles %}
-    <tr class="border-t hover:bg-gray-50">
-      <td class="p-2">{{ r.name }}</td>
-      <td class="p-2">
-        {% with perms=r.permissions.all|perm_known %}
-          {% if perms %}
+    <article class="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">{{ r.name }}</h2>
+          <p class="text-sm text-slate-500">Permisos disponibles para este rol.</p>
+        </div>
+        <a class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:border-blue-200 hover:text-blue-600" href="{% url 'accounts:role_edit' r.id %}">
+          <i class="bi bi-pencil"></i>
+          Editar
+        </a>
+      </div>
+      {% with perms=r.permissions.all|perm_known %}
+        {% if perms %}
+          <ul class="flex flex-wrap gap-2" role="list">
             {% for p in perms %}
-              <span class="text-xs px-2 py-0.5 rounded bg-gray-100 border mr-1">{{ p|perm_label }}</span>
+            <li class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+              <i class="bi bi-check-circle-fill text-blue-400"></i>
+              {{ p|perm_label }}
+            </li>
             {% endfor %}
-          {% else %}
-            <span class="text-xs text-gray-500">—</span>
-          {% endif %}
-        {% endwith %}
-      </td>
-      <td class="p-2">
-        <a class="text-blue-600 hover:underline" href="{% url 'accounts:role_edit' r.id %}">Editar</a>
-      </td>
-    </tr>
-    {% empty %}
-      <tr><td class="p-3 text-sm text-gray-500" colspan="3">Sin resultados.</td></tr>
+          </ul>
+        {% else %}
+          <p class="inline-flex items-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+            <i class="bi bi-info-circle"></i>
+            Este rol aún no tiene permisos asignados.
+          </p>
+        {% endif %}
+      {% endwith %}
+    </article>
     {% endfor %}
-  </tbody>
-</table>
+  </div>
+  {% else %}
+  <div class="rounded-3xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
+    <i class="bi bi-folder text-2xl text-slate-400"></i>
+    <p class="mt-3">Todavía no se han creado roles.</p>
+  </div>
+  {% endif %}
+</section>
 {% endblock %}

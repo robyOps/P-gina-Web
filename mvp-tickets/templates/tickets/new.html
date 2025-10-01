@@ -4,13 +4,13 @@
 {% block title %}Nuevo ticket{% endblock %}
 
 {% block content %}
-{# Formulario principal para levantar un nuevo ticket con copy chileno cercano. #}
+{# Formulario principal para levantar un nuevo ticket con copy en español latinoamericano cercano. #}
 <section class="space-y-8">
-  <article class="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-500 via-emerald-400 to-teal-500 p-8 text-white shadow">
+  <article class="rounded-3xl border border-blue-100 bg-gradient-to-br from-indigo-500 via-blue-500 to-sky-400 p-8 text-white shadow">
     <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div class="max-w-2xl space-y-2">
         <h1 class="text-3xl font-bold tracking-tight">Levantemos tu ticket</h1>
-        <p class="text-sm text-emerald-100 md:text-base">Cuéntanos qué pasó y te apoyamos al tiro. Mientras más detalle nos des, más rápido lo solucionamos.</p>
+        <p class="text-sm text-blue-100 md:text-base">Cuéntanos qué pasó y te apoyamos de inmediato. Mientras más detalle nos des, más rápido lo solucionamos.</p>
       </div>
       <span class="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em]">Paso a paso</span>
     </div>
@@ -31,34 +31,34 @@
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="titulo">Título</label>
-          {{ form.title|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"|attr:"id=titulo" }}
+          {{ form.title|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"|attr:"id=titulo" }}
           {% if form.title.errors %}<div class="text-xs text-rose-600">{{ form.title.errors }}</div>{% endif %}
         </div>
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="categoria">Categoría</label>
-          {{ form.category|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"|attr:"id=categoria" }}
+          {{ form.category|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"|attr:"id=categoria" }}
           {% if form.category.errors %}<div class="text-xs text-rose-600">{{ form.category.errors }}</div>{% endif %}
         </div>
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="prioridad">Prioridad</label>
-          {{ form.priority|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"|attr:"id=prioridad" }}
+          {{ form.priority|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"|attr:"id=prioridad" }}
           {% if form.priority.errors %}<div class="text-xs text-rose-600">{{ form.priority.errors }}</div>{% endif %}
         </div>
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="tipo">Tipo de ticket</label>
-          {{ form.kind|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"|attr:"id=tipo" }}
+          {{ form.kind|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"|attr:"id=tipo" }}
           <p class="text-[11px] text-slate-500">Incidente: se cayó algo o dejó de funcionar · Solicitud: necesitas algo nuevo.</p>
           {% if form.kind.errors %}<div class="text-xs text-rose-600">{{ form.kind.errors }}</div>{% endif %}
         </div>
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="area">Área</label>
-          {{ form.area|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"|attr:"id=area" }}
+          {{ form.area|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"|attr:"id=area" }}
           {% if form.area.errors %}<div class="text-xs text-rose-600">{{ form.area.errors }}</div>{% endif %}
         </div>
         {% if form.assignee %}
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="asignar">Asignar a (opcional)</label>
-          {{ form.assignee|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"|attr:"id=asignar" }}
+          {{ form.assignee|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"|attr:"id=asignar" }}
           {% if form.assignee.errors %}<div class="text-xs text-rose-600">{{ form.assignee.errors }}</div>{% endif %}
         </div>
         {% endif %}
@@ -68,15 +68,15 @@
     <fieldset class="space-y-3">
       <legend class="text-lg font-semibold text-slate-900">Cuéntanos el detalle</legend>
       <p class="text-sm text-slate-500">Relata qué pasó, cómo te afecta y si ya probaste alguna solución. Mientras más contexto, mejor.</p>
-      {{ form.description|add_class:"w-full rounded-2xl border border-slate-200 px-4 py-3 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100" }}
+      {{ form.description|add_class:"w-full rounded-2xl border border-slate-200 px-4 py-3 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100" }}
       {% if form.description.errors %}<div class="text-xs text-rose-600">{{ form.description.errors }}</div>{% endif %}
     </fieldset>
 
     <div class="flex flex-wrap items-center gap-3 pt-2">
-      <button class="btn inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-600" type="submit">
+      <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700" type="submit">
         <i class="bi bi-send"></i> Crear ticket
       </button>
-      <a href="{% url 'tickets_home' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 hover:border-emerald-200 hover:text-emerald-600">
+      <a href="{% url 'tickets_home' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 hover:border-blue-200 hover:text-blue-600">
         <i class="bi bi-arrow-left"></i> Volver sin guardar
       </a>
     </div>
