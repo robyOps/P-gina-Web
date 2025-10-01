@@ -119,9 +119,16 @@
     </thead>
     <tbody>
       {% for t in tickets %}
-      <tr class="border-t {% if t.is_overdue %}bg-red-50{% elif t.is_warning %}bg-yellow-50{% else %}hover:bg-gray-50{% endif %}">
+      <tr
+        class="border-t transition-colors {% if t.is_overdue %}bg-red-50 hover:bg-red-100{% elif t.is_warning %}bg-yellow-50 hover:bg-yellow-100{% else %}hover:bg-gray-100{% endif %} cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-indigo-500"
+        data-ticket-row
+        data-href="{% url 'ticket_detail' t.id %}"
+        tabindex="0"
+        role="link"
+        aria-label="Abrir ticket {{ t.code }}"
+      >
         <td class="p-2">
-          <a class="text-blue-600 hover:underline" href="{% url 'ticket_detail' t.id %}">{{ t.code }}</a>
+          <a class="text-blue-600 hover:underline focus-visible:outline-none" href="{% url 'ticket_detail' t.id %}">{{ t.code }}</a>
         </td>
         <td class="p-2">{{ t.title }}</td>
         <td class="p-2">{{ t.get_status_display }}</td>
@@ -189,6 +196,34 @@
   </div>
   {% endif %}
 </div>
+{% endblock %}
+
+
+{% block body_extra %}
+  {{ block.super }}
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll('[data-ticket-row]').forEach((row) => {
+        const url = row.dataset.href;
+        if (!url) return;
+
+        row.addEventListener("click", (event) => {
+          if (event.defaultPrevented) return;
+          const interactive = event.target.closest("a, button, input, label, textarea, select");
+          if (interactive) return;
+          window.location.href = url;
+        });
+
+        row.addEventListener("keydown", (event) => {
+          if (event.defaultPrevented) return;
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            window.location.href = url;
+          }
+        });
+      });
+    });
+  </script>
 {% endblock %}
 
 

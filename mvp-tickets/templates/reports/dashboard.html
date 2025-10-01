@@ -6,178 +6,191 @@
 {% endblock %}
 
 {% block content %}
-<h1 class="text-xl font-semibold mb-4">Reportes</h1>
-
-<form method="get" class="mb-4 flex flex-wrap items-end gap-3 text-sm">
-  <div>
-    <label class="block text-xs">Desde</label>
-    <input type="date" name="from" value="{{ from }}" class="border rounded px-2 py-1">
-  </div>
-  <div>
-    <label class="block text-xs">Hasta</label>
-    <input type="date" name="to" value="{{ to }}" class="border rounded px-2 py-1">
-  </div>
-  <div>
-    <label class="block text-xs">Tipo de reporte</label>
-    <select name="type" class="border rounded px-2 py-1">
-      <option value="total" {% if report_type == 'total' %}selected{% endif %}>Total</option>
-      <option value="categoria" {% if report_type == 'categoria' %}selected{% endif %}>Por categoría</option>
-      <option value="promedio" {% if report_type == 'promedio' %}selected{% endif %}>Tiempo promedio</option>
-      <option value="tecnico" {% if report_type == 'tecnico' %}selected{% endif %}>Por técnico</option>
-      <option value="urgencia" {% if report_type == 'urgencia' %}selected{% endif %}>Urgencia</option>
-    </select>
-  </div>
-  <div>
-    <label class="block text-xs">Técnico</label>
-    <select name="tech" class="border rounded px-2 py-1">
-      <option value="" {% if not tech_selected %}selected{% endif %}>(Todos)</option>
-      {% for t in techs %}
-      <option value="{{ t.id }}" {% if tech_selected == t.id|stringformat:'s' %}selected{% endif %}>{{ t.username }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <button class="bg-gray-800 text-white px-3 py-1.5 rounded">Filtrar</button>
-  <a href="{% url 'reports_dashboard' %}" class="px-3 py-1.5 rounded border">Limpiar</a>
-  <div class="mt-2 flex flex-wrap gap-2">
-    <a href="{% url 'reports_export_pdf' %}?from={{ from }}&to={{ to }}&type={{ report_type }}&tech={{ tech_selected }}"
-      class="bg-slate-700 text-white px-3 py-1.5 rounded text-sm">
-      Exportar PDF
-    </a>
-    <a href="{% url 'reports_export_excel' %}?from={{ from }}&to={{ to }}&type={{ report_type }}&tech={{ tech_selected }}"
-      class="bg-indigo-600 text-white px-3 py-1.5 rounded text-sm">
-      Exportar Excel
-    </a>
-  </div>
-</form>
-
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-  <div class="bg-white rounded-xl shadow p-4">
-    <div class="text-sm text-gray-500">Tickets totales</div>
-    <div class="text-2xl font-bold">{{ total }}</div>
-    <div class="mt-2 text-sm">
-      {% for k,v in by_status.items %}<div>{{ k }}: <span class="font-medium">{{ v }}</span></div>{% endfor %}
+<div class="space-y-8">
+  <section class="rounded-3xl border border-sky-100 bg-white/80 p-6 shadow-sm">
+    <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 class="text-3xl font-semibold text-slate-900">Reportes</h1>
+        <p class="text-sm text-slate-600">Analiza la operación del helpdesk con filtros dinámicos y exporta tus resultados.</p>
+      </div>
     </div>
-  </div>
-  <div class="bg-white rounded-xl shadow p-4">
-    <div class="text-sm text-gray-500">Promedio de resolución (hrs)</div>
-    <div class="text-2xl font-bold">{{ avg_hours|default:"—" }}</div>
-  </div>
-  <div class="bg-white rounded-xl shadow p-4">
-    <div class="text-sm text-gray-500">Por prioridad</div>
-    <ul class="mt-2 text-sm space-y-1">
-      {% for row in by_priority %}<li>{{ row.priority__name }}: <span class="font-medium">{{ row.count }}</span></li>{% endfor %}
-    </ul>
-  </div>
+    <form method="get" class="grid gap-4 text-sm md:grid-cols-5">
+      <div class="flex flex-col gap-1">
+        <label class="text-xs font-semibold text-slate-600">Desde</label>
+        <input type="date" name="from" value="{{ from }}" class="rounded-lg border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label class="text-xs font-semibold text-slate-600">Hasta</label>
+        <input type="date" name="to" value="{{ to }}" class="rounded-lg border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label class="text-xs font-semibold text-slate-600">Tipo de reporte</label>
+        <select name="type" class="rounded-lg border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+          <option value="total" {% if report_type == 'total' %}selected{% endif %}>Total</option>
+          <option value="categoria" {% if report_type == 'categoria' %}selected{% endif %}>Por categoría</option>
+          <option value="promedio" {% if report_type == 'promedio' %}selected{% endif %}>Tiempo promedio</option>
+          <option value="tecnico" {% if report_type == 'tecnico' %}selected{% endif %}>Por técnico</option>
+          <option value="urgencia" {% if report_type == 'urgencia' %}selected{% endif %}>Urgencia</option>
+        </select>
+      </div>
+      <div class="flex flex-col gap-1">
+        <label class="text-xs font-semibold text-slate-600">Técnico</label>
+        <select name="tech" class="rounded-lg border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+          <option value="" {% if not tech_selected %}selected{% endif %}>(Todos)</option>
+          {% for t in techs %}
+          <option value="{{ t.id }}" {% if tech_selected == t.id|stringformat:'s' %}selected{% endif %}>{{ t.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex items-end gap-2">
+        <button class="w-full rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300">Filtrar</button>
+        <a href="{% url 'reports_dashboard' %}" class="inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-2 font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200">Limpiar</a>
+      </div>
+      <div class="md:col-span-5 flex flex-wrap gap-3">
+        <a href="{% url 'reports_export_pdf' %}?from={{ from }}&to={{ to }}&type={{ report_type }}&tech={{ tech_selected }}" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-200">
+          <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+        </a>
+        <a href="{% url 'reports_export_excel' %}?from={{ from }}&to={{ to }}&type={{ report_type }}&tech={{ tech_selected }}" class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-200">
+          <i class="bi bi-file-earmark-spreadsheet"></i> Exportar Excel
+        </a>
+      </div>
+    </form>
+  </section>
+
+  <section class="grid gap-6 md:grid-cols-3">
+    <article class="flex flex-col gap-3 rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-blue-50 p-6 shadow-sm">
+      <div class="text-sm font-semibold uppercase tracking-wide text-sky-600">Tickets totales</div>
+      <div class="text-4xl font-bold text-slate-900">{{ total }}</div>
+      <div class="mt-1 space-y-1 text-sm text-slate-600">
+        {% for k,v in by_status.items %}
+          <div class="flex items-center justify-between">
+            <span>{{ k }}</span>
+            <span class="font-semibold text-slate-800">{{ v }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+    <article class="flex flex-col gap-3 rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-6 shadow-sm">
+      <div class="text-sm font-semibold uppercase tracking-wide text-emerald-600">Promedio de resolución (hrs)</div>
+      <div class="text-4xl font-bold text-slate-900">{{ avg_hours|default:"—" }}</div>
+      <p class="text-sm text-slate-600">Tiempo medio desde la apertura hasta la resolución de tickets cerrados.</p>
+    </article>
+    <article class="flex flex-col gap-3 rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-amber-100 p-6 shadow-sm">
+      <div class="text-sm font-semibold uppercase tracking-wide text-amber-600">Tickets por prioridad</div>
+      <ul class="space-y-1 text-sm text-slate-700">
+        {% for row in by_priority %}
+        <li class="flex items-center justify-between">
+          <span>{{ row.priority__name }}</span>
+          <span class="font-semibold text-slate-900">{{ row.count }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+
+  <section class="grid gap-6 lg:grid-cols-2">
+    <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Por categoría</h2>
+      <p class="text-sm text-slate-500">Volumen de tickets según clasificación funcional.</p>
+      <div class="mt-4 h-64"><canvas id="chartCat"></canvas></div>
+    </article>
+    <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Por prioridad</h2>
+      <p class="text-sm text-slate-500">Distribución según la urgencia declarada.</p>
+      <div class="mt-4 h-64"><canvas id="chartPri"></canvas></div>
+    </article>
+    <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Por técnico</h2>
+      <p class="text-sm text-slate-500">Tickets asignados por responsable.</p>
+      <div class="mt-4 h-64"><canvas id="chartTech"></canvas></div>
+    </article>
+    <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Horas de resolución</h2>
+      <p class="text-sm text-slate-500">Histograma de tiempos empleados en resolver incidencias.</p>
+      <div class="mt-4 h-64"><canvas id="chartHist"></canvas></div>
+    </article>
+    <article class="lg:col-span-2 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Categorías más lentas</h2>
+      <p class="text-sm text-slate-500">Promedio de horas hasta el cierre por categoría.</p>
+      <div class="mt-4 h-64"><canvas id="chartCatSlow"></canvas></div>
+    </article>
+  </section>
 </div>
-
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-  <div class="bg-white rounded-xl shadow p-4">
-    <div class="text-sm text-gray-500 mb-2">Por categoría</div>
-    <div class="h-64"><canvas id="chartCat"></canvas></div>
-  </div>
-
-  <div class="bg-white rounded-xl shadow p-4">
-    <div class="text-sm text-gray-500 mb-2">Por prioridad</div>
-    <div class="h-64"><canvas id="chartPri"></canvas></div>
-  </div>
-
-  <div class="bg-white rounded-xl shadow p-4">
-    <div class="text-sm text-gray-500 mb-2">Por técnico</div>
-    <div class="h-64"><canvas id="chartTech"></canvas></div>
-  </div>
-
-  <div class="bg-white rounded-xl shadow p-4">
-    <div class="text-sm text-gray-500 mb-2">Horas de resolución (histograma)</div>
-    <div class="h-64"><canvas id="chartHist"></canvas></div>
-  </div>
-
-  <div class="bg-white rounded-xl shadow p-4 md:col-span-2">
-    <div class="text-sm text-gray-500 mb-2">Categorías más lentas (hrs)</div>
-    <div class="h-64"><canvas id="chartCatSlow"></canvas></div>
-  </div>
-</div>
-
-
-{{ chart_cat|json_script:"chart-cat-data" }}
-{{ chart_pri|json_script:"chart-pri-data" }}
-{{ chart_tech|json_script:"chart-tech-data" }}
-{{ chart_hist|json_script:"chart-hist-data" }}
-{{ chart_cat_slow|json_script:"chart-cat-slow-data" }}
-
 {% endblock %}
 
 {% block body_extra %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  {{ block.super }}
+  {{ chart_cat|json_script:"chart_cat_data" }}
+  {{ chart_pri|json_script:"chart_pri_data" }}
+  {{ chart_tech|json_script:"chart_tech_data" }}
+  {{ chart_hist|json_script:"chart_hist_data" }}
+  {{ chart_cat_slow|json_script:"chart_cat_slow_data" }}
+  <script>
+    const COLORS = [
+      "#38bdf8", "#f97316", "#22c55e", "#f87171", "#6366f1",
+      "#0ea5e9", "#facc15", "#ec4899", "#8b5cf6", "#14b8a6"
+    ];
 
-{# Pasa los dicts de Python a JSON real sin comillas rotas #}
-{{ chart_cat|json_script:"chart_cat_data" }}
-{{ chart_pri|json_script:"chart_pri_data" }}
-{{ chart_tech|json_script:"chart_tech_data" }}
-{{ chart_hist|json_script:"chart_hist_data" }}
-{{ chart_cat_slow|json_script:"chart_cat_slow_data" }}
+    function parseData(id) {
+      const el = document.getElementById(id);
+      if (!el) return { labels: [], data: [] };
+      const js = JSON.parse(el.textContent || "{}");
+      const labels = Array.isArray(js.labels) ? js.labels : [];
+      const data = (Array.isArray(js.data) ? js.data : []).map((value) => Number(value) || 0);
+      return { labels, data };
+    }
 
-<script>
-  const COLORS = [
-    "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
-    "#14b8a6", "#f87171", "#6366f1", "#84cc16", "#ec4899"
-  ];
-  function parseData(id) {
-    const el = document.getElementById(id);
-    if (!el) return {labels: [], data: []};
-    const js = JSON.parse(el.textContent || "{}");
-    const labels = Array.isArray(js.labels) ? js.labels : [];
-    // Fuerza a número; null/"" -> 0
-    const data = (Array.isArray(js.data) ? js.data : []).map(x => Number(x) || 0);
-    return { labels, data };
-  }
+    function buildBar(canvasId, dataset, title, { decimals = 0 } = {}) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return null;
+      const ctx = canvas.getContext("2d");
+      const max = Math.max(1, ...dataset.data);
+      return new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: dataset.labels,
+          datasets: [
+            {
+              label: title,
+              data: dataset.data,
+              backgroundColor: dataset.data.map((_, index) => COLORS[index % COLORS.length]),
+              borderColor: dataset.data.map((_, index) => COLORS[index % COLORS.length]),
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              suggestedMax: max <= 3 ? 3 : undefined,
+              ticks: { precision: decimals },
+              grid: { color: "#e2e8f0" },
+            },
+            x: {
+              ticks: { color: "#475569" },
+              grid: { display: false },
+            },
+          },
+        },
+      });
+    }
 
-  function buildBar(canvasId, dataset, title, {decimals=0} = {}) {
-    const ctx = document.getElementById(canvasId).getContext("2d");
-    const max = Math.max(1, ...dataset.data);
-    return new Chart(ctx, {
-      type: "bar", // <- si quieres líneas, cambia a "line"
-      data: {
-        labels: dataset.labels,
-        datasets: [{
-          label: title,
-          data: dataset.data,
-          backgroundColor: dataset.data.map((_, i) => COLORS[i % COLORS.length]),
-          borderColor: dataset.data.map((_, i) => COLORS[i % COLORS.length]),
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false, // usa la altura CSS del contenedor
-        plugins: { legend: { display: false } },
-        scales: {
-          y: {
-            beginAtZero: true,
-            suggestedMax: max <= 3 ? 3 : undefined, // evita que se pegue al eje
-            ticks: { precision: decimals }          // 0=enteros, 1=un decimal, etc.
-          }
-        }
-      }
-    });
-  }
+    const cat = parseData("chart_cat_data");
+    const pri = parseData("chart_pri_data");
+    const tech = parseData("chart_tech_data");
+    const hist = parseData("chart_hist_data");
+    const slow = parseData("chart_cat_slow_data");
 
-  const cat  = parseData("chart_cat_data");
-  const pri  = parseData("chart_pri_data");
-  const tech = parseData("chart_tech_data");
-  const hist = parseData("chart_hist_data");
-  const slow = parseData("chart_cat_slow_data"); // horas promedio (decimales)
-
-  buildBar("chartCat",     cat,  "Por categoría");
-  buildBar("chartPri",     pri,  "Por prioridad");
-  buildBar("chartTech",    tech, "Por técnico");
-  buildBar("chartHist",    hist, "Horas de resolución (histograma)");
-  buildBar("chartCatSlow", slow, "Categorías más lentas (hrs)", {decimals: 1});
-</script>
+    buildBar("chartCat", cat, "Por categoría");
+    buildBar("chartPri", pri, "Por prioridad");
+    buildBar("chartTech", tech, "Por técnico");
+    buildBar("chartHist", hist, "Horas de resolución (histograma)");
+    buildBar("chartCatSlow", slow, "Categorías más lentas (hrs)", { decimals: 1 });
+  </script>
 {% endblock %}
-
-
-
-
-
-
-

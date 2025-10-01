@@ -71,17 +71,37 @@ def on_ticket_created_or_updated(sender, instance: Ticket, created, **kwargs):
 
     # Ejecuta después del commit de DB (evita enviar si falla la transacción)
     if created:
-        return transaction.on_commit(_notify_created)
+        transaction.on_commit(_notify_created)
+        return
 
     old = getattr(instance, "_old_status", None)
     if old == instance.status:
-        return  # sin cambio real de estado → no notificar
+        return  # sin cambio real de estado → no notificar ni registrar
 
     if instance.status == Ticket.RESOLVED:
-        return transaction.on_commit(_notify_status_resolved)
+        transaction.on_commit(_notify_status_resolved)
+    elif instance.status == Ticket.CLOSED:
+        transaction.on_commit(_notify_status_closed)
 
-    if instance.status == Ticket.CLOSED:
-        return transaction.on_commit(_notify_status_closed)
+    if getattr(instance, "_skip_status_signal_audit", False):
+        return
+
+    status_map = dict(Ticket.STATUS_CHOICES)
+    AuditLog.objects.create(
+        ticket=instance,
+        actor=getattr(instance, "_status_changed_by", None),
+        action="STATUS",
+        meta={
+            "from": old,
+            "from_label": status_map.get(old),
+            "to": instance.status,
+            "to_label": status_map.get(instance.status),
+            "with_comment": False,
+            "internal": False,
+            "comment_id": None,
+            "body_preview": "",
+        },
+    )
 
 
 @receiver(post_save, sender=TicketAssignment)

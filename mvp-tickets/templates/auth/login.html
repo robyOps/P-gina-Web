@@ -1,19 +1,41 @@
 {% extends "base.html" %}
 {% block title %}Ingresar{% endblock %}
 {% block content %}
-<div class="max-w-sm mx-auto bg-white p-6 rounded-xl shadow">
-  <h1 class="text-lg font-semibold mb-4">Ingresar</h1>
-  <form method="post" class="space-y-4">
-    {% csrf_token %}
-    <div>
-      <label class="block text-sm">Usuario</label>
-      <input type="text" name="username" class="w-full border rounded px-3 py-2" required />
+<div class="flex min-h-[70vh] items-center justify-center py-10">
+  <div class="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl md:grid-cols-2">
+    <div class="relative hidden bg-gradient-to-br from-indigo-600 via-sky-500 to-blue-500 p-10 text-white md:flex">
+      <div class="flex flex-col justify-between">
+        <div>
+          <span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Coyahue</span>
+          <h2 class="mt-6 text-3xl font-semibold leading-tight">Bienvenido de vuelta</h2>
+          <p class="mt-4 text-sm text-indigo-100">Centraliza incidencias, coordina a tu equipo y mantiene el servicio bajo control con una plataforma diseñada para trabajar en equipo.</p>
+        </div>
+        <ul class="mt-10 space-y-4 text-sm text-indigo-100">
+          <li class="flex items-center gap-3"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-lg"><i class="bi bi-lightning-charge"></i></span>Responde solicitudes urgentes con priorización visual.</li>
+          <li class="flex items-center gap-3"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-lg"><i class="bi bi-graph-up"></i></span>Visualiza métricas clave y tendencias desde el dashboard.</li>
+          <li class="flex items-center gap-3"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-lg"><i class="bi bi-people"></i></span>Colabora con tu equipo y mantén un historial completo.</li>
+        </ul>
+      </div>
     </div>
-    <div>
-      <label class="block text-sm">Contraseña</label>
-      <input type="password" name="password" class="w-full border rounded px-3 py-2" required />
+    <div class="flex flex-col justify-center gap-6 p-8">
+      <div>
+        <h1 class="text-2xl font-semibold text-slate-900">Ingresar</h1>
+        <p class="mt-1 text-sm text-slate-600">Usa tu cuenta corporativa para acceder a la mesa de ayuda.</p>
+      </div>
+      <form method="post" class="space-y-5">
+        {% csrf_token %}
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-slate-700" for="username">Usuario</label>
+          <input type="text" id="username" name="username" class="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" required />
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-slate-700" for="password">Contraseña</label>
+          <input type="password" id="password" name="password" class="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" required />
+        </div>
+        <button class="w-full rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300">Entrar</button>
+      </form>
+      <p class="text-xs text-slate-500">¿Olvidaste tu contraseña? Contacta al equipo de soporte para restablecerla.</p>
     </div>
-    <button class="bg-blue-600 text-white px-4 py-2 rounded">Entrar</button>
-  </form>
+  </div>
 </div>
 {% endblock %}
