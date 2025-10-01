@@ -3,62 +3,90 @@
 {% block title %}{% if is_new %}Nuevo rol{% else %}Editar rol{% endif %}{% endblock %}
 
 {% block content %}
-<h1 class="text-xl font-semibold mb-4">
-  {% if is_new %}Nuevo rol{% else %}Editar rol{% endif %}
-</h1>
-
-<form id="role-form" method="post" class="bg-white rounded-xl shadow p-4 space-y-4">
-  {% csrf_token %}
-  <div>
-    <label class="block text-xs">Nombre</label>
-    {{ form.name|add_class:"border rounded px-3 py-2 w-full" }}
-    {% if form.name.errors %}<div class="text-red-600 text-xs">{{ form.name.errors }}</div>{% endif %}
-  </div>
-
-  <div>
-    <div class="font-medium mb-2">Permisos</div>
-    {% if permission_templates %}
-      <div class="mb-3 space-y-2 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs sm:text-sm text-blue-900">
-        <div class="font-semibold">Plantillas rápidas</div>
-        <p class="text-blue-900/80">Usa una plantilla base y luego ajusta manualmente los permisos que necesites.</p>
-        <div class="flex flex-wrap gap-2">
-          {% for tpl in permission_templates %}
-            <button type="button"
-                    class="permission-template-btn px-3 py-1.5 rounded border border-blue-200 bg-white text-blue-700 hover:bg-blue-100 transition"
-                    data-template-key="{{ tpl.key }}">
-              {{ tpl.label }}
-            </button>
-          {% endfor %}
-          <button type="button"
-                  class="permission-template-clear px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
-                  data-action="clear-permissions">
-            Limpiar selección
-          </button>
-        </div>
-        <ul class="list-disc ml-5 space-y-1">
-          {% for tpl in permission_templates %}
-            {% if tpl.description %}
-              <li><span class="font-semibold">{{ tpl.label }}:</span> {{ tpl.description }}</li>
-            {% endif %}
-          {% endfor %}
-        </ul>
-        <p data-template-feedback class="hidden text-green-700"></p>
+<div class="space-y-8">
+  <header class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="space-y-2">
+        <p class="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Roles</p>
+        <h1 class="text-3xl font-bold tracking-tight">{% if is_new %}Nuevo rol{% else %}Editar rol{% endif %}</h1>
+        <p class="max-w-xl text-sm text-blue-100">Agrupa permisos y crea perfiles consistentes para todo el equipo de soporte.</p>
       </div>
-    {% endif %}
-    <div class="space-y-1">
-      {{ form.permissions }}
+      <a href="{% url 'accounts:roles_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-white/40 px-5 py-2 text-sm font-semibold text-white/90 hover:bg-white/15">
+        <i class="bi bi-arrow-left"></i>
+        Volver al listado
+      </a>
     </div>
-    <p class="text-xs text-gray-500 mt-2">Puedes marcar o desmarcar permisos individuales en cualquier momento.</p>
-    {% if form.permissions.errors %}<div class="text-red-600 text-xs">{{ form.permissions.errors }}</div>{% endif %}
-  </div>
+  </header>
 
-  <div class="flex items-center gap-3">
-    <button class="bg-blue-600 text-white px-4 py-2 rounded">
-      {% if is_new %}Crear{% else %}Guardar{% endif %}
-    </button>
-    <a href="{% url 'accounts:roles_list' %}" class="px-4 py-2 rounded border">Cancelar</a>
-  </div>
-</form>
+  <form id="role-form" method="post" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-8">
+    {% csrf_token %}
+    <div class="space-y-1">
+      <label class="text-xs font-semibold uppercase text-slate-500" for="id_name">Nombre</label>
+      {{ form.name|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+      {% if form.name.errors %}<div class="text-xs text-rose-600">{{ form.name.errors }}</div>{% endif %}
+    </div>
+
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-slate-900">Permisos</h2>
+        <p class="text-xs text-slate-500">Define qué acciones puede realizar este rol dentro del helpdesk.</p>
+      </div>
+      {% if permission_templates %}
+        <div class="space-y-4 rounded-2xl border border-sky-200 bg-sky-50/70 p-4 text-xs sm:text-sm text-sky-900">
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/70 text-sky-500"><i class="bi bi-stars"></i></span>
+              <div>
+                <p class="text-sm font-semibold text-sky-700">Plantillas rápidas</p>
+                <p class="text-xs text-sky-600">Aplica una configuración base y ajusta manualmente lo necesario.</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              {% for tpl in permission_templates %}
+                <button type="button"
+                        class="permission-template-btn inline-flex items-center gap-2 rounded-full border border-sky-300 bg-white px-4 py-1.5 text-xs font-semibold text-sky-600 shadow-sm transition hover:bg-sky-100"
+                        data-template-key="{{ tpl.key }}">
+                  <i class="bi bi-magic"></i> {{ tpl.label }}
+                </button>
+              {% endfor %}
+              <button type="button"
+                      class="permission-template-clear inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-100"
+                      data-action="clear-permissions">
+                <i class="bi bi-x-circle"></i> Limpiar selección
+              </button>
+            </div>
+          </div>
+          <ul class="list-disc space-y-1 pl-5 text-xs">
+            {% for tpl in permission_templates %}
+              {% if tpl.description %}
+                <li><span class="font-semibold text-sky-700">{{ tpl.label }}:</span> {{ tpl.description }}</li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+          <p data-template-feedback class="hidden text-xs font-semibold text-emerald-600"></p>
+        </div>
+      {% endif %}
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-inner">
+        <div class="space-y-2 text-sm text-slate-700">
+          {{ form.permissions }}
+        </div>
+      </div>
+      <p class="text-xs text-slate-500">Marca o desmarca permisos individuales cuando necesites personalizar el rol.</p>
+      {% if form.permissions.errors %}<div class="text-xs text-rose-600">{{ form.permissions.errors }}</div>{% endif %}
+    </section>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700" type="submit">
+        <i class="bi bi-check2-circle"></i>
+        {% if is_new %}Crear rol{% else %}Guardar cambios{% endif %}
+      </button>
+      <a href="{% url 'accounts:roles_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600">
+        <i class="bi bi-x-circle"></i>
+        Cancelar
+      </a>
+    </div>
+  </form>
+</div>
 {% endblock %}
 
 {% block body_extra %}

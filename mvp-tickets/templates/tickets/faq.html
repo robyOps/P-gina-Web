@@ -1,72 +1,87 @@
 {% extends "base.html" %}
+{% load widget_tweaks %}
 {% block title %}Preguntas frecuentes{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">Preguntas frecuentes</h1>
-<p class="text-gray-600 mb-6">Encuentra respuestas rápidas a las consultas más comunes sobre la mesa de ayuda.</p>
-
-{% if can_manage %}
-<div class="bg-white rounded-xl shadow p-5 mb-6">
-  <h2 class="text-lg font-semibold mb-3">Registrar nueva pregunta</h2>
-  <form method="post" class="space-y-4">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    <div>
-      <label class="block text-sm font-medium mb-1">Pregunta</label>
-      {{ form.question }}
-      {% for error in form.question.errors %}
-        <p class="text-xs text-red-600 mt-1">{{ error }}</p>
-      {% endfor %}
-    </div>
-    <div>
-      <label class="block text-sm font-medium mb-1">Respuesta</label>
-      {{ form.answer }}
-      {% for error in form.answer.errors %}
-        <p class="text-xs text-red-600 mt-1">{{ error }}</p>
-      {% endfor %}
-    </div>
-    <button class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm shadow" type="submit">Guardar</button>
-  </form>
-</div>
-{% endif %}
-
-<div class="space-y-4" id="faq-accordion">
-  {% if faqs %}
-    {% for faq in faqs %}
-    <div class="bg-white rounded-xl shadow" data-accordion-item>
-      <button type="button" class="w-full px-5 py-4 text-left flex items-center justify-between gap-4" data-accordion-toggle aria-expanded="false">
-        <span class="text-lg font-semibold text-gray-900">{{ faq.question }}</span>
-        <i class="bi bi-chevron-down text-gray-500 transition-transform duration-200" aria-hidden="true"></i>
-      </button>
-      <div class="px-5 pb-5 hidden" data-accordion-panel>
-        <p class="text-gray-700 whitespace-pre-line">{{ faq.answer }}</p>
-        <div class="text-xs text-gray-500 mt-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-          <span>
-            Actualizado {{ faq.updated_at|date:"d/m/Y H:i" }}
-            {% if faq.updated_by %}
-              por {{ faq.updated_by.username }}
-            {% elif faq.created_by %}
-              por {{ faq.created_by.username }}
-            {% endif %}
-          </span>
-          {% if can_manage %}
-          <div class="flex items-center gap-3 text-sm">
-            <a href="{% url 'faq_edit' faq.id %}" class="text-blue-600 hover:underline">Editar</a>
-            <form method="post" action="{% url 'faq_delete' faq.id %}" onsubmit="return confirm('¿Seguro que deseas eliminar esta pregunta?');">
-              {% csrf_token %}
-              <button type="submit" class="text-red-600 hover:underline">Eliminar</button>
-            </form>
-          </div>
-          {% endif %}
-        </div>
+<div class="space-y-8">
+  <header class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="space-y-2">
+        <p class="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Autoayuda</p>
+        <h1 class="text-3xl font-bold tracking-tight">Preguntas frecuentes</h1>
+        <p class="max-w-2xl text-sm text-blue-100">Encuentra respuestas rápidas y comparte conocimiento para reducir la carga del equipo.</p>
       </div>
+      <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/80"><i class="bi bi-question-circle"></i> {{ faqs|length }} disponibles</span>
     </div>
-    {% endfor %}
-  {% else %}
-    <div class="bg-white rounded-xl shadow p-5 text-center text-gray-600">
-      Aún no hay preguntas frecuentes registradas.
-    </div>
+  </header>
+
+  {% if can_manage %}
+  <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-semibold text-slate-900">Registrar nueva pregunta</h2>
+    <p class="text-xs text-slate-500">Comparte aprendizajes comunes para que todos encuentren la solución en segundos.</p>
+    <form method="post" class="mt-4 space-y-4">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_question">Pregunta</label>
+        {{ form.question|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% for error in form.question.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ error }}</p>
+        {% endfor %}
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_answer">Respuesta</label>
+        {{ form.answer|add_class:"w-full rounded-2xl border border-slate-200 px-4 py-3 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% for error in form.answer.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ error }}</p>
+        {% endfor %}
+      </div>
+      <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700" type="submit">
+        <i class="bi bi-save"></i>
+        Guardar
+      </button>
+    </form>
+  </section>
   {% endif %}
+
+  <section class="space-y-4" id="faq-accordion">
+    {% if faqs %}
+      {% for faq in faqs %}
+      <article class="rounded-3xl border border-slate-200 bg-white shadow-sm" data-accordion-item>
+        <button type="button" class="w-full rounded-t-3xl px-6 py-4 text-left text-slate-900 flex items-center justify-between gap-4" data-accordion-toggle aria-expanded="false">
+          <span class="text-lg font-semibold">{{ faq.question }}</span>
+          <i class="bi bi-chevron-down text-slate-400 transition-transform duration-200" aria-hidden="true"></i>
+        </button>
+        <div class="px-6 pb-6 hidden" data-accordion-panel>
+          <p class="rounded-2xl bg-slate-50 px-5 py-4 text-sm leading-relaxed text-slate-700 whitespace-pre-line">{{ faq.answer }}</p>
+          <div class="mt-4 flex flex-col gap-2 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
+            <span class="inline-flex items-center gap-2"><i class="bi bi-clock-history"></i> Actualizado {{ faq.updated_at|date:"d/m/Y H:i" }}
+              {% if faq.updated_by %}
+                por {{ faq.updated_by.username }}
+              {% elif faq.created_by %}
+                por {{ faq.created_by.username }}
+              {% endif %}
+            </span>
+            {% if can_manage %}
+            <div class="flex items-center gap-3 text-sm">
+              <a href="{% url 'faq_edit' faq.id %}" class="text-indigo-600 hover:text-indigo-800"><i class="bi bi-pencil"></i> Editar</a>
+              <form method="post" action="{% url 'faq_delete' faq.id %}" onsubmit="return confirm('¿Seguro que deseas eliminar esta pregunta?');">
+                {% csrf_token %}
+                <button type="submit" class="text-rose-600 hover:text-rose-700"><i class="bi bi-trash"></i> Eliminar</button>
+              </form>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    {% else %}
+      <div class="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+        <i class="bi bi-journal-text text-3xl text-slate-400"></i>
+        <p class="mt-3">Aún no hay preguntas frecuentes registradas.</p>
+      </div>
+    {% endif %}
+  </section>
 </div>
 {% endblock %}
 

@@ -2,30 +2,50 @@
 {% load widget_tweaks %}
 {% block title %}{% if is_new %}Nueva{% else %}Editar{% endif %} prioridad{% endblock %}
 {% block content %}
-<h1 class="text-xl font-semibold mb-4">{% if is_new %}Nueva{% else %}Editar{% endif %} prioridad</h1>
-
-<form method="post" class="bg-white rounded-xl shadow p-4 space-y-4">
-  {% csrf_token %}
-
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <label class="block text-xs">Nombre</label>
-      {{ form.name|add_class:"border rounded px-3 py-2 w-full" }}
-      {% if form.name.errors %}<div class="text-red-600 text-xs">{{ form.name.errors }}</div>{% endif %}
-      <p class="text-xs text-gray-500 mt-1">Ej: Baja, Media, Alta</p>
+<div class="space-y-8">
+  <header class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="space-y-2">
+        <p class="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Catálogo</p>
+        <h1 class="text-3xl font-bold tracking-tight">{% if is_new %}Nueva{% else %}Editar{% endif %} prioridad</h1>
+        <p class="max-w-xl text-sm text-blue-100">Configura niveles de urgencia y define el tiempo objetivo de respuesta.</p>
+      </div>
+      <a href="{% url 'priorities_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-white/40 px-5 py-2 text-sm font-semibold text-white/90 hover:bg-white/15">
+        <i class="bi bi-arrow-left"></i>
+        Volver al listado
+      </a>
     </div>
-    <div>
-      <label class="block text-xs">SLA (horas)</label>
-      {{ form.sla_hours|add_class:"border rounded px-3 py-2 w-full" }}
-      {% if form.sla_hours.errors %}<div class="text-red-600 text-xs">{{ form.sla_hours.errors }}</div>{% endif %}
-    </div>
-  </div>
+  </header>
 
-  <div class="flex gap-2">
-    <button class="bg-blue-600 text-white px-4 py-2 rounded text-sm">Guardar</button>
-    <a href="{% url 'priorities_list' %}" class="px-4 py-2 rounded text-sm border">Cancelar</a>
-  </div>
-</form>
+  <form method="post" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+    {% csrf_token %}
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_name">Nombre</label>
+        {{ form.name|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% if form.name.errors %}<div class="text-xs text-rose-600">{{ form.name.errors }}</div>{% endif %}
+        <p class="text-xs text-slate-400">Ejemplo: Baja, Media, Alta.</p>
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_sla_hours">SLA (horas)</label>
+        {{ form.sla_hours|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% if form.sla_hours.errors %}<div class="text-xs text-rose-600">{{ form.sla_hours.errors }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700" type="submit">
+        <i class="bi bi-check2-circle"></i>
+        Guardar
+      </button>
+      <a href="{% url 'priorities_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600">
+        <i class="bi bi-x-circle"></i>
+        Cancelar
+      </a>
+    </div>
+  </form>
+</div>
 {% endblock %}
 
 

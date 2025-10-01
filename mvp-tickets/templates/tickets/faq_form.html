@@ -1,32 +1,52 @@
 {% extends "base.html" %}
+{% load widget_tweaks %}
 {% block title %}Editar pregunta frecuente{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">Editar pregunta frecuente</h1>
-<p class="text-gray-600 mb-6">Actualiza el contenido y guarda los cambios para mantener la información al día.</p>
+<div class="space-y-8">
+  <header class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="space-y-2">
+        <p class="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Autoayuda</p>
+        <h1 class="text-3xl font-bold tracking-tight">Editar pregunta frecuente</h1>
+        <p class="max-w-xl text-sm text-blue-100">Actualiza la información para mantener vigente el conocimiento compartido.</p>
+      </div>
+      <a href="{% url 'faq_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-white/40 px-5 py-2 text-sm font-semibold text-white/90 hover:bg-white/15">
+        <i class="bi bi-arrow-left"></i>
+        Volver al listado
+      </a>
+    </div>
+  </header>
 
-<div class="bg-white rounded-xl shadow p-5">
-  <form method="post" class="space-y-4">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    <div>
-      <label class="block text-sm font-medium mb-1">Pregunta</label>
-      {{ form.question }}
-      {% for error in form.question.errors %}
-        <p class="text-xs text-red-600 mt-1">{{ error }}</p>
-      {% endfor %}
-    </div>
-    <div>
-      <label class="block text-sm font-medium mb-1">Respuesta</label>
-      {{ form.answer }}
-      {% for error in form.answer.errors %}
-        <p class="text-xs text-red-600 mt-1">{{ error }}</p>
-      {% endfor %}
-    </div>
-    <div class="flex items-center gap-3">
-      <button class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm shadow" type="submit">Guardar cambios</button>
-      <a href="{% url 'faq_list' %}" class="text-sm text-gray-600 hover:underline">Cancelar</a>
-    </div>
-  </form>
+  <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_question">Pregunta</label>
+        {{ form.question|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% for error in form.question.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ error }}</p>
+        {% endfor %}
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_answer">Respuesta</label>
+        {{ form.answer|add_class:"w-full rounded-2xl border border-slate-200 px-4 py-3 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% for error in form.answer.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ error }}</p>
+        {% endfor %}
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700" type="submit">
+          <i class="bi bi-check2-circle"></i>
+          Guardar cambios
+        </button>
+        <a href="{% url 'faq_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600">
+          <i class="bi bi-x-circle"></i>
+          Cancelar
+        </a>
+      </div>
+    </form>
+  </section>
 </div>
 {% endblock %}
