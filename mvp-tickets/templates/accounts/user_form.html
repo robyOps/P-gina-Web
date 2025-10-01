@@ -3,80 +3,100 @@
 {% block title %}{% if is_new %}Nuevo usuario{% else %}Editar usuario{% endif %}{% endblock %}
 
 {% block content %}
-<h1 class="text-xl font-semibold mb-4">
-  {% if is_new %}Nuevo usuario{% else %}Editar usuario{% endif %}
-</h1>
-
-<form method="post" class="bg-white rounded-xl shadow p-4 space-y-4">
-  {% csrf_token %}
-
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <label class="block text-xs">Usuario</label>
-      {{ form.username|add_class:"border rounded px-3 py-2 w-full" }}
-      {% if form.username.errors %}<div class="text-red-600 text-xs">{{ form.username.errors }}</div>{% endif %}
-    </div>
-    <div>
-      <label class="block text-xs">Email</label>
-      {{ form.email|add_class:"border rounded px-3 py-2 w-full" }}
-      {% if form.email.errors %}<div class="text-red-600 text-xs">{{ form.email.errors }}</div>{% endif %}
-    </div>
-    <div>
-      <label class="block text-xs">Nombre</label>
-      {{ form.first_name|add_class:"border rounded px-3 py-2 w-full" }}
-    </div>
-    <div>
-      <label class="block text-xs">Apellido</label>
-      {{ form.last_name|add_class:"border rounded px-3 py-2 w-full" }}
-    </div>
-    <div>
-      <label class="text-sm inline-flex items-center gap-2">
-        {{ form.is_active }} Activo
-      </label>
-    </div>
-  </div>
-
-  <div>
-    <div class="font-medium mb-2">Grupos (roles)</div>
-    <div class="space-y-1">
-      {{ form.groups }}
-    </div>
-    {% if form.groups.errors %}<div class="text-red-600 text-xs">{{ form.groups.errors }}</div>{% endif %}
-  </div>
-
-  {% if is_new %}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-xs">Contraseña</label>
-        {{ form.password1|add_class:"border rounded px-3 py-2 w-full" }}
-        {% if form.password1.errors %}<div class="text-red-600 text-xs">{{ form.password1.errors }}</div>{% endif %}
+<div class="space-y-8">
+  <header class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="space-y-2">
+        <p class="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Perfil</p>
+        <h1 class="text-3xl font-bold tracking-tight">{% if is_new %}Nuevo usuario{% else %}Editar usuario{% endif %}</h1>
+        <p class="max-w-xl text-sm text-blue-100">Completa los datos principales, asigna roles y deja activo el perfil para que pueda entrar al helpdesk.</p>
       </div>
-      <div>
-        <label class="block text-xs">Repite la contraseña</label>
-        {{ form.password2|add_class:"border rounded px-3 py-2 w-full" }}
-        {% if form.password2.errors %}<div class="text-red-600 text-xs">{{ form.password2.errors }}</div>{% endif %}
-      </div>
+      <a href="{% url 'accounts:users_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-white/40 px-5 py-2 text-sm font-semibold text-white/90 hover:bg-white/15">
+        <i class="bi bi-arrow-left"></i>
+        Volver al listado
+      </a>
     </div>
-  {% else %}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-xs">Nueva contraseña (opcional)</label>
-        {{ form.new_password1|add_class:"border rounded px-3 py-2 w-full" }}
-      </div>
-      <div>
-        <label class="block text-xs">Repite la nueva contraseña</label>
-        {{ form.new_password2|add_class:"border rounded px-3 py-2 w-full" }}
-      </div>
-    </div>
-  {% endif %}
+  </header>
 
-  <div class="flex items-center gap-3">
-    <button class="bg-blue-600 text-white px-4 py-2 rounded">
-      {% if is_new %}Crear{% else %}Guardar{% endif %}
-    </button>
-    <a href="{% url 'accounts:users_list' %}" class="px-4 py-2 rounded border">Cancelar</a>
-  </div>
-</form>
+  <form method="post" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-8">
+    {% csrf_token %}
+
+    <section class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_username">Usuario</label>
+        {{ form.username|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% if form.username.errors %}<div class="text-xs text-rose-600">{{ form.username.errors }}</div>{% endif %}
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_email">Email</label>
+        {{ form.email|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% if form.email.errors %}<div class="text-xs text-rose-600">{{ form.email.errors }}</div>{% endif %}
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_first_name">Nombre</label>
+        {{ form.first_name|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_last_name">Apellido</label>
+        {{ form.last_name|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+      </div>
+      <div class="space-y-2 md:col-span-2">
+        <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+          {{ form.is_active }} Activo
+        </label>
+        <p class="text-xs text-slate-400">Si desmarcas esta opción, la persona no podrá iniciar sesión.</p>
+      </div>
+    </section>
+
+    <section class="space-y-3">
+      <h2 class="text-lg font-semibold text-slate-900">Grupos (roles)</h2>
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div class="space-y-2">
+          {{ form.groups }}
+        </div>
+      </div>
+      {% if form.groups.errors %}<div class="text-xs text-rose-600">{{ form.groups.errors }}</div>{% endif %}
+      <p class="text-xs text-slate-500">Puedes seleccionar múltiples roles según las responsabilidades del usuario.</p>
+    </section>
+
+    {% if is_new %}
+      <section class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-slate-500" for="id_password1">Contraseña</label>
+          {{ form.password1|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+          {% if form.password1.errors %}<div class="text-xs text-rose-600">{{ form.password1.errors }}</div>{% endif %}
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-slate-500" for="id_password2">Repite la contraseña</label>
+          {{ form.password2|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+          {% if form.password2.errors %}<div class="text-xs text-rose-600">{{ form.password2.errors }}</div>{% endif %}
+        </div>
+      </section>
+    {% else %}
+      <section class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-slate-500" for="id_new_password1">Nueva contraseña (opcional)</label>
+          {{ form.new_password1|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-slate-500" for="id_new_password2">Repite la nueva contraseña</label>
+          {{ form.new_password2|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        </div>
+      </section>
+    {% endif %}
+
+    <div class="flex flex-wrap items-center gap-3">
+      <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700" type="submit">
+        <i class="bi bi-check2-circle"></i>
+        {% if is_new %}Crear usuario{% else %}Guardar cambios{% endif %}
+      </button>
+      <a href="{% url 'accounts:users_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600">
+        <i class="bi bi-x-circle"></i>
+        Cancelar
+      </a>
+    </div>
+  </form>
+</div>
 {% endblock %}
 
 

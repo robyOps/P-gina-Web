@@ -1,64 +1,113 @@
 {% extends "base.html" %}
 {% block title %}Logs{% endblock %}
 {% block content %}
-<h1 class="text-xl font-bold mb-4">Logs</h1>
-<form method="get" class="mb-4 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-  <input type="text" name="actor" value="{{ filters.actor }}" placeholder="Actor" class="border p-1" />
-  <input type="text" name="action" value="{{ filters.action }}" placeholder="Acción" class="border p-1" />
-  <input type="text" name="resource" value="{{ filters.resource }}" placeholder="Recurso" class="border p-1" />
-  <label class="flex flex-col">
-    <span>Desde</span>
-    <input type="date" name="from" value="{{ filters.from }}" class="border p-1" />
-  </label>
-  <label class="flex flex-col">
-    <span>Hasta</span>
-    <input type="date" name="to" value="{{ filters.to }}" class="border p-1" />
-  </label>
-  <input type="hidden" name="obj_id" value="{{ filters.obj_id }}" />
-  {% if filters.model %}
-  <input type="hidden" name="model" value="{{ filters.model }}" />
-  {% endif %}
-  <button class="btn bg-blue-500 text-white px-2 py-1 col-span-2 md:col-span-3">Filtrar</button>
-</form>
-<table class="w-full text-sm bg-white shadow rounded">
-  <thead>
-    <tr class="border-b">
-      <th class="p-2 text-left">Fecha</th>
-      <th class="p-2 text-left">Actor</th>
-      <th class="p-2 text-left">Tipo</th>
-      <th class="p-2 text-left">ID</th>
-      <th class="p-2 text-left">Acción</th>
-      <th class="p-2 text-left">Mensaje</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for row in rows %}
-    <tr class="border-b">
-      <td class="p-2">{{ row.created_at }}</td>
-      <td class="p-2">{{ row.actor }}</td>
-      <td class="p-2">{{ row.model }}</td>
-      <td class="p-2">
-        {% if row.url %}
-          <a href="{{ row.url }}" class="text-blue-600 hover:underline">{{ row.obj_id }}</a>
-        {% else %}
-          {{ row.obj_id }}
+<div class="space-y-8">
+  <header class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="space-y-2">
+        <p class="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Auditoría</p>
+        <h1 class="text-3xl font-bold tracking-tight">Logs</h1>
+        <p class="max-w-2xl text-sm text-blue-100">Revisa cada acción relevante del helpdesk. Filtra por usuario, recurso o rango de fechas.</p>
+      </div>
+      <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/80"><i class="bi bi-archive"></i> {{ page_obj.paginator.count }} eventos</span>
+    </div>
+  </header>
+
+  <section class="grid gap-6 lg:grid-cols-[minmax(0,18rem)_1fr]">
+    <aside>
+      <form method="get" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 text-sm">
+        <h2 class="text-lg font-semibold text-slate-900">Filtrar registros</h2>
+        <p class="text-xs text-slate-500">Combina los filtros para encontrar cambios específicos.</p>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-slate-500" for="f-actor">Actor</label>
+          <input id="f-actor" type="text" name="actor" value="{{ filters.actor }}" placeholder="Usuario" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-slate-500" for="f-action">Acción</label>
+          <input id="f-action" type="text" name="action" value="{{ filters.action }}" placeholder="Creación, actualización" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-slate-500" for="f-resource">Recurso</label>
+          <input id="f-resource" type="text" name="resource" value="{{ filters.resource }}" placeholder="Ticket, usuario" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+        </div>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div class="space-y-1">
+            <label class="text-xs font-semibold uppercase text-slate-500" for="f-from">Desde</label>
+            <input id="f-from" type="date" name="from" value="{{ filters.from }}" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs font-semibold uppercase text-slate-500" for="f-to">Hasta</label>
+            <input id="f-to" type="date" name="to" value="{{ filters.to }}" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+          </div>
+        </div>
+        <input type="hidden" name="obj_id" value="{{ filters.obj_id }}" />
+        {% if filters.model %}
+        <input type="hidden" name="model" value="{{ filters.model }}" />
         {% endif %}
-      </td>
-      <td class="p-2">{{ row.action }}</td>
-      <td class="p-2">{{ row.message }}</td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="6" class="p-2 text-center text-gray-500">Sin registros</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
-<div class="mt-4 text-sm">
-  {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}&{{ querystring }}" class="mr-2">Anterior</a>
-  {% endif %}
-  <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-  {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}&{{ querystring }}" class="ml-2">Siguiente</a>
-  {% endif %}
+        <div class="flex flex-wrap items-center gap-2 pt-2">
+          <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 font-semibold text-white shadow hover:bg-indigo-700" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>
+          <a href="{% url 'logs_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600"><i class="bi bi-eraser"></i> Limpiar</a>
+        </div>
+      </form>
+    </aside>
+
+    <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+        <h2 class="text-lg font-semibold text-slate-900">Historial de acciones</h2>
+        <p class="text-xs text-slate-500">Ordenado del más reciente al más antiguo.</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-100 text-sm">
+          <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+            <tr>
+              <th scope="col" class="px-4 py-3 text-left">Fecha</th>
+              <th scope="col" class="px-4 py-3 text-left">Actor</th>
+              <th scope="col" class="px-4 py-3 text-left">Tipo</th>
+              <th scope="col" class="px-4 py-3 text-left">ID</th>
+              <th scope="col" class="px-4 py-3 text-left">Acción</th>
+              <th scope="col" class="px-4 py-3 text-left">Mensaje</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for row in rows %}
+            <tr class="transition hover:bg-slate-50">
+              <td class="px-4 py-3 text-slate-500">{{ row.created_at }}</td>
+              <td class="px-4 py-3 font-medium text-slate-800">{{ row.actor }}</td>
+              <td class="px-4 py-3 text-slate-600">{{ row.model }}</td>
+              <td class="px-4 py-3">
+                {% if row.url %}
+                  <a href="{{ row.url }}" class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                    <i class="bi bi-link-45deg"></i>{{ row.obj_id }}
+                  </a>
+                {% else %}
+                  <span class="text-xs text-slate-500">{{ row.obj_id }}</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 text-slate-600">{{ row.action }}</td>
+              <td class="px-4 py-3 text-slate-600">{{ row.message }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="px-4 py-6 text-center text-sm text-slate-500">Sin registros para los filtros seleccionados.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-6 py-4 text-xs text-slate-500">
+        <div>
+          Página <span class="font-semibold text-slate-700">{{ page_obj.number }}</span> de {{ page_obj.paginator.num_pages }}
+        </div>
+        <div class="flex items-center gap-2">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&{{ querystring }}" class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600"><i class="bi bi-arrow-left"></i> Anterior</a>
+          {% endif %}
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&{{ querystring }}" class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600">Siguiente <i class="bi bi-arrow-right"></i></a>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+  </section>
 </div>
 {% endblock %}
