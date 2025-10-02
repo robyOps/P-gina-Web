@@ -7,52 +7,59 @@
 
 {% block content %}
 <div class="space-y-8">
-  <section class="rounded-3xl border border-sky-100 bg-white/80 p-6 shadow-sm">
-    <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 class="text-3xl font-semibold text-slate-900">Reportes</h1>
-        <p class="text-sm text-slate-600">Analiza la operación del helpdesk con filtros dinámicos y exporta tus resultados.</p>
+  <section class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
+    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="space-y-2">
+        <p class="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Analítica</p>
+        <h1 class="text-3xl font-bold tracking-tight">Reportes y tendencias</h1>
+        <p class="max-w-2xl text-sm text-blue-100">Analiza la operación del helpdesk con filtros dinámicos, visualizaciones pastel y exporta tus resultados cuando lo necesites.</p>
       </div>
-    </div>
-    <form method="get" class="grid gap-4 text-sm md:grid-cols-5">
-      <div class="flex flex-col gap-1">
-        <label class="text-xs font-semibold text-slate-600">Desde</label>
-        <input type="date" name="from" value="{{ from }}" class="rounded-lg border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
-      </div>
-      <div class="flex flex-col gap-1">
-        <label class="text-xs font-semibold text-slate-600">Hasta</label>
-        <input type="date" name="to" value="{{ to }}" class="rounded-lg border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
-      </div>
-      <div class="flex flex-col gap-1">
-        <label class="text-xs font-semibold text-slate-600">Tipo de reporte</label>
-        <select name="type" class="rounded-lg border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-          <option value="total" {% if report_type == 'total' %}selected{% endif %}>Total</option>
-          <option value="categoria" {% if report_type == 'categoria' %}selected{% endif %}>Por categoría</option>
-          <option value="promedio" {% if report_type == 'promedio' %}selected{% endif %}>Tiempo promedio</option>
-          <option value="tecnico" {% if report_type == 'tecnico' %}selected{% endif %}>Por técnico</option>
-          <option value="urgencia" {% if report_type == 'urgencia' %}selected{% endif %}>Urgencia</option>
-        </select>
-      </div>
-      <div class="flex flex-col gap-1">
-        <label class="text-xs font-semibold text-slate-600">Técnico</label>
-        <select name="tech" class="rounded-lg border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-          <option value="" {% if not tech_selected %}selected{% endif %}>(Todos)</option>
-          {% for t in techs %}
-          <option value="{{ t.id }}" {% if tech_selected == t.id|stringformat:'s' %}selected{% endif %}>{{ t.username }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="flex items-end gap-2">
-        <button class="w-full rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300">Filtrar</button>
-        <a href="{% url 'reports_dashboard' %}" class="inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-2 font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200">Limpiar</a>
-      </div>
-      <div class="md:col-span-5 flex flex-wrap gap-3">
-        <a href="{% url 'reports_export_pdf' %}?from={{ from }}&to={{ to }}&type={{ report_type }}&tech={{ tech_selected }}" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-200">
+      <div class="flex flex-wrap items-center gap-3">
+        <a href="{% url 'reports_export_pdf' %}?from={{ from }}&to={{ to }}&type={{ report_type }}&tech={{ tech_selected }}" class="btn inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-indigo-700 shadow-lg shadow-indigo-900/20 transition hover:bg-indigo-50">
           <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
         </a>
-        <a href="{% url 'reports_export_excel' %}?from={{ from }}&to={{ to }}&type={{ report_type }}&tech={{ tech_selected }}" class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-200">
+        <a href="{% url 'reports_export_excel' %}?from={{ from }}&to={{ to }}&type={{ report_type }}&tech={{ tech_selected }}" class="btn inline-flex items-center gap-2 rounded-full border border-white/50 px-5 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/15">
           <i class="bi bi-file-earmark-spreadsheet"></i> Exportar Excel
         </a>
+      </div>
+    </div>
+    <form method="get" class="rounded-2xl border border-white/30 bg-white/95 p-6 shadow-inner backdrop-blur-sm">
+      <div class="grid gap-4 text-sm md:grid-cols-5">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Desde</label>
+          <input type="date" name="from" value="{{ from }}" class="rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Hasta</label>
+          <input type="date" name="to" value="{{ to }}" class="rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Tipo de reporte</label>
+          <select name="type" class="rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+            <option value="total" {% if report_type == 'total' %}selected{% endif %}>Total</option>
+            <option value="categoria" {% if report_type == 'categoria' %}selected{% endif %}>Por categoría</option>
+            <option value="promedio" {% if report_type == 'promedio' %}selected{% endif %}>Tiempo promedio</option>
+            <option value="tecnico" {% if report_type == 'tecnico' %}selected{% endif %}>Por técnico</option>
+            <option value="urgencia" {% if report_type == 'urgencia' %}selected{% endif %}>Urgencia</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Técnico</label>
+          <select name="tech" class="rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+            <option value="" {% if not tech_selected %}selected{% endif %}>(Todos)</option>
+            {% for t in techs %}
+            <option value="{{ t.id }}" {% if tech_selected == t.id|stringformat:'s' %}selected{% endif %}>{{ t.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex items-end gap-2">
+          <button class="btn inline-flex w-full items-center justify-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700" type="submit">
+            <i class="bi bi-funnel"></i> Filtrar
+          </button>
+          <a href="{% url 'reports_dashboard' %}" class="btn inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600">
+            <i class="bi bi-eraser"></i> Limpiar
+          </a>
+        </div>
       </div>
     </form>
   </section>
@@ -89,27 +96,27 @@
   </section>
 
   <section class="grid gap-6 lg:grid-cols-2">
-    <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <article class="rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-sky-50 to-blue-50 p-6 shadow-sm">
       <h2 class="text-base font-semibold text-slate-900">Por categoría</h2>
       <p class="text-sm text-slate-500">Volumen de tickets según clasificación funcional.</p>
       <div class="mt-4 h-64"><canvas id="chartCat"></canvas></div>
     </article>
-    <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <article class="rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-emerald-100/70 p-6 shadow-sm">
       <h2 class="text-base font-semibold text-slate-900">Por prioridad</h2>
       <p class="text-sm text-slate-500">Distribución según la urgencia declarada.</p>
       <div class="mt-4 h-64"><canvas id="chartPri"></canvas></div>
     </article>
-    <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <article class="rounded-3xl border border-amber-100 bg-gradient-to-br from-white via-amber-50 to-amber-100/70 p-6 shadow-sm">
       <h2 class="text-base font-semibold text-slate-900">Por técnico</h2>
       <p class="text-sm text-slate-500">Tickets asignados por responsable.</p>
       <div class="mt-4 h-64"><canvas id="chartTech"></canvas></div>
     </article>
-    <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <article class="rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50 to-rose-100/70 p-6 shadow-sm">
       <h2 class="text-base font-semibold text-slate-900">Horas de resolución</h2>
       <p class="text-sm text-slate-500">Histograma de tiempos empleados en resolver incidencias.</p>
       <div class="mt-4 h-64"><canvas id="chartHist"></canvas></div>
     </article>
-    <article class="lg:col-span-2 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <article class="lg:col-span-2 rounded-3xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50 to-sky-50 p-6 shadow-sm">
       <h2 class="text-base font-semibold text-slate-900">Categorías más lentas</h2>
       <p class="text-sm text-slate-500">Promedio de horas hasta el cierre por categoría.</p>
       <div class="mt-4 h-64"><canvas id="chartCatSlow"></canvas></div>
@@ -127,8 +134,8 @@
   {{ chart_cat_slow|json_script:"chart_cat_slow_data" }}
   <script>
     const COLORS = [
-      "#38bdf8", "#f97316", "#22c55e", "#f87171", "#6366f1",
-      "#0ea5e9", "#facc15", "#ec4899", "#8b5cf6", "#14b8a6"
+      "#bae6fd", "#fde68a", "#a7f3d0", "#fecdd3", "#ddd6fe",
+      "#fbcfe8", "#c4b5fd", "#99f6e4", "#d9f99d", "#fcd34d"
     ];
 
     function parseData(id) {

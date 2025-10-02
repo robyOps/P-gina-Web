@@ -4,15 +4,18 @@
 
 {% block content %}
 <section class="space-y-6">
-  <header class="flex flex-col gap-3 justify-between rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center">
-    <div>
-      <h1 class="text-2xl font-semibold text-slate-900">Roles</h1>
-      <p class="text-sm text-slate-600">Gestiona perfiles y permisos de forma clara para todo el equipo.</p>
+  <header class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="space-y-2">
+        <p class="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Roles</p>
+        <h1 class="text-3xl font-bold tracking-tight">Gestión de roles</h1>
+        <p class="text-sm text-blue-100">Administra perfiles y permisos para que cada persona tenga las herramientas adecuadas.</p>
+      </div>
+      <a href="{% url 'accounts:role_create' %}" class="btn inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-indigo-700 shadow-lg shadow-indigo-900/20 transition hover:bg-indigo-50">
+        <i class="bi bi-plus-circle"></i>
+        Nuevo rol
+      </a>
     </div>
-    <a href="{% url 'accounts:role_create' %}" class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700">
-      <i class="bi bi-plus-circle"></i>
-      Nuevo rol
-    </a>
   </header>
 
   {% if roles %}
@@ -24,7 +27,7 @@
           <h2 class="text-lg font-semibold text-slate-900">{{ r.name }}</h2>
           <p class="text-sm text-slate-500">Permisos disponibles para este rol.</p>
         </div>
-        <a class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:border-blue-200 hover:text-blue-600" href="{% url 'accounts:role_edit' r.id %}">
+        <a class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600" href="{% url 'accounts:role_edit' r.id %}">
           <i class="bi bi-pencil"></i>
           Editar
         </a>
