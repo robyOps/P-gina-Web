@@ -1,35 +1,57 @@
 {% extends "base.html" %}
+{% load widget_tweaks %}
 {% block title %}{% if is_new %}Nueva{% else %}Editar{% endif %} regla{% endblock %}
 {% block content %}
-<h1 class="text-xl font-semibold mb-4">{% if is_new %}Nueva{% else %}Editar{% endif %} regla</h1>
+<div class="space-y-8">
+  <header class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="space-y-2">
+        <p class="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Automatización</p>
+        <h1 class="text-3xl font-bold tracking-tight">{% if is_new %}Nueva{% else %}Editar{% endif %} regla</h1>
+        <p class="max-w-xl text-sm text-blue-100">Define a quién llegará cada ticket de forma automática según la categoría o el área.</p>
+      </div>
+      <a href="{% url 'auto_rules_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-white/40 px-5 py-2 text-sm font-semibold text-white/90 hover:bg-white/15">
+        <i class="bi bi-arrow-left"></i>
+        Volver a reglas
+      </a>
+    </div>
+  </header>
 
-<form method="post" class="bg-white rounded-xl shadow p-4 space-y-4">
-  {% csrf_token %}
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <label class="block text-xs">Categoría (opcional)</label>
-      {{ form.category }}
-      {% if form.category.errors %}<div class="text-red-600 text-xs">{{ form.category.errors }}</div>{% endif %}
+  <form method="post" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_category">Categoría (opcional)</label>
+        {{ form.category|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% if form.category.errors %}<div class="text-xs text-rose-600">{{ form.category.errors }}</div>{% endif %}
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_area">Área (opcional)</label>
+        {{ form.area|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% if form.area.errors %}<div class="text-xs text-rose-600">{{ form.area.errors }}</div>{% endif %}
+      </div>
+      <div class="space-y-1 md:col-span-2">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_tech">Técnico</label>
+        {{ form.tech|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% if form.tech.errors %}<div class="text-xs text-rose-600">{{ form.tech.errors }}</div>{% endif %}
+      </div>
+      <div class="md:col-span-2">
+        <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+          {{ form.is_active }} Activa
+        </label>
+      </div>
     </div>
-    <div>
-      <label class="block text-xs">Área (opcional)</label>
-      {{ form.area }}
-      {% if form.area.errors %}<div class="text-red-600 text-xs">{{ form.area.errors }}</div>{% endif %}
-    </div>
-    <div>
-      <label class="block text-xs">Técnico</label>
-      {{ form.tech }}
-      {% if form.tech.errors %}<div class="text-red-600 text-xs">{{ form.tech.errors }}</div>{% endif %}
-    </div>
-    <div class="flex items-center mt-6">
-      {{ form.is_active }} <span class="text-sm">Activa</span>
-      {% if form.is_active.errors %}<div class="text-red-600 text-xs ml-2">{{ form.is_active.errors }}</div>{% endif %}
-    </div>
-  </div>
 
-  <div class="flex items-center gap-2">
-    <button class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">Guardar</button>
-    <a href="{% url 'auto_rules_list' %}" class="px-3 py-1.5 border rounded text-sm">Cancelar</a>
-  </div>
-</form>
+    <div class="flex flex-wrap items-center justify-end gap-3">
+      <a href="{% url 'auto_rules_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600">
+        <i class="bi bi-x-circle"></i>
+        Cancelar
+      </a>
+      <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700" type="submit">
+        <i class="bi bi-check2-circle"></i>
+        {% if is_new %}Crear regla{% else %}Guardar cambios{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
 {% endblock %}
