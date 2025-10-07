@@ -27,15 +27,15 @@
       <div class="grid gap-4 text-sm md:grid-cols-5">
         <div class="flex flex-col gap-1">
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Desde</label>
-          <input type="date" name="from" value="{{ from }}" class="rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+          <input type="date" name="from" value="{{ from }}" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Hasta</label>
-          <input type="date" name="to" value="{{ to }}" class="rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+          <input type="date" name="to" value="{{ to }}" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Tipo de reporte</label>
-          <select name="type" class="rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+          <select name="type" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
             <option value="total" {% if report_type == 'total' %}selected{% endif %}>Total</option>
             <option value="categoria" {% if report_type == 'categoria' %}selected{% endif %}>Por categoría</option>
             <option value="promedio" {% if report_type == 'promedio' %}selected{% endif %}>Tiempo promedio</option>
@@ -45,7 +45,7 @@
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Técnico</label>
-          <select name="tech" class="rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+          <select name="tech" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
             <option value="" {% if not tech_selected %}selected{% endif %}>(Todos)</option>
             {% for t in techs %}
             <option value="{{ t.id }}" {% if tech_selected == t.id|stringformat:'s' %}selected{% endif %}>{{ t.username }}</option>
@@ -133,10 +133,41 @@
   {{ chart_hist|json_script:"chart_hist_data" }}
   {{ chart_cat_slow|json_script:"chart_cat_slow_data" }}
   <script>
-    const COLORS = [
-      "#bae6fd", "#fde68a", "#a7f3d0", "#fecdd3", "#ddd6fe",
-      "#fbcfe8", "#c4b5fd", "#99f6e4", "#d9f99d", "#fcd34d"
-    ];
+    const PALETTES = {
+      chartCat: ["#0ea5e9", "#38bdf8", "#0284c7", "#7dd3fc", "#0c4a6e"],
+      chartPri: ["#059669", "#34d399", "#10b981", "#047857", "#6ee7b7"],
+      chartTech: ["#f59e0b", "#f97316", "#fb923c", "#fbbf24", "#facc15"],
+      chartHist: ["#ec4899", "#f472b6", "#be185d", "#f9a8d4", "#db2777"],
+      chartCatSlow: ["#6366f1", "#4f46e5", "#818cf8", "#4338ca", "#a5b4fc"],
+      default: ["#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd"],
+    };
+
+    function hexToRgba(hex, alpha = 0.85) {
+      if (!hex) return `rgba(15, 23, 42, ${alpha})`;
+      let sanitized = hex.replace("#", "");
+      if (sanitized.length === 3) {
+        sanitized = sanitized.split("").map((char) => char + char).join("");
+      }
+      const intVal = parseInt(sanitized, 16);
+      const r = (intVal >> 16) & 255;
+      const g = (intVal >> 8) & 255;
+      const b = intVal & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function paletteFor(id) {
+      return PALETTES[id] || PALETTES.default;
+    }
+
+    function withAlpha(color, alpha = 0.75) {
+      if (typeof color !== "string") {
+        return hexToRgba("#0f172a", alpha);
+      }
+      if (color.startsWith("#")) {
+        return hexToRgba(color, alpha);
+      }
+      return color;
+    }
 
     function parseData(id) {
       const el = document.getElementById(id);
@@ -152,6 +183,10 @@
       if (!canvas) return null;
       const ctx = canvas.getContext("2d");
       const max = Math.max(1, ...dataset.data);
+      const palette = paletteFor(canvasId);
+      const borderColors = dataset.data.map((_, index) => palette[index % palette.length]);
+      const backgroundColors = borderColors.map((color) => withAlpha(color, 0.65));
+
       return new Chart(ctx, {
         type: "bar",
         data: {
@@ -160,8 +195,8 @@
             {
               label: title,
               data: dataset.data,
-              backgroundColor: dataset.data.map((_, index) => COLORS[index % COLORS.length]),
-              borderColor: dataset.data.map((_, index) => COLORS[index % COLORS.length]),
+              backgroundColor: backgroundColors,
+              borderColor: borderColors,
               borderWidth: 1,
             },
           ],
