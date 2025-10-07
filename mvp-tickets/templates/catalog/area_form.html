@@ -3,10 +3,10 @@
 {% block title %}{% if is_new %}Nueva{% else %}Editar{% endif %} área{% endblock %}
 {% block content %}
 <div class="space-y-8">
-  <header class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
+  <header class="page-hero rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div class="space-y-2">
-        <p class="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Catálogo</p>
+        <p class="page-hero__meta inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Catálogo</p>
         <h1 class="text-3xl font-bold tracking-tight">{% if is_new %}Nueva{% else %}Editar{% endif %} área</h1>
         <p class="max-w-xl text-sm text-blue-100">Identifica equipos funcionales para que la auto-asignación haga su magia.</p>
       </div>

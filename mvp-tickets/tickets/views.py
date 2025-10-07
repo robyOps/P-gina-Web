@@ -25,6 +25,7 @@ from django.utils.timezone import localtime
 from django.shortcuts import render
 from .forms import AutoAssignRuleForm, FAQForm
 from .models import AutoAssignRule, FAQ
+from catalog.models import Category
 
 # --- Stdlib ---
 from datetime import datetime, timedelta
@@ -234,7 +235,21 @@ def faq_list(request):
     """Listado de preguntas frecuentes y formulario de alta rápida."""
     user = request.user
     can_manage = is_admin(user) or is_tech(user)
-    faqs = FAQ.objects.all()
+    faqs = FAQ.objects.select_related("category").all()
+
+    search_query = (request.GET.get("q") or "").strip()
+    selected_categories_raw = [value.strip() for value in request.GET.getlist("category") if value.strip()]
+    selected_categories: list[int] = []
+    for value in selected_categories_raw:
+        try:
+            selected_categories.append(int(value))
+        except ValueError:
+            continue
+
+    if search_query:
+        faqs = faqs.filter(Q(question__icontains=search_query) | Q(answer__icontains=search_query))
+    if selected_categories:
+        faqs = faqs.filter(category_id__in=selected_categories)
 
     form = FAQForm()
     if request.method == "POST":
@@ -253,6 +268,11 @@ def faq_list(request):
         "faqs": faqs,
         "form": form,
         "can_manage": can_manage,
+        "categories": Category.objects.order_by("name"),
+        "filters": {
+            "q": search_query,
+            "categories": [str(pk) for pk in selected_categories],
+        },
     }
     return render(request, "tickets/faq.html", ctx)
 

@@ -4,16 +4,65 @@
 
 {% block content %}
 <div class="space-y-8">
-  <header class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
+  <header class="page-hero rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div class="space-y-2">
-        <p class="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Autoayuda</p>
+        <p class="page-hero__meta inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Autoayuda</p>
         <h1 class="text-3xl font-bold tracking-tight">Preguntas frecuentes</h1>
         <p class="max-w-2xl text-sm text-blue-100">Encuentra respuestas rápidas y comparte conocimiento para reducir la carga del equipo.</p>
       </div>
-      <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/80"><i class="bi bi-question-circle"></i> {{ faqs|length }} disponibles</span>
+      <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/80" data-faq-count-container>
+        <i class="bi bi-question-circle"></i>
+        <span data-faq-count-display>{{ faqs|length }}</span> disponibles
+      </span>
     </div>
   </header>
+
+  <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-6" aria-labelledby="faq-filters-title">
+    <div class="grid gap-4 lg:grid-cols-[minmax(0,420px)_1fr] lg:gap-6">
+      <div class="space-y-2">
+        <label id="faq-filters-title" class="text-xs font-semibold uppercase text-slate-500" for="faq-search">Buscar respuestas</label>
+        <div class="relative">
+          <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input id="faq-search" name="q" type="search" value="{{ filters.q }}" placeholder="Palabras clave o frases" autocomplete="off"
+                 class="w-full rounded-2xl border border-slate-200 bg-white px-10 py-2.5 text-sm text-slate-700 shadow-inner focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                 aria-describedby="faq-search-help" />
+        </div>
+        <p id="faq-search-help" class="text-xs text-slate-500">Mientras escribes se actualiza el listado automáticamente.</p>
+      </div>
+      <div class="space-y-3">
+        <span class="text-xs font-semibold uppercase text-slate-500">Filtrar por categoría</span>
+        <div class="flex flex-wrap gap-2" id="faq-category-filters">
+          {% if categories %}
+            {% for category in categories %}
+              <label class="faq-category-chip inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600"
+                     data-active="{% if category.id|stringformat:'s' in filters.categories %}true{% else %}false{% endif %}">
+                <input type="checkbox" class="faq-category-toggle sr-only" value="{{ category.id }}" {% if category.id|stringformat:'s' in filters.categories %}checked{% endif %}>
+                <span class="flex items-center gap-2">
+                  <i class="bi bi-tag"></i>
+                  {{ category.name }}
+                </span>
+              </label>
+            {% endfor %}
+          {% else %}
+            <p class="text-xs text-slate-500">Aún no se registran categorías.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+      <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-600">
+        <i class="bi bi-filter"></i>
+        <span data-faq-count-display>{{ faqs|length }}</span> coincidencias
+      </span>
+      {% if categories %}
+      <button type="button" class="inline-flex items-center gap-2 font-semibold text-slate-500 transition hover:text-indigo-600" data-clear-categories>
+        <i class="bi bi-x-circle"></i>
+        Limpiar categorías
+      </button>
+      {% endif %}
+    </div>
+  </section>
 
   {% if can_manage %}
   <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -36,6 +85,14 @@
           <p class="text-xs text-rose-600 mt-1">{{ error }}</p>
         {% endfor %}
       </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_category">Categoría</label>
+        {{ form.category|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% for error in form.category.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ error }}</p>
+        {% endfor %}
+        <p class="text-xs text-slate-400">Asígnala para que aparezca al usar los filtros rápidos.</p>
+      </div>
       <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700" type="submit">
         <i class="bi bi-save"></i>
         Guardar
@@ -47,9 +104,19 @@
   <section class="space-y-4" id="faq-accordion">
     {% if faqs %}
       {% for faq in faqs %}
-      <article class="rounded-3xl border border-slate-200 bg-white shadow-sm" data-accordion-item>
-        <button type="button" class="w-full rounded-t-3xl px-6 py-4 text-left text-slate-900 flex items-center justify-between gap-4" data-accordion-toggle aria-expanded="false">
-          <span class="text-lg font-semibold">{{ faq.question }}</span>
+      <article class="rounded-3xl border border-slate-200 bg-white shadow-sm" data-accordion-item
+               data-search="{{ faq.question|lower }} {{ faq.answer|lower }}{% if faq.category %} {{ faq.category.name|lower }}{% endif %}"
+               data-category-ids="{% if faq.category_id %}{{ faq.category_id }}{% endif %}">
+        <button type="button" class="flex w-full items-start justify-between gap-4 rounded-t-3xl px-6 py-4 text-left text-slate-900" data-accordion-toggle aria-expanded="false">
+          <div class="space-y-1">
+            <span class="text-lg font-semibold">{{ faq.question }}</span>
+            {% if faq.category %}
+            <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600">
+              <i class="bi bi-tag-fill"></i>
+              {{ faq.category.name }}
+            </span>
+            {% endif %}
+          </div>
           <i class="bi bi-chevron-down text-slate-400 transition-transform duration-200" aria-hidden="true"></i>
         </button>
         <div class="px-6 pb-6 hidden" data-accordion-panel>
@@ -82,6 +149,12 @@
       </div>
     {% endif %}
   </section>
+  {% if faqs %}
+  <div class="hidden rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm" data-faq-empty>
+    <i class="bi bi-search text-3xl text-slate-400"></i>
+    <p class="mt-3">No encontramos coincidencias con los filtros aplicados. Ajusta la búsqueda e inténtalo nuevamente.</p>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
 
@@ -89,12 +162,42 @@
 {{ block.super }}
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const accordionItems = document.querySelectorAll('#faq-accordion [data-accordion-item]');
+    const accordionContainer = document.querySelector('#faq-accordion');
+    if (!accordionContainer) {
+      return;
+    }
+
+    const accordionItems = Array.from(accordionContainer.querySelectorAll('[data-accordion-item]'));
+    const searchInput = document.querySelector('#faq-search');
+    const categoryToggles = Array.from(document.querySelectorAll('.faq-category-toggle'));
+    const categoryChips = categoryToggles.map(toggle => toggle.closest('.faq-category-chip'));
+    const countDisplays = document.querySelectorAll('[data-faq-count-display]');
+    const emptyMessage = document.querySelector('[data-faq-empty]');
+    const clearButton = document.querySelector('[data-clear-categories]');
+
+    const closePanel = (item) => {
+      const panel = item.querySelector('[data-accordion-panel]');
+      const toggle = item.querySelector('[data-accordion-toggle]');
+      const icon = toggle?.querySelector('i');
+      if (panel && !panel.classList.contains('hidden')) {
+        panel.classList.add('hidden');
+      }
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+      if (icon) {
+        icon.classList.remove('rotate-180');
+      }
+    };
 
     accordionItems.forEach(item => {
       const toggle = item.querySelector('[data-accordion-toggle]');
       const panel = item.querySelector('[data-accordion-panel]');
-      const icon = toggle.querySelector('i');
+      const icon = toggle?.querySelector('i');
+
+      if (!toggle || !panel) {
+        return;
+      }
 
       toggle.addEventListener('click', () => {
         const isOpen = !panel.classList.contains('hidden');
@@ -105,6 +208,74 @@
         }
       });
     });
+
+    const updateChipState = () => {
+      categoryToggles.forEach((toggle, index) => {
+        const chip = categoryChips[index];
+        if (chip) {
+          chip.dataset.active = toggle.checked ? 'true' : 'false';
+        }
+      });
+    };
+
+    const applyFilters = () => {
+      const query = (searchInput?.value || '').trim().toLowerCase();
+      const activeCategories = categoryToggles.filter(toggle => toggle.checked).map(toggle => toggle.value);
+      let visibleItems = 0;
+
+      accordionItems.forEach(item => {
+        const text = (item.dataset.search || '').toLowerCase();
+        const categories = (item.dataset.categoryIds || '').split(',').filter(Boolean);
+        const matchesQuery = !query || text.includes(query);
+        const matchesCategory = activeCategories.length === 0 || categories.some(cat => activeCategories.includes(cat));
+        const shouldShow = matchesQuery && matchesCategory;
+
+        item.classList.toggle('hidden', !shouldShow);
+        if (!shouldShow) {
+          closePanel(item);
+        } else {
+          visibleItems += 1;
+        }
+      });
+
+      countDisplays.forEach(el => {
+        el.textContent = visibleItems;
+      });
+
+      if (emptyMessage) {
+        emptyMessage.classList.toggle('hidden', visibleItems !== 0);
+      }
+    };
+
+    if (searchInput) {
+      searchInput.addEventListener('input', applyFilters);
+    }
+
+    categoryToggles.forEach(toggle => {
+      toggle.addEventListener('change', () => {
+        updateChipState();
+        applyFilters();
+      });
+    });
+
+    if (clearButton) {
+      clearButton.addEventListener('click', () => {
+        let changed = false;
+        categoryToggles.forEach(toggle => {
+          if (toggle.checked) {
+            toggle.checked = false;
+            changed = true;
+          }
+        });
+        if (changed) {
+          updateChipState();
+          applyFilters();
+        }
+      });
+    }
+
+    updateChipState();
+    applyFilters();
   });
 </script>
 {% endblock %}
