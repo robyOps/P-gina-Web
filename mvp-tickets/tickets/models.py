@@ -333,6 +333,14 @@ class FAQ(models.Model):
 
     question = models.CharField(max_length=255)
     answer = models.TextField()
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="faqs",
+        help_text="Clasificación opcional para agrupar respuestas y facilitar la búsqueda.",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

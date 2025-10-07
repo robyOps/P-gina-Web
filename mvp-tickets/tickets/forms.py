@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from accounts.roles import ROLE_ADMIN, ROLE_TECH
 from .models import Ticket, AutoAssignRule, FAQ
+from catalog.models import Category
 
 User = get_user_model()
 
@@ -74,7 +75,7 @@ class AutoAssignRuleForm(forms.ModelForm):
 class FAQForm(forms.ModelForm):
     class Meta:
         model = FAQ
-        fields = ["question", "answer"]
+        fields = ["question", "answer", "category"]
         widgets = {
             "question": forms.TextInput(
                 attrs={"class": "border rounded px-3 py-2 w-full", "maxlength": 255}
@@ -82,4 +83,13 @@ class FAQForm(forms.ModelForm):
             "answer": forms.Textarea(
                 attrs={"class": "border rounded px-3 py-2 w-full", "rows": 4}
             ),
+            "category": forms.Select(
+                attrs={"class": "border rounded px-3 py-2 w-full"}
+            ),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category"].queryset = Category.objects.order_by("name")
+        self.fields["category"].required = False
+        self.fields["category"].empty_label = "Sin categoría"
