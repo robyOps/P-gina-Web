@@ -236,6 +236,7 @@ class AuditLog(models.Model):
     ACTION_CHOICES = [
         ("CREATE", "Create Ticket"),
         ("ASSIGN", "Assign/Reassign"),
+        ("UPDATE", "Update Ticket"),
         ("STATUS", "Change Status"),
         ("COMMENT", "Comment"),
         ("ATTACH", "Attachment"),

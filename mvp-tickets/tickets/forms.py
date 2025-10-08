@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from accounts.roles import ROLE_ADMIN, ROLE_TECH
 from .models import Ticket, AutoAssignRule, FAQ
-from catalog.models import Category
+from catalog.models import Category, Priority, Area
 
 User = get_user_model()
 
@@ -49,6 +49,49 @@ class TicketCreateForm(forms.ModelForm):
             # Usuarios no admin: no mostramos el campo
             self.fields.pop("assignee", None)
 
+
+class TicketQuickUpdateForm(forms.ModelForm):
+    """Formulario compacto para actualizar campos principales de un ticket."""
+
+    class Meta:
+        model = Ticket
+        fields = ("title", "category", "priority", "area", "kind")
+        widgets = {
+            "title": forms.TextInput(
+                attrs={
+                    "class": "w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100",
+                    "placeholder": "Resumen del ticket",
+                }
+            ),
+            "category": forms.Select(
+                attrs={
+                    "class": "w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100",
+                }
+            ),
+            "priority": forms.Select(
+                attrs={
+                    "class": "w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100",
+                }
+            ),
+            "area": forms.Select(
+                attrs={
+                    "class": "w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100",
+                }
+            ),
+            "kind": forms.Select(
+                attrs={
+                    "class": "w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category"].queryset = Category.objects.order_by("name")
+        self.fields["priority"].queryset = Priority.objects.order_by("name")
+        self.fields["area"].queryset = Area.objects.order_by("name")
+        self.fields["area"].required = False
+        self.fields["area"].empty_label = "Sin área"
 
 class AutoAssignRuleForm(forms.ModelForm):
     class Meta:

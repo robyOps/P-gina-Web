@@ -66,10 +66,53 @@
           <p data-template-feedback class="hidden text-xs font-semibold text-emerald-600"></p>
         </div>
       {% endif %}
-      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-inner">
-        <div class="space-y-2 text-sm text-slate-700">
-          {{ form.permissions }}
+      <div class="space-y-3" data-permissions-panel>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-slate-500" for="permission-search">Buscar permisos</label>
+          <div class="relative">
+            <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input id="permission-search" type="search" placeholder="Escribe título, acción o código"
+                   class="w-full rounded-2xl border border-slate-200 bg-white px-9 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                   data-permission-search>
+          </div>
+          <p class="text-xs text-slate-400">Escribe una palabra clave para encontrar permisos específicos y asignarlos rápido.</p>
         </div>
+
+        <div class="space-y-3" data-permission-groups>
+          {% for group in permission_groups %}
+          <section class="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-inner" data-permission-group data-group-key="{{ group.key }}">
+            <header class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 class="text-sm font-semibold text-slate-800">{{ group.label }}</h3>
+                {% if group.description %}
+                  <p class="text-xs text-slate-500">{{ group.description }}</p>
+                {% endif %}
+              </div>
+              <span class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500" data-group-count>{{ group.items|length }} permisos</span>
+            </header>
+            <ul class="permission-grid grid gap-2 sm:grid-cols-2" data-permission-list>
+              {% for perm in group.items %}
+              <li class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs" data-permission-item data-permission-label="{{ perm.label|lower }}" data-permission-code="{{ perm.codename|lower }}">
+                <label class="flex items-start gap-2" for="permission_{{ perm.id }}">
+                  <input type="checkbox" name="permissions" value="{{ perm.id }}" id="permission_{{ perm.id }}"
+                         class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                         {% if perm.id in selected_permissions %}checked{% endif %}>
+                  <span class="flex flex-col">
+                    <span class="font-medium text-slate-700">{{ perm.label }}</span>
+                    <span class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-400">{{ perm.codename }}</span>
+                  </span>
+                </label>
+              </li>
+              {% endfor %}
+            </ul>
+          </section>
+          {% empty %}
+          <p class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">No hay permisos configurados para mostrar.</p>
+          {% endfor %}
+        </div>
+        <p class="hidden rounded-xl border border-slate-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-700" data-permission-empty>
+          Sin coincidencias para tu búsqueda. Ajusta los términos o limpia el filtro.
+        </p>
       </div>
       <p class="text-xs text-slate-500">Marca o desmarca permisos individuales cuando necesites personalizar el rol.</p>
       {% if form.permissions.errors %}<div class="text-xs text-rose-600">{{ form.permissions.errors }}</div>{% endif %}
@@ -106,6 +149,9 @@
 
         const checkboxes = Array.from(form.querySelectorAll('input[name="permissions"]'));
         const feedback = form.querySelector('[data-template-feedback]');
+        const groupsContainer = form.querySelector('[data-permission-groups]');
+        const emptyState = form.querySelector('[data-permission-empty]');
+        const searchInput = form.querySelector('[data-permission-search]');
 
         const showFeedback = (message, tone) => {
           if (!feedback) {
@@ -123,6 +169,52 @@
           });
         };
 
+        const updateGroupBadges = () => {
+          if (!groupsContainer) {
+            return;
+          }
+          const groups = groupsContainer.querySelectorAll('[data-permission-group]');
+          const searchTerm = (searchInput && searchInput.value.trim().toLowerCase()) || '';
+          groups.forEach((group) => {
+            const items = Array.from(group.querySelectorAll('[data-permission-item]'));
+            const total = items.length;
+            const visible = items.filter((item) => !item.classList.contains('hidden')).length;
+            const selected = items.filter((item) => {
+              const input = item.querySelector('input[name="permissions"]');
+              return input && input.checked;
+            }).length;
+            const badge = group.querySelector('[data-group-count]');
+            if (!badge) {
+              return;
+            }
+            if (searchTerm) {
+              badge.textContent = `${visible} coincidencias · ${selected} seleccionados`;
+            } else {
+              badge.textContent = `${selected} de ${total} seleccionados`;
+            }
+          });
+        };
+
+        const refreshSummaries = () => {
+          if (groupsContainer) {
+            const groups = Array.from(groupsContainer.querySelectorAll('[data-permission-group]'));
+            let visibleCount = 0;
+            groups.forEach((group) => {
+              const visibleItems = group.querySelectorAll('[data-permission-item]:not(.hidden)').length;
+              if (visibleItems > 0) {
+                group.classList.remove('hidden');
+                visibleCount += visibleItems;
+              } else {
+                group.classList.add('hidden');
+              }
+            });
+            if (emptyState) {
+              emptyState.classList.toggle('hidden', visibleCount > 0);
+            }
+          }
+          updateGroupBadges();
+        };
+
         form.querySelectorAll('[data-template-key]').forEach((btn) => {
           btn.addEventListener('click', (event) => {
             event.preventDefault();
@@ -130,6 +222,7 @@
             const ids = templateMap[key] || [];
             applySelection(ids);
             showFeedback(`Plantilla "${btn.textContent.trim()}" aplicada.`, 'success');
+            refreshSummaries();
           });
         });
 
@@ -139,8 +232,31 @@
             event.preventDefault();
             applySelection([]);
             showFeedback('Selección limpia, ahora puedes elegir permisos manualmente.', 'info');
+            refreshSummaries();
           });
         }
+
+        if (searchInput) {
+          searchInput.addEventListener('input', (event) => {
+            const query = event.target.value.trim().toLowerCase();
+            const items = form.querySelectorAll('[data-permission-item]');
+            items.forEach((item) => {
+              const label = item.getAttribute('data-permission-label') || '';
+              const code = item.getAttribute('data-permission-code') || '';
+              const matches = !query || label.includes(query) || code.includes(query);
+              item.classList.toggle('hidden', !matches);
+            });
+            refreshSummaries();
+          });
+        }
+
+        checkboxes.forEach((input) => {
+          input.addEventListener('change', () => {
+            refreshSummaries();
+          });
+        });
+
+        refreshSummaries();
       })();
     </script>
   {% endif %}

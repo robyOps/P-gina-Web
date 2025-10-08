@@ -3,7 +3,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 
-from .permissions import PERMISSION_LABELS
+from .permissions import PERMISSION_LABELS, group_permissions
 
 User = get_user_model()
 
@@ -82,5 +82,6 @@ class RoleForm(forms.ModelForm):
             return PERMISSION_LABELS.get(obj.codename, obj.name)
 
         self.fields["permissions"].label_from_instance = label_from_instance
+        self.permission_groups = group_permissions(self.fields["permissions"].queryset)
 
 
