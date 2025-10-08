@@ -15,6 +15,7 @@
     padding: 1.75rem;
     border: 1px solid rgba(148, 163, 184, 0.35);
     margin: 0 auto;
+    box-shadow: 0 25px 60px -45px rgba(15, 23, 42, 0.45);
   }
   .dashboard-shell__content {
     position: relative;
@@ -31,24 +32,31 @@
     transition: opacity 0.35s ease;
   }
   .dashboard-shell.dashboard-shell--compact {
-    transform: scale(0.78);
-    max-height: calc(100vh - 6.5rem);
-    box-shadow: 0 35px 80px -45px rgba(15, 23, 42, 0.55);
+    transform: none;
+    max-height: none;
+    box-shadow: 0 18px 45px -35px rgba(15, 23, 42, 0.4);
   }
   .dashboard-shell.dashboard-shell--compact .dashboard-shell__scrim {
     opacity: 1;
   }
   .dashboard-shell.dashboard-shell--expanded {
-    transform: scale(1);
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    transform: none;
     max-height: none;
-    padding: 0;
-    background: transparent;
+    padding: 2.5rem clamp(1.5rem, 4vw, 3.5rem);
+    background: linear-gradient(135deg, rgba(241, 245, 249, 0.95), rgba(255, 255, 255, 0.98));
     box-shadow: none;
     border-color: transparent;
-    overflow: visible;
+    border-radius: 0;
+    overflow-y: auto;
   }
   .dashboard-shell.dashboard-shell--expanded .dashboard-shell__scrim {
     opacity: 0;
+  }
+  body.dashboard-expanded {
+    overflow: hidden;
   }
   .dashboard-toggle {
     position: absolute;
@@ -66,6 +74,12 @@
     color: #f8fafc;
     box-shadow: 0 18px 40px rgba(15, 23, 42, 0.25);
     transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .dashboard-shell.dashboard-shell--expanded ~ .dashboard-toggle {
+    position: fixed;
+    top: 1.5rem;
+    right: clamp(1rem, 3vw, 2.75rem);
+    z-index: 80;
   }
   .dashboard-toggle:hover {
     background: rgba(37, 99, 235, 0.9);
@@ -104,36 +118,36 @@
     <div class="dashboard-shell__content">
       <div class="space-y-8 py-5">
         <section class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <article class="flex flex-col gap-3 rounded-3xl border border-sky-300 bg-sky-200 p-5 shadow-sm">
+          <article class="flex flex-col gap-3 rounded-3xl border border-sky-300 bg-sky-200 p-4 shadow-sm sm:p-5">
             <div class="flex items-center justify-between">
-              <span class="text-lg font-semibold text-sky-900">Abiertos</span>
-              <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl text-sky-600 shadow-sm"><i class="bi bi-life-preserver"></i></span>
+              <span class="text-base font-semibold text-sky-900 sm:text-lg">Abiertos</span>
+              <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg text-sky-600 shadow-sm"><i class="bi bi-life-preserver"></i></span>
             </div>
-            <p class="text-5xl font-semibold text-slate-900">{{ counts.open }}</p>
+            <p class="text-3xl font-semibold text-slate-900 sm:text-4xl">{{ counts.open }}</p>
           </article>
 
-          <article class="flex flex-col gap-3 rounded-3xl border border-amber-300 bg-amber-200 p-5 shadow-sm">
+          <article class="flex flex-col gap-3 rounded-3xl border border-amber-300 bg-amber-200 p-4 shadow-sm sm:p-5">
             <div class="flex items-center justify-between">
-              <span class="text-lg font-semibold text-amber-900">En progreso</span>
-              <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl text-amber-600 shadow-sm"><i class="bi bi-gear-wide-connected"></i></span>
+              <span class="text-base font-semibold text-amber-900 sm:text-lg">En progreso</span>
+              <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg text-amber-600 shadow-sm"><i class="bi bi-gear-wide-connected"></i></span>
             </div>
-            <p class="text-5xl font-semibold text-slate-900">{{ counts.in_progress }}</p>
+            <p class="text-3xl font-semibold text-slate-900 sm:text-4xl">{{ counts.in_progress }}</p>
           </article>
 
-          <article class="flex flex-col gap-3 rounded-3xl border border-emerald-300 bg-emerald-200 p-5 shadow-sm">
+          <article class="flex flex-col gap-3 rounded-3xl border border-emerald-300 bg-emerald-200 p-4 shadow-sm sm:p-5">
             <div class="flex items-center justify-between">
-              <span class="text-lg font-semibold text-emerald-900">Resueltos (mes)</span>
-              <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl text-emerald-600 shadow-sm"><i class="bi bi-check-circle"></i></span>
+              <span class="text-base font-semibold text-emerald-900 sm:text-lg">Resueltos (mes)</span>
+              <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg text-emerald-600 shadow-sm"><i class="bi bi-check-circle"></i></span>
             </div>
-            <p class="text-5xl font-semibold text-slate-900">{{ counts.resolved }}</p>
+            <p class="text-3xl font-semibold text-slate-900 sm:text-4xl">{{ counts.resolved }}</p>
           </article>
 
-          <article class="flex flex-col gap-3 rounded-3xl border border-rose-300 bg-rose-200 p-5 shadow-sm">
+          <article class="flex flex-col gap-3 rounded-3xl border border-rose-300 bg-rose-200 p-4 shadow-sm sm:p-5">
             <div class="flex items-center justify-between">
-              <span class="text-lg font-semibold text-rose-900">Cerrados (mes)</span>
-              <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl text-rose-600 shadow-sm"><i class="bi bi-shield-lock"></i></span>
+              <span class="text-base font-semibold text-rose-900 sm:text-lg">Cerrados (mes)</span>
+              <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg text-rose-600 shadow-sm"><i class="bi bi-shield-lock"></i></span>
             </div>
-            <p class="text-5xl font-semibold text-slate-900">{{ counts.closed }}</p>
+            <p class="text-3xl font-semibold text-slate-900 sm:text-4xl">{{ counts.closed }}</p>
           </article>
         </section>
 
@@ -318,6 +332,7 @@
         dashboardShell.classList.toggle('dashboard-shell--expanded', isExpanded);
         dashboardShell.classList.toggle('dashboard-shell--compact', !isExpanded);
         dashboardToggle.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+        document.body.classList.toggle('dashboard-expanded', isExpanded);
 
         if (expandIcon && collapseIcon) {
           expandIcon.classList.toggle('hidden', isExpanded);
@@ -334,6 +349,7 @@
           dashboardShell.classList.remove('dashboard-shell--compact', 'dashboard-shell--expanded');
           dashboardToggle.setAttribute('aria-hidden', 'true');
           dashboardToggle.setAttribute('tabindex', '-1');
+          document.body.classList.remove('dashboard-expanded');
           return;
         }
 
@@ -358,6 +374,10 @@
         } else {
           sessionStorage.removeItem('dashboardExpanded');
         }
+      });
+
+      window.addEventListener('beforeunload', () => {
+        document.body.classList.remove('dashboard-expanded');
       });
     }
 
