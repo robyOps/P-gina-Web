@@ -140,15 +140,8 @@
 
         <div class="flex items-center gap-6 text-sm">
           {% if request.user.is_authenticated %}
-            {% if request.user.is_superuser or
-                  perms.auth.view_user or perms.auth.change_user or
-                  perms.auth.view_group or perms.auth.change_group or
-                  perms.catalog.view_category or
-                  perms.catalog.view_priority or
-                  perms.catalog.view_area or
-                  perms.tickets.view_autoassignrule or
-                  perms.tickets.view_eventlog or perms.admin.view_logentry or
-                  request.user.is_staff %}
+            {% can_access_admin_panel as show_admin_panel %}
+            {% if show_admin_panel %}
               <details class="nav-admin relative z-40">
                 <summary class="nav-admin__toggle">
                   <i class="bi bi-sliders"></i>
