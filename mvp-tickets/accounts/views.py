@@ -12,7 +12,6 @@ from django.contrib.auth.models import Group
 
 from .forms import UserCreateForm, UserEditForm, RoleForm
 from accounts.permissions import PERMISSION_TEMPLATES
-from accounts.roles import is_admin, ROLE_ADMIN
 
 User = get_user_model()
 
@@ -45,10 +44,16 @@ def _role_form_context(form: RoleForm, **extra) -> dict:
     """Contexto común para crear/editar roles con plantillas predefinidas."""
 
     permission_templates = _build_permission_templates(form)
+    selected_permissions = {
+        str(value)
+        for value in (form["permissions"].value() or [])
+    }
     ctx = {
         "form": form,
         "permission_templates": permission_templates,
         "permission_templates_json": json.dumps(permission_templates, ensure_ascii=False),
+        "permission_groups": getattr(form, "permission_groups", []),
+        "selected_permissions": selected_permissions,
     }
     ctx.update(extra)
     return ctx
@@ -56,9 +61,9 @@ def _role_form_context(form: RoleForm, **extra) -> dict:
 
 @login_required
 def users_list(request):
-    """Listado de usuarios (solo ADMINISTRADOR). Filtros básicos por texto, estado y grupo."""
-    if not is_admin(request.user):
-        messages.error(request, f"Solo {ROLE_ADMIN} puede ver usuarios.")
+    """Listado de usuarios. Filtros básicos por texto, estado y grupo."""
+    if not request.user.has_perm("auth.view_user"):
+        messages.error(request, "No tienes permiso para ver usuarios.")
         return redirect("tickets_home")
 
     q = (request.GET.get("q") or "").strip()
@@ -91,9 +96,9 @@ def users_list(request):
 
 @login_required
 def user_create(request):
-    """Crear nuevo usuario (solo ADMINISTRADOR)."""
-    if not is_admin(request.user):
-        messages.error(request, f"Solo {ROLE_ADMIN} puede crear usuarios.")
+    """Crear nuevo usuario."""
+    if not request.user.has_perm("auth.add_user"):
+        messages.error(request, "No tienes permiso para crear usuarios.")
         return redirect("tickets_home")
 
     if request.method == "POST":
@@ -116,9 +121,9 @@ def user_create(request):
 
 @login_required
 def user_edit(request, pk):
-    """Editar usuario (solo ADMINISTRADOR)."""
-    if not is_admin(request.user):
-        messages.error(request, f"Solo {ROLE_ADMIN} puede editar usuarios.")
+    """Editar usuario."""
+    if not request.user.has_perm("auth.change_user"):
+        messages.error(request, "No tienes permiso para editar usuarios.")
         return redirect("tickets_home")
 
     user = get_object_or_404(User, pk=pk)
@@ -144,9 +149,9 @@ def user_edit(request, pk):
 
 @login_required
 def user_toggle(request, pk):
-    """Activar/Desactivar usuario (solo ADMINISTRADOR)."""
-    if not is_admin(request.user):
-        messages.error(request, f"Solo {ROLE_ADMIN} puede cambiar estado de usuarios.")
+    """Activar/Desactivar usuario."""
+    if not request.user.has_perm("auth.change_user"):
+        messages.error(request, "No tienes permiso para cambiar el estado de un usuario.")
         return redirect("tickets_home")
 
     user = get_object_or_404(User, pk=pk)
@@ -158,9 +163,9 @@ def user_toggle(request, pk):
 
 @login_required
 def roles_list(request):
-    """Listado de roles (solo ADMINISTRADOR)."""
-    if not is_admin(request.user):
-        messages.error(request, f"Solo {ROLE_ADMIN} puede ver roles.")
+    """Listado de roles disponibles."""
+    if not request.user.has_perm("auth.view_group"):
+        messages.error(request, "No tienes permiso para ver los roles.")
         return redirect("tickets_home")
 
     roles = Group.objects.all().order_by("name")
@@ -169,9 +174,9 @@ def roles_list(request):
 
 @login_required
 def role_create(request):
-    """Crear rol y asignar permisos (solo ADMINISTRADOR)."""
-    if not is_admin(request.user):
-        messages.error(request, f"Solo {ROLE_ADMIN} puede crear roles.")
+    """Crear rol y asignar permisos."""
+    if not request.user.has_perm("auth.add_group"):
+        messages.error(request, "No tienes permiso para crear roles.")
         return redirect("tickets_home")
 
     if request.method == "POST":
@@ -190,9 +195,9 @@ def role_create(request):
 
 @login_required
 def role_edit(request, pk):
-    """Editar rol y sus permisos (solo ADMINISTRADOR)."""
-    if not is_admin(request.user):
-        messages.error(request, f"Solo {ROLE_ADMIN} puede editar roles.")
+    """Editar rol y sus permisos."""
+    if not request.user.has_perm("auth.change_group"):
+        messages.error(request, "No tienes permiso para editar roles.")
         return redirect("tickets_home")
 
     role = get_object_or_404(Group, pk=pk)

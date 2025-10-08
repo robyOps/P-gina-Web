@@ -43,7 +43,7 @@ from django.contrib.auth.models import Group
 from django.db.models import Count, Avg, DurationField, ExpressionWrapper, F
 
 # --- App local ---
-from .forms import TicketCreateForm
+from .forms import TicketCreateForm, TicketQuickUpdateForm
 from .models import (
     Ticket,
     TicketComment,
@@ -600,6 +600,14 @@ def ticket_detail(request, pk):
         except Group.DoesNotExist:
             tech_users = []
 
+    can_quick_edit = False
+    quick_edit_form = None
+    if request.user.has_perm("tickets.change_ticket") and (
+        is_admin_u or (is_tech_u and t.assigned_to_id == u.id)
+    ):
+        can_quick_edit = True
+        quick_edit_form = TicketQuickUpdateForm(instance=t)
+
     ctx = {
         "t": t,
         "can_assign": can_assign,
@@ -609,6 +617,8 @@ def ticket_detail(request, pk):
         "is_tech_u": is_tech_u,
         "can_mark_internal": is_admin_u or is_tech_u,
         "can_upload_files": can_upload_attachments(t, u),
+        "can_quick_edit": can_quick_edit,
+        "quick_edit_form": quick_edit_form,
     }
     return TemplateResponse(request, "tickets/detail.html", ctx)
 
@@ -794,6 +804,110 @@ def ticket_assign(request, pk):
     if title_changed:
         msg += " Título actualizado."
     messages.success(request, msg)
+    return redirect("ticket_detail", pk=t.pk)
+
+
+@login_required
+@require_http_methods(["POST"])
+def ticket_quick_update(request, pk):
+    """Actualizar título, prioridad y clasificación del ticket desde la ficha."""
+
+    t = get_object_or_404(
+        Ticket.objects.select_related("priority", "category", "area", "assigned_to", "requester"),
+        pk=pk,
+    )
+    u = request.user
+
+    is_admin_u = is_admin(u)
+    is_tech_u = is_tech(u)
+    assigned_to_user = t.assigned_to_id == u.id
+
+    if not (
+        u.has_perm("tickets.change_ticket")
+        and (is_admin_u or (is_tech_u and assigned_to_user))
+    ):
+        return HttpResponseForbidden("Sin autorización para editar el ticket")
+
+    form = TicketQuickUpdateForm(request.POST, instance=t)
+    if not form.is_valid():
+        messages.error(request, "Revisa los campos para actualizar el ticket.")
+        return redirect("ticket_detail", pk=t.pk)
+
+    if not form.has_changed():
+        messages.info(request, "No se detectaron cambios en el ticket.")
+        return redirect("ticket_detail", pk=t.pk)
+
+    previous = {
+        "title": t.title,
+        "priority": getattr(t.priority, "name", None),
+        "category": getattr(t.category, "name", None),
+        "area": getattr(t.area, "name", None),
+        "kind": t.get_kind_display(),
+    }
+
+    form.save()
+    t.refresh_from_db(fields=["title", "priority", "category", "area", "kind"])
+
+    label_map = {
+        "title": "Título",
+        "priority": "Prioridad",
+        "category": "Categoría",
+        "area": "Área",
+        "kind": "Tipo",
+    }
+
+    def _format_value(value):
+        if value in (None, ""):
+            return "Sin definir"
+        return value
+
+    updated = {
+        "title": t.title,
+        "priority": getattr(t.priority, "name", None),
+        "category": getattr(t.category, "name", None),
+        "area": getattr(t.area, "name", None),
+        "kind": t.get_kind_display(),
+    }
+
+    changes = []
+    labels_for_message: list[str] = []
+    for field in form.changed_data:
+        changes.append(
+            {
+                "field": field,
+                "label": label_map.get(field, field),
+                "from": _format_value(previous.get(field)),
+                "to": _format_value(updated.get(field)),
+            }
+        )
+        labels_for_message.append(label_map.get(field, field))
+
+    AuditLog.objects.create(
+        ticket=t,
+        actor=u,
+        action="UPDATE",
+        meta={"changes": changes},
+    )
+
+    def _human_join(parts: list[str]) -> str:
+        cleaned = [p for p in parts if p]
+        if not cleaned:
+            return ""
+        if len(cleaned) == 1:
+            return cleaned[0]
+        return ", ".join(cleaned[:-1]) + " y " + cleaned[-1]
+
+    change_summary = _human_join(labels_for_message)
+    messages.success(request, f"Ticket actualizado: {change_summary}.")
+
+    link = reverse("ticket_detail", args=[t.pk])
+    verb = "actualizó" if len(labels_for_message) == 1 else "actualizaron"
+    notify_message = f"Ticket {t.code}: se {verb} {change_summary}."
+    if t.requester_id and t.requester_id != u.id:
+        create_notification(t.requester, notify_message, link)
+    if t.assigned_to_id and t.assigned_to_id not in (u.id, t.requester_id):
+        create_notification(t.assigned_to, notify_message, link)
+
     return redirect("ticket_detail", pk=t.pk)
 
 
@@ -1127,6 +1241,7 @@ def audit_partial(request, pk):
     action_labels = {
         "CREATE": "Creación",
         "ASSIGN": "Asignación",
+        "UPDATE": "Actualización",
         "STATUS": "Estado",
         "COMMENT": "Comentario",
         "ATTACH": "Adjunto",
@@ -1472,6 +1587,7 @@ def logs_list(request):
     action_labels = {
         "CREATE": "Creación",
         "ASSIGN": "Asignación",
+        "UPDATE": "Actualización",
         "STATUS": "Estado",
         "COMMENT": "Comentario",
         "ATTACH": "Adjunto",

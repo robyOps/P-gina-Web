@@ -155,6 +155,7 @@ def on_audit_log(sender, instance: AuditLog, created, **kwargs):
     messages = {
         "CREATE": "Ticket creado.",
         "ASSIGN": "Asignación de ticket.",
+        "UPDATE": "Actualización de ticket.",
         "STATUS": "Cambio de estado del ticket.",
         "COMMENT": "Comentario en ticket.",
         "ATTACH": "Adjunto agregado al ticket.",
@@ -208,6 +209,16 @@ def on_audit_log(sender, instance: AuditLog, created, **kwargs):
             title_to = (meta.get("title_to") or "").strip()
             if title_from or title_to:
                 message += f" Título: '{title_from or '—'}' → '{title_to or '—'}'."
+    elif instance.action == "UPDATE":
+        changes = meta.get("changes", [])
+        if changes:
+            parts = []
+            for item in changes:
+                label = item.get("label") or item.get("field")
+                value_from = item.get("from") or "Sin definir"
+                value_to = item.get("to") or "Sin definir"
+                parts.append(f"{label}: {value_from} → {value_to}")
+            message = "Actualización de ticket · " + "; ".join(parts)
     elif instance.action == "STATUS":
         from_label = meta.get("from_label") or status_map.get(meta.get("from"))
         to_label = meta.get("to_label") or status_map.get(meta.get("to"))

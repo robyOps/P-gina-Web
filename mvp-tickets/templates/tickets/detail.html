@@ -117,6 +117,41 @@
     </article>
 
     <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+      {% if can_quick_edit and quick_edit_form %}
+      <section class="space-y-3">
+        <h2 class="text-lg font-semibold text-slate-900">Actualizar datos clave</h2>
+        <form method="post" action="{% url 'ticket_quick_update' t.id %}" class="space-y-4 text-sm text-slate-600">
+          {% csrf_token %}
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="sm:col-span-2 space-y-1">
+              <label class="text-xs font-semibold uppercase text-slate-500" for="id_title">Título</label>
+              {{ quick_edit_form.title }}
+            </div>
+            <div class="space-y-1">
+              <label class="text-xs font-semibold uppercase text-slate-500" for="id_category">Categoría</label>
+              {{ quick_edit_form.category }}
+            </div>
+            <div class="space-y-1">
+              <label class="text-xs font-semibold uppercase text-slate-500" for="id_priority">Prioridad</label>
+              {{ quick_edit_form.priority }}
+            </div>
+            <div class="space-y-1">
+              <label class="text-xs font-semibold uppercase text-slate-500" for="id_area">Área</label>
+              {{ quick_edit_form.area }}
+            </div>
+            <div class="space-y-1">
+              <label class="text-xs font-semibold uppercase text-slate-500" for="id_kind">Tipo</label>
+              {{ quick_edit_form.kind }}
+            </div>
+          </div>
+          <p class="text-xs text-slate-500">Guarda los cambios para que queden registrados en la auditoría del ticket.</p>
+          <button class="btn inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 font-semibold text-white shadow hover:bg-blue-700" type="submit">
+            <i class="bi bi-floppy"></i> Guardar ficha
+          </button>
+        </form>
+      </section>
+      {% endif %}
+
       {% if can_assign %}
       <section class="space-y-3">
         <h2 class="text-lg font-semibold text-slate-900">Asignación</h2>
