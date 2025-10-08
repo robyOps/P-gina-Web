@@ -97,10 +97,7 @@
                   <input type="checkbox" name="permissions" value="{{ perm.id }}" id="permission_{{ perm.id }}"
                          class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                          {% if perm.id in selected_permissions %}checked{% endif %}>
-                  <span class="flex flex-col">
-                    <span class="font-medium text-slate-700">{{ perm.label }}</span>
-                    <span class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-400">{{ perm.codename }}</span>
-                  </span>
+                  <span class="font-medium text-slate-700">{{ perm.label }}</span>
                 </label>
               </li>
               {% endfor %}
