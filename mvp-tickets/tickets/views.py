@@ -242,7 +242,13 @@ def dashboard(request):
 def faq_list(request):
     """Listado de preguntas frecuentes y formulario de alta rápida."""
     user = request.user
-    can_manage = is_admin(user) or is_tech(user)
+    if not user.has_perm("tickets.view_faq"):
+        return HttpResponseForbidden("Sin autorización")
+
+    can_manage = any(
+        user.has_perm(f"tickets.{code}")
+        for code in ("add_faq", "change_faq", "delete_faq")
+    )
     faqs = FAQ.objects.select_related("category").all()
 
     search_query = (request.GET.get("q") or "").strip()
@@ -261,7 +267,7 @@ def faq_list(request):
 
     form = FAQForm()
     if request.method == "POST":
-        if not can_manage:
+        if not user.has_perm("tickets.add_faq"):
             return HttpResponseForbidden("Sin autorización")
         form = FAQForm(request.POST)
         if form.is_valid():
@@ -290,7 +296,7 @@ def faq_edit(request, pk):
     """Editar una pregunta frecuente existente."""
     faq = get_object_or_404(FAQ, pk=pk)
     user = request.user
-    if not (is_admin(user) or is_tech(user)):
+    if not user.has_perm("tickets.change_faq"):
         return HttpResponseForbidden("Sin autorización")
 
     if request.method == "POST":
@@ -321,7 +327,7 @@ def faq_edit(request, pk):
 def faq_delete(request, pk):
     """Elimina una pregunta frecuente."""
     user = request.user
-    if not (is_admin(user) or is_tech(user)):
+    if not user.has_perm("tickets.delete_faq"):
         return HttpResponseForbidden("Sin autorización")
 
     faq = get_object_or_404(FAQ, pk=pk)
