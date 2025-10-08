@@ -58,40 +58,6 @@
   body.dashboard-expanded {
     overflow: hidden;
   }
-  .dashboard-toggle {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    z-index: 50;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.45rem 0.9rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: rgba(15, 23, 42, 0.8);
-    color: #f8fafc;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.25);
-    transition: background 0.2s ease, transform 0.2s ease;
-  }
-  .dashboard-shell.dashboard-shell--expanded ~ .dashboard-toggle {
-    position: fixed;
-    top: 1.5rem;
-    right: clamp(1rem, 3vw, 2.75rem);
-    z-index: 80;
-  }
-  .dashboard-toggle:hover {
-    background: rgba(37, 99, 235, 0.9);
-    transform: translateY(-1px);
-  }
-  .dashboard-toggle:focus-visible {
-    outline: 2px solid rgba(37, 99, 235, 0.55);
-    outline-offset: 2px;
-  }
-  .dashboard-toggle__icon {
-    font-size: 0.95rem;
-  }
   @media (max-width: 1024px) {
     .dashboard-shell {
       transform: none !important;
@@ -102,9 +68,6 @@
       border-color: transparent;
     }
     .dashboard-shell__scrim {
-      display: none;
-    }
-    .dashboard-toggle {
       display: none;
     }
   }
@@ -306,11 +269,6 @@
       </div>
     </div>
   </div>
-  <button type="button" id="dashboardToggle" class="dashboard-toggle" aria-controls="dashboardShell" aria-expanded="false">
-    <i class="dashboard-toggle__icon bi bi-arrows-fullscreen" data-icon="expand"></i>
-    <i class="dashboard-toggle__icon bi bi-fullscreen-exit hidden" data-icon="collapse"></i>
-    <span data-label>Ampliar tablero</span>
-  </button>
 </div>
 {% endblock %}
 
@@ -318,69 +276,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const dashboardShell = document.getElementById('dashboardShell');
-    const dashboardToggle = document.getElementById('dashboardToggle');
-
-    if (dashboardShell && dashboardToggle) {
-      const expandIcon = dashboardToggle.querySelector('[data-icon="expand"]');
-      const collapseIcon = dashboardToggle.querySelector('[data-icon="collapse"]');
-      const label = dashboardToggle.querySelector('[data-label]');
-      const mediaQuery = window.matchMedia('(min-width: 1025px)');
-      let expanded = sessionStorage.getItem('dashboardExpanded') === '1';
-
-      const applyState = (isExpanded) => {
-        dashboardShell.classList.toggle('dashboard-shell--expanded', isExpanded);
-        dashboardShell.classList.toggle('dashboard-shell--compact', !isExpanded);
-        dashboardToggle.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
-        document.body.classList.toggle('dashboard-expanded', isExpanded);
-
-        if (expandIcon && collapseIcon) {
-          expandIcon.classList.toggle('hidden', isExpanded);
-          collapseIcon.classList.toggle('hidden', !isExpanded);
-        }
-
-        if (label) {
-          label.textContent = isExpanded ? 'Reducir tablero' : 'Ampliar tablero';
-        }
-      };
-
-      const syncState = () => {
-        if (!mediaQuery.matches) {
-          dashboardShell.classList.remove('dashboard-shell--compact', 'dashboard-shell--expanded');
-          dashboardToggle.setAttribute('aria-hidden', 'true');
-          dashboardToggle.setAttribute('tabindex', '-1');
-          document.body.classList.remove('dashboard-expanded');
-          return;
-        }
-
-        dashboardToggle.removeAttribute('aria-hidden');
-        dashboardToggle.removeAttribute('tabindex');
-        applyState(expanded);
-      };
-
-      syncState();
-      mediaQuery.addEventListener('change', syncState);
-
-      dashboardToggle.addEventListener('click', () => {
-        if (!mediaQuery.matches) {
-          return;
-        }
-
-        expanded = !expanded;
-        applyState(expanded);
-
-        if (expanded) {
-          sessionStorage.setItem('dashboardExpanded', '1');
-        } else {
-          sessionStorage.removeItem('dashboardExpanded');
-        }
-      });
-
-      window.addEventListener('beforeunload', () => {
-        document.body.classList.remove('dashboard-expanded');
-      });
-    }
-
     const statusConfig = {{ chart_data|safe }};
     const failuresConfig = {{ failures_chart_data|safe }};
     const hasFailureData = {{ has_failures_data|yesno:"true,false" }};
