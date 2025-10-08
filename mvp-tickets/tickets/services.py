@@ -1,33 +1,132 @@
-# tickets/services.py
-from django.utils import timezone
-from django.core.mail import send_mail
+"""Servicios auxiliares del módulo de tickets."""
+
+from __future__ import annotations
+
+from collections.abc import Iterable
+from typing import Dict
+
 from django.conf import settings
-from django.urls import reverse
 from django.contrib.auth import get_user_model
-from .models import AuditLog, Ticket, AutoAssignRule, TicketAssignment, Notification
-from django.db.models import Q
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.utils import timezone
 from openpyxl import Workbook
-from accounts.roles import ROLE_TECH, ROLE_ADMIN
+
+from accounts.roles import ROLE_ADMIN, ROLE_TECH
+
+from .models import (
+    AuditLog,
+    AutoAssignRule,
+    Notification,
+    Ticket,
+    TicketAssignment,
+)
 
 User = get_user_model()
 
-def _has_log(t, action: str) -> bool:
-    return AuditLog.objects.filter(ticket=t, action=action).exists()
 
-def run_sla_check(*, warn_ratio: float = 0.8, dry_run: bool = False) -> dict:
-    """
-    Revisa tickets OPEN/IN_PROGRESS y:
-      - Emite SLA_WARN cuando el tiempo transcurrido >= (warn_ratio * sla_hours)
-      - Emite SLA_BREACH cuando supera el SLA
-      - Si ya está RESOLVED, registra BREACH si se resolvió después del due_at
-    Envía emails (consola en dev) y registra AuditLog, a menos que dry_run=True.
-    Devuelve: {'warnings': N, 'breaches': M}
-    """
+# ---------------------------------------------------------------------------
+# Utilidades privadas
+# ---------------------------------------------------------------------------
+
+def _has_log(ticket: Ticket, action: str) -> bool:
+    """Revisa si ya existe un registro de auditoría para evitar duplicados."""
+
+    return AuditLog.objects.filter(ticket=ticket, action=action).exists()
+
+
+def _active_users_from(users: Iterable) -> set:
+    """Filtra elementos no usuarios y aquellos inactivos."""
+
+    return {
+        user
+        for user in users
+        if getattr(user, "is_active", False)
+    }
+
+
+def _collect_recipients(ticket: Ticket, base_users: Iterable) -> set:
+    """Agrupa los usuarios que deben ser notificados por SLA."""
+
+    recipients = _active_users_from(base_users)
+
+    if ticket.assigned_to and ticket.assigned_to.is_active:
+        recipients.add(ticket.assigned_to)
+    if ticket.requester and getattr(ticket.requester, "is_active", False):
+        recipients.add(ticket.requester)
+
+    return _active_users_from(recipients)
+
+
+def _notify_users(ticket: Ticket, message: str, recipients: set) -> None:
+    """Envía emails y notificaciones in-app a los destinatarios dados."""
+
+    emails = [getattr(user, "email", None) for user in recipients]
+    email_list = [email for email in emails if email]
+
+    if email_list:
+        send_mail(
+            subject=message.split(".")[0],
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=email_list,
+            fail_silently=True,
+        )
+
+    if recipients:
+        link = reverse("ticket_detail", args=[ticket.pk])
+        notifications = [
+            Notification(user=user, message=message, url=link) for user in recipients
+        ]
+        Notification.objects.bulk_create(notifications)
+
+
+def _email_warn(ticket: Ticket, role_users: Iterable) -> None:
+    """Comunica un estado de advertencia de SLA."""
+
+    recipients = _collect_recipients(ticket, role_users)
+    if recipients:
+        _notify_users(
+            ticket,
+            f"El ticket {ticket.code} ({ticket.title}) está por vencer su SLA.",
+            recipients,
+        )
+
+
+def _email_breach(ticket: Ticket, role_users: Iterable | None = None) -> None:
+    """Comunica un estado de incumplimiento de SLA."""
+
+    recipients = _collect_recipients(ticket, role_users or [])
+    if recipients:
+        _notify_users(
+            ticket,
+            f"El ticket {ticket.code} ({ticket.title}) ha vencido su SLA.",
+            recipients,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Funciones públicas
+# ---------------------------------------------------------------------------
+
+def run_sla_check(*, warn_ratio: float = 0.8, dry_run: bool = False) -> Dict[str, int]:
+    """Evalúa el cumplimiento de SLA y dispara alertas o incumplimientos."""
+
     now = timezone.now()
-    open_like = [Ticket.OPEN, Ticket.IN_PROGRESS]
-    qs = (Ticket.objects
-          .select_related("priority", "requester", "assigned_to")
-          .filter(status__in=open_like))
+    qs = (
+        Ticket.objects.select_related("priority", "requester", "assigned_to")
+        .filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
+        .only(
+            "id",
+            "code",
+            "title",
+            "status",
+            "priority__sla_hours",
+            "created_at",
+            "resolved_at",
+            "due_at",
+        )
+    )
 
     warned = breached = 0
 
@@ -39,119 +138,92 @@ def run_sla_check(*, warn_ratio: float = 0.8, dry_run: bool = False) -> dict:
             ).distinct()
         )
 
-    for t in qs:
-        sla_hours = t.sla_hours_value
-        due = t.due_at
-        elapsed_h = (now - t.created_at).total_seconds() / 3600.0
-        warn_th = sla_hours * warn_ratio
+    for ticket in qs:
+        sla_hours = ticket.sla_hours_value
+        due = ticket.due_at
+        elapsed_h = (now - ticket.created_at).total_seconds() / 3600.0
+        warn_threshold = sla_hours * warn_ratio
 
-        # Si se resolvió: breach si se resolvió luego del due
-        if t.resolved_at:
-            if t.resolved_at > due and not _has_log(t, "SLA_BREACH"):
+        # Tickets resueltos: registrar BREACH solo si ocurrió después del SLA.
+        if ticket.resolved_at:
+            if ticket.resolved_at > due and not _has_log(ticket, "SLA_BREACH"):
                 if not dry_run:
-                    AuditLog.objects.create(ticket=t, actor=None, action="SLA_BREACH",
-                                            meta={"due_at": due.isoformat(), "resolved_at": t.resolved_at.isoformat()})
-                    _email_breach(t, role_users)
+                    AuditLog.objects.create(
+                        ticket=ticket,
+                        actor=None,
+                        action="SLA_BREACH",
+                        meta={
+                            "due_at": due.isoformat(),
+                            "resolved_at": ticket.resolved_at.isoformat(),
+                        },
+                    )
+                    _email_breach(ticket, role_users)
                 breached += 1
             continue
 
-        # Aún no resuelto: breach
-        if elapsed_h >= sla_hours and not _has_log(t, "SLA_BREACH"):
+        # Tickets abiertos: evaluar incumplimiento.
+        if elapsed_h >= sla_hours and not _has_log(ticket, "SLA_BREACH"):
             if not dry_run:
-                AuditLog.objects.create(ticket=t, actor=None, action="SLA_BREACH",
-                                        meta={"due_at": due.isoformat(), "overdue_h": int((now - due).total_seconds() // 3600)})
-                _email_breach(t, role_users)
+                AuditLog.objects.create(
+                    ticket=ticket,
+                    actor=None,
+                    action="SLA_BREACH",
+                    meta={
+                        "due_at": due.isoformat(),
+                        "overdue_h": int((now - due).total_seconds() // 3600),
+                    },
+                )
+                _email_breach(ticket, role_users)
             breached += 1
             continue
 
-        # Warning
-        if elapsed_h >= warn_th and not _has_log(t, "SLA_WARN"):
+        # Tickets dentro del umbral: enviar advertencia cuando corresponda.
+        if elapsed_h >= warn_threshold and not _has_log(ticket, "SLA_WARN"):
             if not dry_run:
-                AuditLog.objects.create(ticket=t, actor=None, action="SLA_WARN",
-                                        meta={"due_at": due.isoformat(), "remaining_h": int((due - now).total_seconds() // 3600)})
-                _email_warn(t, role_users)
+                AuditLog.objects.create(
+                    ticket=ticket,
+                    actor=None,
+                    action="SLA_WARN",
+                    meta={
+                        "due_at": due.isoformat(),
+                        "remaining_h": int((due - now).total_seconds() // 3600),
+                    },
+                )
+                _email_warn(ticket, role_users)
             warned += 1
 
     return {"warnings": warned, "breaches": breached}
 
 
-def _create_notifications(users, message: str, ticket: Ticket):
-    link = reverse("ticket_detail", args=[ticket.pk])
-    notifications = [Notification(user=user, message=message, url=link) for user in users]
-    if notifications:
-        Notification.objects.bulk_create(notifications)
-
-
-def _email_warn(t: Ticket, role_users):
-    recipients = {user for user in role_users if user}
-    if t.assigned_to and t.assigned_to.is_active:
-        recipients.add(t.assigned_to)
-    recipients = {u for u in recipients if getattr(u, "is_active", False)}
-    emails = [getattr(u, "email", None) for u in recipients]
-    emails = [email for email in emails if email]
-    if emails:
-        send_mail(
-            subject=f"[{t.code}] SLA por vencer",
-            message=f"El ticket {t.code} ({t.title}) está por vencer su SLA.",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=emails,
-            fail_silently=True,
-        )
-    if recipients:
-        _create_notifications(
-            recipients,
-            f"El ticket {t.code} está por vencer su SLA.",
-            t,
-        )
-
-
-def _email_breach(t: Ticket, role_users=None):
-    recipients = set(role_users or [])
-    if t.assigned_to and t.assigned_to.is_active:
-        recipients.add(t.assigned_to)
-    if t.requester and getattr(t.requester, "is_active", False):
-        recipients.add(t.requester)
-    recipients = {u for u in recipients if getattr(u, "is_active", False)}
-    emails = [getattr(u, "email", None) for u in recipients]
-    emails = [email for email in emails if email]
-    if emails:
-        send_mail(
-            subject=f"[{t.code}] SLA VENCIDO",
-            message=f"El ticket {t.code} ({t.title}) ha vencido su SLA.",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=emails,
-            fail_silently=True,
-        )
-    if recipients:
-        _create_notifications(
-            recipients,
-            f"El ticket {t.code} ha vencido su SLA.",
-            t,
-        )
-
 def apply_auto_assign(ticket: Ticket, actor=None) -> bool:
+    """Aplica la regla de auto-asignación que coincida con el ticket."""
+
     qs = AutoAssignRule.objects.filter(is_active=True)
-    rule = (qs.filter(category=ticket.category, area=ticket.area).first()
-            or qs.filter(category=ticket.category, area__isnull=True).first()
-            or qs.filter(category__isnull=True, area=ticket.area).first())
-    if not rule:
+    rule = (
+        qs.filter(category=ticket.category, area=ticket.area).first()
+        or qs.filter(category=ticket.category, area__isnull=True).first()
+        or qs.filter(category__isnull=True, area=ticket.area).first()
+    )
+    if not rule or ticket.assigned_to_id == rule.tech_id:
         return False
 
-    if ticket.assigned_to_id == rule.tech_id:
-        return False
-
-    prev = ticket.assigned_to
+    previous_assignee = ticket.assigned_to
     ticket.assigned_to = rule.tech
     ticket.save(update_fields=["assigned_to", "updated_at"])
 
     TicketAssignment.objects.create(
-        ticket=ticket, from_user=actor, to_user=rule.tech, reason="auto-assign"
+        ticket=ticket,
+        from_user=actor,
+        to_user=rule.tech,
+        reason="auto-assign",
     )
     AuditLog.objects.create(
-        ticket=ticket, actor=actor, action="ASSIGN",
+        ticket=ticket,
+        actor=actor,
+        action="ASSIGN",
         meta={
-            "from": prev.id if prev else None,
-            "from_username": getattr(prev, "username", None) if prev else None,
+            "from": getattr(previous_assignee, "id", None),
+            "from_username": getattr(previous_assignee, "username", None),
             "to": rule.tech_id,
             "to_username": getattr(rule.tech, "username", None),
             "reason": "auto-assign",
@@ -161,7 +233,8 @@ def apply_auto_assign(ticket: Ticket, actor=None) -> bool:
 
 
 def tickets_to_workbook(qs) -> Workbook:
-    """Construye un workbook de Excel a partir de un queryset de tickets."""
+    """Construye un archivo Excel a partir de un queryset de tickets."""
+
     wb = Workbook()
     ws = wb.active
     ws.append(
@@ -179,20 +252,25 @@ def tickets_to_workbook(qs) -> Workbook:
             "Cerrado",
         ]
     )
-    for t in qs:
+
+    for ticket in qs:
         ws.append(
             [
-                t.code,
-                t.title,
-                t.get_status_display(),
-                getattr(t.category, "name", ""),
-                getattr(t.priority, "name", ""),
-                getattr(t.area, "name", ""),
-                getattr(t.requester, "username", ""),
-                getattr(t.assigned_to, "username", ""),
-                timezone.localtime(t.created_at).strftime("%Y-%m-%d %H:%M"),
-                timezone.localtime(t.resolved_at).strftime("%Y-%m-%d %H:%M") if t.resolved_at else "",
-                timezone.localtime(t.closed_at).strftime("%Y-%m-%d %H:%M") if t.closed_at else "",
+                ticket.code,
+                ticket.title,
+                ticket.get_status_display(),
+                getattr(ticket.category, "name", ""),
+                getattr(ticket.priority, "name", ""),
+                getattr(ticket.area, "name", ""),
+                getattr(ticket.requester, "username", ""),
+                getattr(ticket.assigned_to, "username", ""),
+                timezone.localtime(ticket.created_at).strftime("%Y-%m-%d %H:%M"),
+                timezone.localtime(ticket.resolved_at).strftime("%Y-%m-%d %H:%M")
+                if ticket.resolved_at
+                else "",
+                timezone.localtime(ticket.closed_at).strftime("%Y-%m-%d %H:%M")
+                if ticket.closed_at
+                else "",
             ]
         )
 
