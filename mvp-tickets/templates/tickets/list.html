@@ -97,6 +97,15 @@
               {% endfor %}
             </select>
           </div>
+          <div class="space-y-1">
+            <label class="text-xs font-semibold uppercase text-slate-500" for="area">Área</label>
+            <select id="area" name="area" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+              <option value="" {% if not filters.area %}selected{% endif %}>(Todas)</option>
+              {% for a in areas %}
+                <option value="{{ a.id }}" {% if filters.area|stringformat:'s' == a.id|stringformat:'s' %}selected{% endif %}>{{ a.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
           <div class="flex items-center justify-between gap-3">
             <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase text-slate-500">
               <input type="checkbox" name="alerts" value="1" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" {% if filters.alerts %}checked{% endif %}>
@@ -156,6 +165,10 @@
                   <a href="?sort=category__name{{ qs_no_sort }}" class="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:text-indigo-500"><i class="bi bi-arrow-up"></i></a>
                   <a href="?sort=-category__name{{ qs_no_sort }}" class="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:text-indigo-500"><i class="bi bi-arrow-down"></i></a>
                 </th>
+                <th scope="col" class="px-4 py-3 text-left">Área
+                  <a href="?sort=area__name{{ qs_no_sort }}" class="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:text-indigo-500"><i class="bi bi-arrow-up"></i></a>
+                  <a href="?sort=-area__name{{ qs_no_sort }}" class="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:text-indigo-500"><i class="bi bi-arrow-down"></i></a>
+                </th>
                 <th scope="col" class="px-4 py-3 text-left">Prioridad
                   <a href="?sort=priority__name{{ qs_no_sort }}" class="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:text-indigo-500"><i class="bi bi-arrow-up"></i></a>
                   <a href="?sort=-priority__name{{ qs_no_sort }}" class="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:text-indigo-500"><i class="bi bi-arrow-down"></i></a>
@@ -207,6 +220,7 @@
                   </span>
                 </td>
                 <td class="px-4 py-3 text-slate-600">{{ t.category.name }}</td>
+                <td class="px-4 py-3 text-slate-600">{% if t.area %}{{ t.area.name }}{% else %}<span class="text-slate-400">Sin área</span>{% endif %}</td>
                 <td class="px-4 py-3 text-slate-600">{{ t.priority.name }}</td>
                 <td class="px-4 py-3 text-slate-600">{% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}<span class="text-slate-400">Sin asignar</span>{% endif %}</td>
                 <td class="px-4 py-3 space-y-1">

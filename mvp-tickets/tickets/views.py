@@ -53,6 +53,7 @@ from .models import (
     EventLog,
     Notification,
     Priority,
+    Area,
 )
 
 
@@ -332,7 +333,9 @@ def tickets_home(request):
       - page, page_size: paginación (por defecto 20)
     """
     u = request.user
-    base_qs = Ticket.objects.select_related("category", "priority", "assigned_to")
+    base_qs = Ticket.objects.select_related(
+        "category", "priority", "area", "assigned_to"
+    )
     can_view_all = u.has_perm("tickets.view_all_tickets") if is_tech(u) else False
 
     inbox = (request.GET.get("inbox") or "").strip().lower()
@@ -369,6 +372,7 @@ def tickets_home(request):
     status = (request.GET.get("status") or "").strip()
     category = (request.GET.get("category") or "").strip()
     priority = (request.GET.get("priority") or "").strip()
+    area = (request.GET.get("area") or "").strip()
     alerts_only = request.GET.get("alerts") == "1"
     hide_closed = request.GET.get("hide_closed", "0")
     if hide_closed not in {"0", "1"}:
@@ -387,6 +391,11 @@ def tickets_home(request):
             qs = qs.filter(priority_id=priority)
         else:
             qs = qs.filter(priority__name__iexact=priority)
+    if area:
+        if area.isdigit():
+            qs = qs.filter(area_id=area)
+        else:
+            qs = qs.filter(area__name__iexact=area)
 
     # Búsqueda
     q = (request.GET.get("q") or "").strip()
@@ -405,6 +414,7 @@ def tickets_home(request):
         "status",
         "category__name",
         "priority__name",
+        "area__name",
         "assigned_to__username",
         "created_at",
         "kind",
@@ -445,6 +455,7 @@ def tickets_home(request):
     # Para el combo de estados (clave y etiqueta en español)
     statuses = Ticket.STATUS_CHOICES
     priorities = list(Priority.objects.order_by("name"))
+    areas = list(Area.objects.order_by("name"))
 
     # Para preservar filtros en paginación (opcional, usado en template)
     qdict = request.GET.copy()
@@ -482,6 +493,7 @@ def tickets_home(request):
             "status": status,
             "category": category,
             "priority": priority,
+            "area": area,
             "alerts": "1" if alerts_only else "",
             "hide_closed": hide_closed,
         },
@@ -490,6 +502,7 @@ def tickets_home(request):
         "qs_no_sort": qs_no_sort,
         "tech_counters": tech_counters,
         "priorities": priorities,
+        "areas": areas,
         "current_inbox": inbox,
         "inbox_links": inbox_links,
     }
