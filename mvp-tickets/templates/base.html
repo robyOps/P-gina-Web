@@ -179,10 +179,10 @@
                 <button type="submit" class="hover:text-orange-300 transition-colors">Salir</button>
               </form>
             </div>
-          {% else %}
-            {% if request.resolver_match.url_name != 'login' %}
-              <a href="{% url 'login' %}" class="hover:text-orange-300 transition-colors">Ingresar</a>
-            {% endif %}
+          {% endif %}
+
+          {% if not request.user.is_authenticated and request.resolver_match.url_name != 'login' %}
+            <a href="{% url 'login' %}" class="hover:text-orange-300 transition-colors">Ingresar</a>
           {% endif %}
         </div>
     </div>
