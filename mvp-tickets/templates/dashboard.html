@@ -145,8 +145,7 @@
                 </li>
                 {% endfor %}
               </ul>
-              {% endif %}
-              {% if not urgent_tickets %}
+              {% else %}
               <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-8 text-center text-sm text-emerald-600">
                 <i class="bi bi-emoji-smile text-3xl"></i>
                 <p class="max-w-md text-base">No hay tickets urgentes en este momento. Tu equipo mantiene el control absoluto.</p>
@@ -222,8 +221,7 @@
                   <canvas id="failuresChart" aria-label="Gráfico de barras con tendencias de fallas"></canvas>
                 </div>
               </div>
-              {% endif %}
-              {% if not has_failures_data %}
+              {% else %}
               <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 p-8 text-center text-sm text-sky-600">
                 <i class="bi bi-info-circle text-3xl"></i>
                 <p class="max-w-md text-base">No hay registros recientes suficientes para mostrar tendencias de fallas. Mantén la monitorización para descubrir patrones emergentes.</p>
@@ -255,8 +253,7 @@
                 </li>
                 {% endfor %}
               </ul>
-              {% endif %}
-              {% if not failure_breakdown %}
+              {% else %}
               <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-8 text-center text-sm text-slate-600">
                 <i class="bi bi-clipboard2-check text-3xl text-slate-500"></i>
                 <p class="max-w-xs text-base">Aún no hay suficiente información para crear un ranking de fallas frecuentes.</p>
