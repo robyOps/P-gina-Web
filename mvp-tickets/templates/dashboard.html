@@ -138,14 +138,15 @@
                   <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p class="text-base font-semibold text-slate-900">{{ ticket.title }}</p>
                     <div class="flex items-center gap-3 text-sm text-slate-600">
-                      <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1"><i class="bi bi-person-circle"></i>{% if ticket.assigned_to %}{{ ticket.assigned_to.username }}{% else %}-{% endif %}</span>
+                      <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1"><i class="bi bi-person-circle"></i>{{ ticket.assigned_to.username|default:"-" }}</span>
                       <span class="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-amber-700 font-semibold"><i class="bi bi-hourglass-split"></i> {{ ticket.remaining_hours|floatformat:1 }} h</span>
                     </div>
                   </div>
                 </li>
                 {% endfor %}
               </ul>
-              {% else %}
+              {% endif %}
+              {% if not urgent_tickets %}
               <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-8 text-center text-sm text-emerald-600">
                 <i class="bi bi-emoji-smile text-3xl"></i>
                 <p class="max-w-md text-base">No hay tickets urgentes en este momento. Tu equipo mantiene el control absoluto.</p>
@@ -221,7 +222,8 @@
                   <canvas id="failuresChart" aria-label="Gráfico de barras con tendencias de fallas"></canvas>
                 </div>
               </div>
-              {% else %}
+              {% endif %}
+              {% if not has_failures_data %}
               <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 p-8 text-center text-sm text-sky-600">
                 <i class="bi bi-info-circle text-3xl"></i>
                 <p class="max-w-md text-base">No hay registros recientes suficientes para mostrar tendencias de fallas. Mantén la monitorización para descubrir patrones emergentes.</p>
@@ -248,16 +250,13 @@
                     <span class="text-sm font-semibold text-slate-600">{{ failure.total }}</span>
                   </div>
                   <div class="h-2 w-full overflow-hidden rounded-full bg-white">
-                    {% if failure_breakdown.0.total %}
-                    <div class="h-full rounded-full" style="background: linear-gradient(90deg, {{ failure.color }}66, {{ failure.color }}aa); width: {% widthratio failure.total failure_breakdown.0.total 100 %}%;"></div>
-                    {% else %}
-                    <div class="h-full rounded-full" style="background: linear-gradient(90deg, {{ failure.color }}66, {{ failure.color }}aa); width: 0;"></div>
-                    {% endif %}
+                    <div class="h-full rounded-full" style="background: linear-gradient(90deg, {{ failure.color }}66, {{ failure.color }}aa); width: {{ failure.percentage }}%;"></div>
                   </div>
                 </li>
                 {% endfor %}
               </ul>
-              {% else %}
+              {% endif %}
+              {% if not failure_breakdown %}
               <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-8 text-center text-sm text-slate-600">
                 <i class="bi bi-clipboard2-check text-3xl text-slate-500"></i>
                 <p class="max-w-xs text-base">Aún no hay suficiente información para crear un ranking de fallas frecuentes.</p>

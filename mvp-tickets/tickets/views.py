@@ -207,6 +207,13 @@ def dashboard(request):
             }
         )
 
+    top_failure_total = failure_breakdown[0]["total"] if failure_breakdown else 0
+    for item in failure_breakdown:
+        if top_failure_total:
+            item["percentage"] = round(item["total"] / top_failure_total * 100, 2)
+        else:
+            item["percentage"] = 0
+
     failure_labels = [item["label"] for item in failure_breakdown]
     failure_totals = [item["total"] for item in failure_breakdown]
     failures_chart_data = json.dumps(
