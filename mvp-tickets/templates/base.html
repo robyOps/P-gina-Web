@@ -138,57 +138,53 @@
         {% endif %}
       </div>
 
-      <div class="flex items-center gap-6 text-sm">
-        {% if request.user.is_authenticated %}
-          {% with user=request.user %}
-            {% with
-              can_users=user.has_perm('auth.view_user') or user.has_perm('auth.change_user'),
-              can_roles=user.has_perm('auth.view_group') or user.has_perm('auth.change_group'),
-              can_categories=user.has_perm('catalog.view_category'),
-              can_priorities=user.has_perm('catalog.view_priority'),
-              can_areas=user.has_perm('catalog.view_area'),
-              can_auto=user.has_perm('tickets.view_autoassignrule'),
-              can_logs=user.has_perm('tickets.view_eventlog') or user.has_perm('admin.view_logentry') or user.is_staff
-            %}
-              {% if user.is_superuser or can_users or can_roles or can_categories or can_priorities or can_areas or can_auto or can_logs %}
-                <details class="nav-admin relative z-40">
-                  <summary class="nav-admin__toggle">
-                    <i class="bi bi-sliders"></i>
-                    Admin Panel
-                  </summary>
-                  <div class="nav-admin__menu absolute right-0 mt-3">
-                    {% if can_users %}<a href="{% url 'accounts:users_list' %}"><i class="bi bi-people"></i>Usuarios</a>{% endif %}
-                    {% if can_roles %}<a href="{% url 'accounts:roles_list' %}"><i class="bi bi-person-gear"></i>Roles</a>{% endif %}
-                    {% if can_categories %}<a href="{% url 'categories_list' %}"><i class="bi bi-diagram-3"></i>Categorías</a>{% endif %}
-                    {% if can_priorities %}<a href="{% url 'priorities_list' %}"><i class="bi bi-lightning"></i>Prioridades</a>{% endif %}
-                    {% if can_areas %}<a href="{% url 'areas_list' %}"><i class="bi bi-layers"></i>Áreas</a>{% endif %}
-                    {% if can_auto %}<a href="{% url 'auto_rules_list' %}"><i class="bi bi-magic"></i>Auto-asignación</a>{% endif %}
-                    {% if can_logs %}<a href="{% url 'logs_list' %}"><i class="bi bi-clipboard-pulse"></i>Logs</a>{% endif %}
-                  </div>
-                </details>
-              {% endif %}
-            {% endwith %}
-          {% endwith %}
-          <div class="flex items-center gap-4">
-            <a href="{% url 'notifications_list' %}" class="relative hover:text-orange-300 transition-colors">
-              <i class="bi bi-bell"></i>
-              {% unread_notifications_count as notif_count %}
-              {% if notif_count %}
-                <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1">{{ notif_count }}</span>
-              {% endif %}
-            </a>
-            <span>Hola, <span class="font-medium">{{ request.user.username }}</span></span>
-            <form action="{% url 'logout' %}" method="post">
+        <div class="flex items-center gap-6 text-sm">
+          {% if request.user.is_authenticated %}
+            {% if request.user.is_superuser or
+                  request.user.has_perm('auth.view_user') or request.user.has_perm('auth.change_user') or
+                  request.user.has_perm('auth.view_group') or request.user.has_perm('auth.change_group') or
+                  request.user.has_perm('catalog.view_category') or
+                  request.user.has_perm('catalog.view_priority') or
+                  request.user.has_perm('catalog.view_area') or
+                  request.user.has_perm('tickets.view_autoassignrule') or
+                  request.user.has_perm('tickets.view_eventlog') or request.user.has_perm('admin.view_logentry') or
+                  request.user.is_staff %}
+              <details class="nav-admin relative z-40">
+                <summary class="nav-admin__toggle">
+                  <i class="bi bi-sliders"></i>
+                  Admin Panel
+                </summary>
+                <div class="nav-admin__menu absolute right-0 mt-3">
+                  {% if request.user.has_perm('auth.view_user') or request.user.has_perm('auth.change_user') %}<a href="{% url 'accounts:users_list' %}"><i class="bi bi-people"></i>Usuarios</a>{% endif %}
+                  {% if request.user.has_perm('auth.view_group') or request.user.has_perm('auth.change_group') %}<a href="{% url 'accounts:roles_list' %}"><i class="bi bi-person-gear"></i>Roles</a>{% endif %}
+                  {% if request.user.has_perm('catalog.view_category') %}<a href="{% url 'categories_list' %}"><i class="bi bi-diagram-3"></i>Categorías</a>{% endif %}
+                  {% if request.user.has_perm('catalog.view_priority') %}<a href="{% url 'priorities_list' %}"><i class="bi bi-lightning"></i>Prioridades</a>{% endif %}
+                  {% if request.user.has_perm('catalog.view_area') %}<a href="{% url 'areas_list' %}"><i class="bi bi-layers"></i>Áreas</a>{% endif %}
+                  {% if request.user.has_perm('tickets.view_autoassignrule') %}<a href="{% url 'auto_rules_list' %}"><i class="bi bi-magic"></i>Auto-asignación</a>{% endif %}
+                  {% if request.user.has_perm('tickets.view_eventlog') or request.user.has_perm('admin.view_logentry') or request.user.is_staff %}<a href="{% url 'logs_list' %}"><i class="bi bi-clipboard-pulse"></i>Logs</a>{% endif %}
+                </div>
+              </details>
+            {% endif %}
+            <div class="flex items-center gap-4">
+              <a href="{% url 'notifications_list' %}" class="relative hover:text-orange-300 transition-colors">
+                <i class="bi bi-bell"></i>
+                {% unread_notifications_count as notif_count %}
+                {% if notif_count %}
+                  <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1">{{ notif_count }}</span>
+                {% endif %}
+              </a>
+              <span>Hola, <span class="font-medium">{{ request.user.username }}</span></span>
+              <form action="{% url 'logout' %}" method="post">
                 {% csrf_token %}
                 <button type="submit" class="hover:text-orange-300 transition-colors">Salir</button>
-            </form>
-          </div>
-        {% else %}
-          {% if request.resolver_match.url_name != 'login' %}
-          <a href="{% url 'login' %}" class="hover:text-orange-300 transition-colors">Ingresar</a>
+              </form>
+            </div>
+          {% else %}
+            {% if request.resolver_match.url_name != 'login' %}
+              <a href="{% url 'login' %}" class="hover:text-orange-300 transition-colors">Ingresar</a>
+            {% endif %}
           {% endif %}
-        {% endif %}
-      </div>
+        </div>
     </div>
   </header>
 
