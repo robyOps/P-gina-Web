@@ -37,3 +37,35 @@ def add_class(bound_field, css_classes: str):
         return bound_field.as_widget(attrs=attrs)
     except Exception:
         return bound_field
+
+
+@register.simple_tag(takes_context=True)
+def can_access_admin_panel(context) -> bool:
+    """Return True when the current user should see the admin shortcuts menu."""
+
+    request = context.get("request")
+    user = getattr(request, "user", None)
+
+    if not getattr(user, "is_authenticated", False):
+        return False
+
+    if user.is_superuser or getattr(user, "is_staff", False):
+        return True
+
+    required_perms = [
+        "auth.view_user",
+        "auth.change_user",
+        "auth.view_group",
+        "auth.change_group",
+        "catalog.view_category",
+        "catalog.view_priority",
+        "catalog.view_area",
+        "tickets.view_autoassignrule",
+        "tickets.view_eventlog",
+        "admin.view_logentry",
+    ]
+
+    try:
+        return any(user.has_perm(code) for code in required_perms)
+    except Exception:
+        return False
