@@ -41,6 +41,8 @@ class Command(BaseCommand):
             "transition_ticket",
             "comment_internal",
             "view_all_tickets",
+            "view_reports",
+            "manage_reports",
         ]
         custom_perms = list(Permission.objects.filter(codename__in=custom_codes))
 

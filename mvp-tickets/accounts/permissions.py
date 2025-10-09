@@ -45,6 +45,8 @@ PERMISSION_LABELS = {
     "change_faq": "Puede cambiar pregunta frecuente",
     "delete_faq": "Puede eliminar pregunta frecuente",
     "view_faq": "Puede ver preguntas frecuentes",
+    "view_reports": "Puede ver reportes",
+    "manage_reports": "Puede administrar reportes",
     # --- Usuarios y roles (auth) ---
     "add_user": "Puede agregar usuario",
     "change_user": "Puede cambiar usuario",
@@ -151,6 +153,15 @@ PERMISSION_GROUPS: tuple[PermissionGroup, ...] = (
             "add_faq",
             "change_faq",
             "delete_faq",
+        ),
+    ),
+    PermissionGroup(
+        key="analytics",
+        label="Reportes y métricas",
+        description="Consultar paneles y ejecutar herramientas analíticas.",
+        codenames=(
+            "view_reports",
+            "manage_reports",
         ),
     ),
     PermissionGroup(
@@ -276,6 +287,7 @@ PERMISSION_TEMPLATES = {
             "view_ticketattachment",
             "view_faq",
             "change_faq",
+            "view_reports",
         ],
     },
 }
