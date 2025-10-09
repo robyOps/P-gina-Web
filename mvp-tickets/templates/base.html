@@ -121,18 +121,26 @@
         {% if request.user.is_authenticated %}
         {% with current_path=request.path %}
         <nav class="hidden md:flex items-center gap-3 ml-24 text-sm">
+          {% if perms.tickets.view_ticket %}
           <a href="{% url 'tickets_home' %}"
              class="px-3 py-2 rounded-md transition-colors {% if current_path|slice:':8' == '/tickets' %}bg-white/25 text-white font-semibold shadow-sm{% else %}hover:text-orange-300{% endif %}"
              aria-current="{% if current_path|slice:':8' == '/tickets' %}page{% endif %}">Tickets</a>
+          {% endif %}
+          {% if perms.tickets.view_ticket or perms.tickets.view_reports %}
           <a href="{% url 'dashboard' %}"
              class="px-3 py-2 rounded-md transition-colors {% if current_path == '/' %}bg-white/25 text-white font-semibold shadow-sm{% else %}hover:text-orange-300{% endif %}"
              aria-current="{% if current_path == '/' %}page{% endif %}">Dashboard</a>
+          {% endif %}
+          {% if perms.tickets.view_reports %}
           <a href="{% url 'reports_dashboard' %}"
              class="px-3 py-2 rounded-md transition-colors {% if current_path|slice:':8' == '/reports' %}bg-white/25 text-white font-semibold shadow-sm{% else %}hover:text-orange-300{% endif %}"
              aria-current="{% if current_path|slice:':8' == '/reports' %}page{% endif %}">Reportes</a>
+          {% endif %}
+          {% if perms.tickets.view_faq %}
           <a href="{% url 'faq_list' %}"
              class="px-3 py-2 rounded-md transition-colors {% if current_path|slice:':5' == '/faq/' %}bg-white/25 text-white font-semibold shadow-sm{% else %}hover:text-orange-300{% endif %}"
              aria-current="{% if current_path|slice:':5' == '/faq/' %}page{% endif %}">Preguntas frecuentes</a>
+          {% endif %}
         </nav>
         {% endwith %}
         {% endif %}

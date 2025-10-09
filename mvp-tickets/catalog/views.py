@@ -1,12 +1,10 @@
 """Vistas del catálogo de tickets."""
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.http import HttpResponseForbidden
+from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 
-from accounts.roles import ROLE_ADMIN, is_admin
 
 from .forms import AreaForm, CategoryForm, PriorityForm
 from .models import Area, Category, Priority
@@ -45,21 +43,11 @@ def _handle_simple_form(
         context.update(extra_context)
 
     return TemplateResponse(request, template_name, context)
-
-
-def _ensure_admin(user):
-    """Devuelve None si el usuario es admin o una respuesta 403 en otro caso."""
-
-    if is_admin(user):
-        return None
-    return HttpResponseForbidden(f"Solo {ROLE_ADMIN}")
-
-
 # ---------------------------------------------------------------------------
 # Categorías
 # ---------------------------------------------------------------------------
 @login_required
-@user_passes_test(is_admin)
+@permission_required("catalog.view_category", raise_exception=True)
 def categories_list(request):
     """Lista todas las categorías ordenadas alfabéticamente."""
 
@@ -68,7 +56,7 @@ def categories_list(request):
 
 
 @login_required
-@user_passes_test(is_admin)
+@permission_required("catalog.add_category", raise_exception=True)
 def category_create(request):
     """Crea una nueva categoría."""
 
@@ -82,7 +70,7 @@ def category_create(request):
 
 
 @login_required
-@user_passes_test(is_admin)
+@permission_required("catalog.change_category", raise_exception=True)
 def category_edit(request, pk):
     """Edita la categoría seleccionada."""
 
@@ -101,24 +89,18 @@ def category_edit(request, pk):
 # Prioridades
 # ---------------------------------------------------------------------------
 @login_required
+@permission_required("catalog.view_priority", raise_exception=True)
 def priorities_list(request):
     """Lista las prioridades disponibles. Solo para administradores."""
-
-    forbidden = _ensure_admin(request.user)
-    if forbidden:
-        return forbidden
 
     qs = Priority.objects.all().order_by("name")
     return render(request, "catalog/priorities_list.html", {"rows": qs})
 
 
 @login_required
+@permission_required("catalog.add_priority", raise_exception=True)
 def priority_create(request):
     """Crea una nueva prioridad."""
-
-    forbidden = _ensure_admin(request.user)
-    if forbidden:
-        return forbidden
 
     return _handle_simple_form(
         request,
@@ -130,12 +112,9 @@ def priority_create(request):
 
 
 @login_required
+@permission_required("catalog.change_priority", raise_exception=True)
 def priority_edit(request, pk):
     """Permite editar una prioridad existente."""
-
-    forbidden = _ensure_admin(request.user)
-    if forbidden:
-        return forbidden
 
     obj = get_object_or_404(Priority, pk=pk)
     return _handle_simple_form(
@@ -152,7 +131,7 @@ def priority_edit(request, pk):
 # Áreas
 # ---------------------------------------------------------------------------
 @login_required
-@user_passes_test(is_admin)
+@permission_required("catalog.view_area", raise_exception=True)
 def areas_list(request):
     """Lista las áreas registradas."""
 
@@ -161,7 +140,7 @@ def areas_list(request):
 
 
 @login_required
-@user_passes_test(is_admin)
+@permission_required("catalog.add_area", raise_exception=True)
 def area_create(request):
     """Crea un área nueva."""
 
@@ -175,7 +154,7 @@ def area_create(request):
 
 
 @login_required
-@user_passes_test(is_admin)
+@permission_required("catalog.change_area", raise_exception=True)
 def area_edit(request, pk):
     """Edita un área existente."""
 
