@@ -869,43 +869,6 @@ def ticket_detail(request, pk):
     return TemplateResponse(request, "tickets/detail.html", ctx)
 
 
-@login_required
-def ticket_print(request, pk):
-    """Vista imprimible (PDF con Ctrl+P)."""
-    if not request.user.has_perm("tickets.view_ticket"):
-        return forbidden_response(request)
-    t = get_object_or_404(
-        Ticket.objects.select_related(
-            "category", "subcategory", "priority", "area", "requester", "assigned_to"
-        )
-        .prefetch_related(
-            Prefetch(
-                "ticketcomment_set",
-                queryset=TicketComment.objects.select_related("author").order_by("created_at"),
-            ),
-            Prefetch(
-                "ticketattachment_set",
-                queryset=TicketAttachment.objects.order_by("uploaded_at"),
-            ),
-        ),
-        pk=pk,
-    )
-    u = request.user
-    if not (
-        is_admin(u)
-        or (is_tech(u) and t.assigned_to_id in (None, u.id))
-        or t.requester_id == u.id
-    ):
-        return forbidden_response(request)
-    public_comments = [c for c in t.ticketcomment_set.all() if not c.is_internal]
-    attachments = list(t.ticketattachment_set.all())
-    return TemplateResponse(
-        request,
-        "tickets/print.html",
-        {"t": t, "public_comments": public_comments, "attachments": attachments},
-    )
-
-
 # --------- partials HTMX ---------
 @login_required
 def discussion_partial(request, pk):
@@ -1442,14 +1405,32 @@ def reports_check_sla(request):
 # --- PDF (xhtml2pdf) ---
 @login_required
 def ticket_pdf(request, pk):
-    """Genera PDF de la orden desde la misma plantilla de impresión."""
+    """Genera un PDF estilizado solo con la información del ticket solicitado."""
     if not request.user.has_perm("tickets.view_ticket"):
         return forbidden_response(request)
     if pisa is None:
         return pdf_unavailable_response()
     t = get_object_or_404(
         Ticket.objects.select_related(
-            "category", "priority", "area", "requester", "assigned_to"
+            "category",
+            "subcategory",
+            "priority",
+            "area",
+            "requester",
+            "assigned_to",
+        ).prefetch_related(
+            Prefetch(
+                "ticketcomment_set",
+                queryset=TicketComment.objects.select_related("author").order_by("created_at"),
+            ),
+            Prefetch(
+                "ticketattachment_set",
+                queryset=TicketAttachment.objects.order_by("uploaded_at"),
+            ),
+            Prefetch(
+                "labels",
+                queryset=TicketLabel.objects.select_related("created_by").order_by("name"),
+            ),
         ),
         pk=pk,
     )
@@ -1461,16 +1442,18 @@ def ticket_pdf(request, pk):
     ):
         return forbidden_response(request)
 
-    template = get_template("tickets/print.html")
+    template = get_template("tickets/ticket_pdf.html")
     public_comments = [c for c in t.ticketcomment_set.all() if not c.is_internal]
     attachments = list(t.ticketattachment_set.all())
+    labels = list(t.labels.all())
     html = template.render(
         {
             "t": t,
-            "for_pdf": True,
             "request": request,
+            "generated_at": timezone.now(),
             "public_comments": public_comments,
             "attachments": attachments,
+            "labels": labels,
         }
     )
     result = BytesIO()
@@ -1850,20 +1833,41 @@ def reports_export_pdf(request):
     avg_hours = round(avg_resolve.total_seconds()/3600, 2) if avg_resolve else None
 
     status_map = dict(Ticket.STATUS_CHOICES)
+    tech_username = ""
+    if tech_id:
+        tech_obj = User.objects.filter(pk=tech_id).only("username").first()
+        tech_username = getattr(tech_obj, "username", "")
+
     ctx = {
         "generated_at": timezone.now(),
         "from": dfrom.isoformat() if dfrom else "",
         "to": dto.isoformat() if dto else "",
         "total": qs.count(),
         "type": report_type,
+        "avg_hours": avg_hours,
+        "type_label": {
+            "total": "Resumen general",
+            "categoria": "Desglose por categoría",
+            "promedio": "Tiempo promedio de resolución",
+            "tecnico": "Rendimiento por técnico",
+            "urgencia": "Tickets urgentes",
+        }.get(report_type, "Resumen"),
+        "tech_filter": tech_username,
     }
+
+    subcategory_stats = list(
+        qs.values("category__name", "subcategory__name")
+        .annotate(count=Count("id"))
+        .order_by("category__name", "-count")
+    )
 
     if report_type == "categoria":
         ctx["by_category"] = list(
             qs.values("category__name").annotate(count=Count("id")).order_by("-count")
         )
+        ctx["by_subcategory"] = subcategory_stats
     elif report_type == "promedio":
-        ctx["avg_hours"] = avg_hours
+        pass
     elif report_type == "tecnico":
         ctx["by_tech"] = list(
             qs.exclude(assigned_to__isnull=True)
@@ -1873,7 +1877,13 @@ def reports_export_pdf(request):
         )
     elif report_type == "urgencia":
         ctx["urgent_tickets"] = list(
-            qs.values("code", "title", "status").order_by("-created_at")
+            qs.values(
+                "code",
+                "title",
+                "status",
+                "priority__name",
+                "assigned_to__username",
+            ).order_by("-created_at")
         )
     else:
         by_status_raw = dict(qs.values_list("status").annotate(c=Count("id")))
@@ -1884,7 +1894,7 @@ def reports_export_pdf(request):
         ctx["by_priority"] = list(
             qs.values("priority__name").annotate(count=Count("id")).order_by("-count")
         )
-        ctx["avg_hours"] = avg_hours
+        ctx["by_subcategory"] = subcategory_stats
 
     # Render y PDF
     html = get_template("reports/report_pdf.html").render(ctx)
