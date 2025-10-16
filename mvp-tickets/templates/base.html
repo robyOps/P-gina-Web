@@ -77,6 +77,56 @@
       background: rgba(59, 130, 246, 0.12);
       color: #1d4ed8;
     }
+    .nav-user summary::-webkit-details-marker {
+      display: none;
+    }
+    .nav-user__toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 9999px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      color: inherit;
+      border: 1px solid transparent;
+      transition: color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease,
+        border-color 0.2s ease;
+    }
+    .nav-user__toggle:hover {
+      color: #fdba74;
+    }
+    .nav-user[open] .nav-user__toggle {
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      border-color: rgba(248, 250, 252, 0.4);
+      box-shadow: 0 14px 35px rgba(15, 23, 42, 0.22);
+    }
+    .nav-user__menu {
+      z-index: 60;
+      min-width: 12rem;
+      border-radius: 1.15rem;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 22px 42px rgba(15, 23, 42, 0.2);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+    .nav-user__menu a {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.65rem 0.95rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #1f2937;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .nav-user__menu a:hover {
+      background: rgba(59, 130, 246, 0.12);
+      color: #1d4ed8;
+    }
     .page-hero {
       padding: clamp(0.85rem, 1.5vw, 1.35rem) clamp(1rem, 4vw, 1.75rem);
       border-radius: 1.25rem;
@@ -289,7 +339,18 @@
                 {% endif %}
               </a>
               <span>Hola, <span class="font-medium">{{ request.user.username }}</span></span>
-              <a href="{% url 'account_password_change' %}" class="hover:text-orange-300 transition-colors">Cambiar contraseña</a>
+              <details class="nav-user relative">
+                <summary class="nav-user__toggle" aria-label="Opciones de cuenta">
+                  <i class="bi bi-gear"></i>
+                  <span class="sr-only">Opciones de cuenta</span>
+                </summary>
+                <div class="nav-user__menu absolute right-0 mt-3" role="menu">
+                  <a href="{% url 'account_password_change' %}" role="menuitem">
+                    <i class="bi bi-key"></i>
+                    <span>Cambiar contraseña</span>
+                  </a>
+                </div>
+              </details>
               <form action="{% url 'logout' %}" method="post">
                 {% csrf_token %}
                 <button type="submit" class="hover:text-orange-300 transition-colors">Salir</button>
