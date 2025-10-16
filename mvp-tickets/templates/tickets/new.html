@@ -120,6 +120,11 @@
       if (!categorySelect || !subcategorySelect) {
         return;
       }
+      const isSelectCategory = categorySelect instanceof HTMLSelectElement;
+      const isSelectSubcategory = subcategorySelect instanceof HTMLSelectElement;
+      if (!isSelectCategory || !isSelectSubcategory) {
+        return;
+      }
 
       const originalValue = subcategorySelect.value;
 

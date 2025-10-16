@@ -132,16 +132,28 @@
               {{ quick_edit_form.title }}
             </div>
             <div class="space-y-1">
-              <label class="text-xs font-semibold uppercase text-slate-500" for="id_category">Categoría</label>
-              {{ quick_edit_form.category }}
+              {% if quick_edit_form.category.is_hidden %}
+                {{ quick_edit_form.category }}
+              {% else %}
+                <label class="text-xs font-semibold uppercase text-slate-500" for="id_category">Categoría</label>
+                {{ quick_edit_form.category }}
+              {% endif %}
             </div>
             <div class="space-y-1">
-              <label class="text-xs font-semibold uppercase text-slate-500" for="id_subcategory">Subcategoría (opcional)</label>
-              {{ quick_edit_form.subcategory }}
+              {% if quick_edit_form.subcategory.is_hidden %}
+                {{ quick_edit_form.subcategory }}
+              {% else %}
+                <label class="text-xs font-semibold uppercase text-slate-500" for="id_subcategory">Subcategoría (opcional)</label>
+                {{ quick_edit_form.subcategory }}
+              {% endif %}
             </div>
             <div class="space-y-1">
-              <label class="text-xs font-semibold uppercase text-slate-500" for="id_priority">Prioridad</label>
-              {{ quick_edit_form.priority }}
+              {% if quick_edit_form.priority.is_hidden %}
+                {{ quick_edit_form.priority }}
+              {% else %}
+                <label class="text-xs font-semibold uppercase text-slate-500" for="id_priority">Prioridad</label>
+                {{ quick_edit_form.priority }}
+              {% endif %}
             </div>
             <div class="space-y-1">
               <label class="text-xs font-semibold uppercase text-slate-500" for="id_area">Área</label>

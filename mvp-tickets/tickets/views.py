@@ -788,7 +788,7 @@ def ticket_detail(request, pk):
         is_admin_u or (is_tech_u and t.assigned_to_id == u.id)
     ):
         can_quick_edit = True
-        quick_edit_form = TicketQuickUpdateForm(instance=t)
+        quick_edit_form = TicketQuickUpdateForm(instance=t, user=request.user)
 
     suggestions = list(
         t.label_suggestions.select_related("accepted_by").order_by("-score", "label")
@@ -1063,7 +1063,7 @@ def ticket_quick_update(request, pk):
     ):
         return forbidden_response(request, "Sin autorización para editar el ticket")
 
-    form = TicketQuickUpdateForm(request.POST, instance=t)
+    form = TicketQuickUpdateForm(request.POST, instance=t, user=request.user)
     if not form.is_valid():
         messages.error(request, "Revisa los campos para actualizar el ticket.")
         return redirect("ticket_detail", pk=t.pk)

@@ -49,6 +49,24 @@ class TicketCreateForm(forms.ModelForm):
         self._default_category = self.fields["category"].queryset.first()
         self._default_priority = self.fields["priority"].queryset.first()
 
+        self._can_choose_category = bool(
+            user and user.has_perm("tickets.set_ticket_category")
+        )
+        self._can_choose_priority = bool(
+            user and user.has_perm("tickets.set_ticket_priority")
+        )
+
+        if not self._can_choose_category:
+            if self._default_category:
+                self.fields["category"].initial = self._default_category.pk
+            self.fields["category"].widget = forms.HiddenInput()
+            self.fields["subcategory"].widget = forms.HiddenInput()
+
+        if not self._can_choose_priority:
+            if self._default_priority:
+                self.fields["priority"].initial = self._default_priority.pk
+            self.fields["priority"].widget = forms.HiddenInput()
+
         is_admin_user = bool(user and (user.is_superuser or user.groups.filter(name=ROLE_ADMIN).exists()))
 
         if is_admin_user:
@@ -61,13 +79,12 @@ class TicketCreateForm(forms.ModelForm):
             except Group.DoesNotExist:
                 self.fields["assignee"].queryset = User.objects.none()
         else:
-            # Usuarios no admin: ocultamos asignación y subcategoría
+            # Usuarios no admin: ocultamos asignación manual
             self.fields.pop("assignee", None)
-            if self._default_category:
+            if self._can_choose_category and self._default_category:
                 self.fields["category"].initial = self._default_category.pk
-            if self._default_priority:
+            if self._can_choose_priority and self._default_priority:
                 self.fields["priority"].initial = self._default_priority.pk
-            self.fields["subcategory"].widget = forms.HiddenInput()
 
     def clean_title(self):
         title = sanitize_text(self.cleaned_data.get("title"))
@@ -82,6 +99,13 @@ class TicketCreateForm(forms.ModelForm):
         return description
 
     def clean_category(self):
+        if not self._can_choose_category:
+            if self._default_category:
+                return self._default_category
+            raise forms.ValidationError(
+                "No hay categorías disponibles. Contacta al administrador."
+            )
+
         category = self.cleaned_data.get("category")
         if category:
             return category
@@ -90,6 +114,9 @@ class TicketCreateForm(forms.ModelForm):
         raise forms.ValidationError("No hay categorías disponibles. Contacta al administrador.")
 
     def clean_subcategory(self):
+        if not self._can_choose_category:
+            return None
+
         category = self.cleaned_data.get("category") or self._default_category
         subcategory = self.cleaned_data.get("subcategory")
         if not subcategory:
@@ -99,6 +126,13 @@ class TicketCreateForm(forms.ModelForm):
         return subcategory
 
     def clean_priority(self):
+        if not self._can_choose_priority:
+            if self._default_priority:
+                return self._default_priority
+            raise forms.ValidationError(
+                "No hay prioridades disponibles. Contacta al administrador."
+            )
+
         priority = self.cleaned_data.get("priority")
         if priority:
             return priority
@@ -147,7 +181,8 @@ class TicketQuickUpdateForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
+        self._user = user
         super().__init__(*args, **kwargs)
         self.fields["category"].queryset = Category.objects.order_by("name")
         subcategory_qs = Subcategory.objects.select_related("category").order_by("category__name", "name")
@@ -159,13 +194,38 @@ class TicketQuickUpdateForm(forms.ModelForm):
         self.fields["subcategory"].required = False
         self.fields["subcategory"].empty_label = "Sin subcategoría"
 
+        self._can_choose_category = bool(
+            user and user.has_perm("tickets.set_ticket_category")
+        )
+        self._can_choose_priority = bool(
+            user and user.has_perm("tickets.set_ticket_priority")
+        )
+
+        if not self._can_choose_category:
+            self.fields["category"].widget = forms.HiddenInput()
+            self.fields["subcategory"].widget = forms.HiddenInput()
+
+        if not self._can_choose_priority:
+            self.fields["priority"].widget = forms.HiddenInput()
+
     def clean_title(self):
         title = sanitize_text(self.cleaned_data.get("title"))
         if not title:
             raise forms.ValidationError("El título es obligatorio.")
         return title
 
+    def clean_category(self):
+        if not self._can_choose_category:
+            return self.instance.category
+        category = self.cleaned_data.get("category")
+        if category:
+            return category
+        raise forms.ValidationError("La categoría es obligatoria.")
+
     def clean_subcategory(self):
+        if not self._can_choose_category:
+            return getattr(self.instance, "subcategory", None)
+
         category = self.cleaned_data.get("category")
         subcategory = self.cleaned_data.get("subcategory")
         if not subcategory:
@@ -173,6 +233,14 @@ class TicketQuickUpdateForm(forms.ModelForm):
         if category and subcategory.category_id != category.id:
             raise forms.ValidationError("La subcategoría no pertenece a la categoría seleccionada.")
         return subcategory
+
+    def clean_priority(self):
+        if not self._can_choose_priority:
+            return self.instance.priority
+        priority = self.cleaned_data.get("priority")
+        if priority:
+            return priority
+        raise forms.ValidationError("La prioridad es obligatoria.")
 
 class AutoAssignRuleForm(forms.ModelForm):
     class Meta:
