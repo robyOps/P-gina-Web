@@ -10,14 +10,10 @@
   <p class="mt-4 text-base text-slate-600 leading-relaxed">
     {{ message|default:"No cuentas con los permisos necesarios para visualizar este contenido." }}
   </p>
-  <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+  <div class="mt-8 flex flex-col items-center gap-3 justify-center">
     <a href="{% url 'dashboard' %}" class="btn inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-indigo-600 text-white font-semibold shadow-lg hover:bg-indigo-500">
       <i class="bi bi-speedometer2 mr-2"></i>
       Volver al dashboard
-    </a>
-    <a href="mailto:soporte@localhost" class="inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-slate-200 text-slate-600 font-medium hover:border-indigo-300 hover:text-indigo-600 transition">
-      <i class="bi bi-envelope-check mr-2"></i>
-      Contactar al administrador
     </a>
   </div>
 </section>
