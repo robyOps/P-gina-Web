@@ -72,7 +72,6 @@ from .services import (
 )
 from .utils import (
     aggregate_top_subcategories,
-    build_ticket_heatmap,
     recent_ticket_alerts,
     sanitize_text,
 )
@@ -310,7 +309,6 @@ def dashboard(request):
     )
 
     top_subcategories = aggregate_top_subcategories(qs, since=month_start)
-    heatmap_payload = build_ticket_heatmap(qs, since=month_start)
     alerts_panel = recent_ticket_alerts(monthly_qs, warn_ratio=0.75, limit=6)
 
     ctx = {
@@ -323,7 +321,6 @@ def dashboard(request):
         "failures_since": month_start,
         "failure_breakdown": failure_breakdown,
         "top_subcategories": top_subcategories,
-        "heatmap": heatmap_payload,
         "alerts_panel": alerts_panel,
         "current_month_range": {"start": month_start, "end": month_end_display},
     }
