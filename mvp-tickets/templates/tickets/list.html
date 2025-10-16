@@ -170,7 +170,7 @@
           <table class="w-full table-auto divide-y divide-slate-100 text-xs sm:text-sm">
             <thead class="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-600 sm:text-xs">
               <tr>
-                <th scope="col" class="px-3 py-2 text-left sm:px-4 sm:py-2.5">
+                <th scope="col" class="px-3 py-2 text-left sm:w-20 sm:px-3 sm:py-2">
                   <div class="flex items-center gap-1">
                     <span>Código</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -233,7 +233,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-3 py-2 text-left sm:px-4 sm:py-2.5">
+                <th scope="col" class="px-3 py-2 text-left sm:w-28 sm:px-3 sm:py-2">
                   <div class="flex items-center gap-1">
                     <span>Asignado</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -264,7 +264,7 @@
                 role="link"
                 aria-label="Abrir ticket {{ t.code }}"
               >
-                <td class="px-3 py-2 font-semibold text-indigo-600 sm:px-4 sm:py-2.5">
+                <td class="px-3 py-2 font-semibold text-indigo-600 sm:w-20 sm:px-3 sm:py-2">
                   <a class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-sm font-semibold text-indigo-700 transition group-hover:bg-indigo-100 focus-visible:outline-none" href="{% url 'ticket_detail' t.id %}">
                     <i class="bi bi-hash"></i>
                     {{ t.code }}
@@ -292,7 +292,13 @@
                 <td class="px-3 py-2 text-slate-600 sm:px-4 sm:py-2.5">{{ t.category.name }}</td>
                 <td class="px-3 py-2 text-slate-600 sm:px-4 sm:py-2.5">{% if t.area %}{{ t.area.name }}{% else %}<span class="text-slate-400">Sin área</span>{% endif %}</td>
                 <td class="px-3 py-2 text-slate-600 sm:px-4 sm:py-2.5">{{ t.priority.name }}</td>
-                <td class="px-3 py-2 text-slate-600 sm:px-4 sm:py-2.5">{% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}<span class="text-slate-400">Sin asignar</span>{% endif %}</td>
+                <td class="px-3 py-2 text-slate-600 sm:w-28 sm:px-3 sm:py-2">
+                  {% if t.assigned_to %}
+                    <span class="block truncate sm:max-w-[7rem]" title="{{ t.assigned_to.username }}">{{ t.assigned_to.username }}</span>
+                  {% else %}
+                    <span class="text-slate-400">Sin asignar</span>
+                  {% endif %}
+                </td>
                 <td class="px-3 py-2 space-y-1 sm:px-4 sm:py-2.5">
                   {% if t.is_overdue %}
                     <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-600"><i class="bi bi-alarm"></i> SLA vencido</span>
