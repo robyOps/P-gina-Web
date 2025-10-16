@@ -1,5 +1,12 @@
 from rest_framework import serializers
-from .models import Ticket, TicketComment, TicketAttachment, TicketAssignment
+from .models import (
+    Ticket,
+    TicketComment,
+    TicketAttachment,
+    TicketAssignment,
+    TicketLabel,
+    TicketLabelSuggestion,
+)
 
 class TicketSerializer(serializers.ModelSerializer):
     requester = serializers.HiddenField(default=serializers.CurrentUserDefault())
@@ -36,3 +43,39 @@ class TicketAssignmentSerializer(serializers.ModelSerializer):
         model = TicketAssignment
         fields = ["id", "ticket", "from_user", "to_user", "reason", "created_at"]
         read_only_fields = ["from_user", "created_at"]
+
+
+class TicketLabelSerializer(serializers.ModelSerializer):
+    created_by_username = serializers.CharField(source="created_by.username", read_only=True)
+
+    class Meta:
+        model = TicketLabel
+        fields = ["id", "ticket", "name", "created_by", "created_by_username", "created_at"]
+        read_only_fields = ["ticket", "created_at", "created_by", "created_by_username"]
+
+
+class TicketLabelSuggestionSerializer(serializers.ModelSerializer):
+    accepted_by_username = serializers.CharField(source="accepted_by.username", read_only=True)
+
+    class Meta:
+        model = TicketLabelSuggestion
+        fields = [
+            "id",
+            "ticket",
+            "label",
+            "score",
+            "is_accepted",
+            "accepted_by",
+            "accepted_by_username",
+            "accepted_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "ticket",
+            "accepted_by",
+            "accepted_by_username",
+            "accepted_at",
+            "created_at",
+            "updated_at",
+        ]

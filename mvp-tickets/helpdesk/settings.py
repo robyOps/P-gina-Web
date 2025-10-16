@@ -131,6 +131,16 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"  # imprime emai
 DEFAULT_FROM_EMAIL = "mvp@localhost"
 
 
+# Etiquetas sugeridas
+_DEFAULT_LABEL_THRESHOLD = "0.35"
+try:
+    TICKET_LABEL_SUGGESTION_THRESHOLD = float(
+        os.environ.get("TICKET_LABEL_SUGGESTION_THRESHOLD", _DEFAULT_LABEL_THRESHOLD)
+    )
+except ValueError:
+    TICKET_LABEL_SUGGESTION_THRESHOLD = float(_DEFAULT_LABEL_THRESHOLD)
+
+
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"

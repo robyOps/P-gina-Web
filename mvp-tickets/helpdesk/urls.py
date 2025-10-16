@@ -21,6 +21,11 @@ urlpatterns = [
     path("tickets/<int:pk>/print/", ticket_views.ticket_print, name="ticket_print"),
     path("tickets/<int:pk>/pdf/", ticket_views.ticket_pdf, name="ticket_pdf"),
     path("tickets/<int:pk>/assign/", ticket_views.ticket_assign, name="ticket_assign"),
+    path(
+        "tickets/<int:pk>/labels/<int:suggestion_id>/accept/",
+        ticket_views.accept_label_suggestion,
+        name="ticket_accept_suggestion",
+    ),
     path("tickets/<int:pk>/update/", ticket_views.ticket_quick_update, name="ticket_quick_update"),
     path("tickets/<int:pk>/transition/", ticket_views.ticket_transition, name="ticket_transition"),
     path("notifications/", ticket_views.notifications_list, name="notifications_list"),
