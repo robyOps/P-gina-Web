@@ -4,7 +4,7 @@ from catalog.api import CategoryViewSet, PriorityViewSet, AreaViewSet
 from accounts.api import MeView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from tickets.api import TicketViewSet
-from reports.api import ReportSummaryView, ReportExportView
+from reports.api import ReportSummaryView, ReportExportView, ReportHeatmapView
 
 router = DefaultRouter()
 router.register("categories", CategoryViewSet, basename="category")
@@ -22,4 +22,5 @@ urlpatterns = [
 urlpatterns += [
     path("reports/summary/", ReportSummaryView.as_view(), name="reports_summary"),
     path("reports/export/", ReportExportView.as_view(), name="reports_export"),
+    path("reports/heatmap/", ReportHeatmapView.as_view(), name="reports_heatmap"),
 ]

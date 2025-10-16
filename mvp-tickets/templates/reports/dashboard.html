@@ -3,6 +3,69 @@
 
 {% block head_extra %}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .heatmap-grid {
+      --heatmap-columns: 25;
+      display: grid;
+      grid-template-columns: repeat(var(--heatmap-columns), minmax(3rem, 1fr));
+      gap: 0.35rem;
+      min-width: 48rem;
+    }
+
+    .heatmap-cell {
+      border-radius: 0.75rem;
+      padding: 0.45rem;
+      text-align: center;
+      font-size: 0.75rem;
+      line-height: 1.25rem;
+      font-weight: 500;
+      background-color: rgba(226, 232, 240, 0.6);
+      color: #1e293b;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+
+    .heatmap-cell[data-value] {
+      cursor: default;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .heatmap-cell[data-value]:hover {
+      transform: scale(1.02);
+      box-shadow: 0 8px 20px rgba(30, 64, 175, 0.15);
+    }
+
+    .heatmap-header {
+      font-weight: 600;
+      color: #334155;
+      background-color: rgba(148, 163, 184, 0.25);
+    }
+
+    .heatmap-row-header {
+      text-align: left;
+      padding-left: 0.75rem;
+    }
+
+    .heatmap-corner {
+      background-color: transparent;
+    }
+
+    .heatmap-empty {
+      color: #94a3b8;
+      background-color: rgba(226, 232, 240, 0.5) !important;
+    }
+
+    .heatmap-legend-bar {
+      background: linear-gradient(
+        to right,
+        rgba(191, 219, 254, 0.2),
+        rgba(96, 165, 250, 0.75),
+        rgba(37, 99, 235, 0.95)
+      );
+      height: 0.75rem;
+      border-radius: 9999px;
+      flex: 1;
+    }
+  </style>
 {% endblock %}
 
 {% block content %}
@@ -122,6 +185,53 @@
       <div class="mt-4 h-64"><canvas id="chartCatSlow"></canvas></div>
     </article>
   </section>
+
+  <section class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50 to-blue-50/40 p-6 shadow-sm">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <h2 class="text-base font-semibold text-slate-900">Mapa de calor por día y hora</h2>
+        <p class="text-sm text-slate-500">Identifica los momentos con mayor carga de tickets y ajusta la dotación de soporte.</p>
+      </div>
+      <form id="heatmapFilters" class="flex flex-wrap items-end gap-3 rounded-2xl border border-indigo-100/80 bg-white/70 p-3 text-sm shadow-sm">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500" for="heatmap_from">Desde</label>
+          <input type="date" id="heatmap_from" name="heatmap_from" value="{{ from }}" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500" for="heatmap_to">Hasta</label>
+          <input type="date" id="heatmap_to" name="heatmap_to" value="{{ to }}" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500" for="heatmap_area">Área</label>
+          <select id="heatmap_area" name="heatmap_area" class="min-w-[10rem] rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+            <option value="" {% if not heatmap_area_selected %}selected{% endif %}>(Todas)</option>
+            {% for area in areas %}
+              <option value="{{ area.id }}" {% if heatmap_area_selected == area.id|stringformat:'s' %}selected{% endif %}>{{ area.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 font-semibold text-white shadow hover:bg-indigo-700">
+            <i class="bi bi-arrow-repeat"></i> Actualizar
+          </button>
+          <button type="reset" class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600">
+            <i class="bi bi-eraser"></i> Limpiar
+          </button>
+        </div>
+      </form>
+    </div>
+    <div class="mt-6 space-y-4">
+      <p id="heatmapStatus" class="text-sm text-slate-500">Cargando mapa de calor…</p>
+      <div class="overflow-x-auto">
+        <div id="heatmapGrid" class="heatmap-grid" role="grid" aria-live="polite" aria-busy="false"></div>
+      </div>
+      <div class="flex items-center gap-3 text-xs font-medium text-slate-500">
+        <span id="heatmapLegendMin">0</span>
+        <div class="heatmap-legend-bar" aria-hidden="true"></div>
+        <span id="heatmapLegendMax">0</span>
+      </div>
+    </div>
+  </section>
 </div>
 {% endblock %}
 
@@ -234,5 +344,161 @@
     buildBar("chartTech", tech, "Por técnico");
     buildBar("chartHist", hist, "Horas de resolución (histograma)");
     buildBar("chartCatSlow", slow, "Categorías más lentas (hrs)", { decimals: 1 });
+  </script>
+  <script>
+    (function () {
+      const form = document.getElementById("heatmapFilters");
+      const status = document.getElementById("heatmapStatus");
+      const grid = document.getElementById("heatmapGrid");
+      const legendMin = document.getElementById("heatmapLegendMin");
+      const legendMax = document.getElementById("heatmapLegendMax");
+
+      if (!form || !status || !grid) {
+        return;
+      }
+
+      function formatHour(hour) {
+        const value = Number(hour || 0);
+        return `${String(value).padStart(2, "0")}:00`;
+      }
+
+      function intensityColor(value, max) {
+        if (!value || !max) {
+          return "rgba(148, 163, 184, 0.25)";
+        }
+        const ratio = Math.max(0, Math.min(1, value / max));
+        const alpha = 0.18 + 0.72 * Math.pow(ratio, 0.85);
+        return `rgba(37, 99, 235, ${alpha.toFixed(3)})`;
+      }
+
+      function createCell(text, className) {
+        const cell = document.createElement("div");
+        cell.className = className;
+        cell.textContent = text;
+        return cell;
+      }
+
+      function createValueCell(dayLabel, hourLabel, value, maxValue) {
+        const cell = document.createElement("div");
+        const safeValue = Number(value || 0);
+        cell.className = "heatmap-cell heatmap-value";
+        cell.dataset.value = String(safeValue);
+        cell.setAttribute("role", "gridcell");
+        cell.setAttribute(
+          "aria-label",
+          `${dayLabel} a las ${hourLabel}: ${safeValue} ticket${safeValue === 1 ? "" : "s"}`
+        );
+        if (!safeValue) {
+          cell.textContent = "—";
+          cell.classList.add("heatmap-empty");
+        } else {
+          cell.textContent = String(safeValue);
+        }
+
+        const color = intensityColor(safeValue, maxValue);
+        cell.style.backgroundColor = color;
+        if (maxValue > 0) {
+          const ratio = safeValue / maxValue;
+          if (ratio >= 0.6) {
+            cell.style.color = "#f8fafc";
+          }
+        }
+        return cell;
+      }
+
+      function renderHeatmap(data) {
+        const hours = Array.isArray(data?.hours) ? data.hours : [];
+        const weekdays = Array.isArray(data?.weekdays) ? data.weekdays : [];
+        const matrix = Array.isArray(data?.matrix) ? data.matrix : [];
+        const maxValue = Number(data?.max_value || 0);
+
+        grid.style.setProperty("--heatmap-columns", hours.length + 1);
+        grid.innerHTML = "";
+        grid.setAttribute("role", "grid");
+
+        const fragment = document.createDocumentFragment();
+        const corner = createCell("", "heatmap-cell heatmap-header heatmap-corner");
+        corner.setAttribute("role", "columnheader");
+        fragment.appendChild(corner);
+
+        hours.forEach((hour) => {
+          const header = createCell(formatHour(hour), "heatmap-cell heatmap-header");
+          header.setAttribute("role", "columnheader");
+          fragment.appendChild(header);
+        });
+
+        weekdays.forEach((dayLabel, rowIndex) => {
+          const rowHeader = createCell(dayLabel, "heatmap-cell heatmap-header heatmap-row-header");
+          rowHeader.setAttribute("role", "rowheader");
+          fragment.appendChild(rowHeader);
+
+          hours.forEach((hour, columnIndex) => {
+            const value = matrix[rowIndex]?.[columnIndex] ?? 0;
+            const cell = createValueCell(dayLabel, formatHour(hour), value, maxValue);
+            fragment.appendChild(cell);
+          });
+        });
+
+        grid.appendChild(fragment);
+
+        legendMin.textContent = "0";
+        legendMax.textContent = String(maxValue);
+
+        const total = Number(data?.totals?.overall || 0);
+        status.textContent = total
+          ? `Total de tickets en el rango: ${total}`
+          : "Sin tickets en el rango seleccionado.";
+      }
+
+      async function loadHeatmap() {
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+        const from = formData.get("heatmap_from");
+        const to = formData.get("heatmap_to");
+        const area = formData.get("heatmap_area");
+
+        if (from) params.set("from", from);
+        if (to) params.set("to", to);
+        if (area) params.set("area", area);
+
+        const query = params.toString();
+        const url = `/api/reports/heatmap/${query ? `?${query}` : ""}`;
+
+        status.textContent = "Cargando mapa de calor…";
+        grid.setAttribute("aria-busy", "true");
+        grid.innerHTML = "";
+
+        try {
+          const response = await fetch(url, { credentials: "same-origin" });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const payload = await response.json();
+          renderHeatmap(payload);
+        } catch (error) {
+          console.error("Heatmap request failed", error);
+          status.textContent = "No se pudo cargar el mapa de calor. Intenta nuevamente más tarde.";
+        } finally {
+          grid.removeAttribute("aria-busy");
+        }
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        loadHeatmap();
+      });
+
+      form.addEventListener("reset", () => {
+        window.requestAnimationFrame(loadHeatmap);
+      });
+
+      form.querySelectorAll("input, select").forEach((input) => {
+        input.addEventListener("change", () => {
+          loadHeatmap();
+        });
+      });
+
+      loadHeatmap();
+    })();
   </script>
 {% endblock %}
