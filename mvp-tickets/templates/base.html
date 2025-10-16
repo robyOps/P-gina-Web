@@ -125,6 +125,28 @@
         return Number.isFinite(parsed) ? parsed : null;
       };
 
+      const applyOffset = (offset) => {
+        if (!Number.isFinite(offset)) {
+          return;
+        }
+        let attempts = 0;
+        const maxAttempts = 8;
+        const target = Math.max(0, Math.round(offset));
+
+        const tick = () => {
+          const current = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+          if (Math.abs(current - target) <= 1 || attempts >= maxAttempts) {
+            window.scrollTo(0, target);
+            return;
+          }
+          attempts += 1;
+          window.scrollTo(0, target);
+          requestAnimationFrame(tick);
+        };
+
+        requestAnimationFrame(tick);
+      };
+
       const restoreScroll = () => {
         if (restored) {
           return;
@@ -139,7 +161,7 @@
             const offset = parseOffset(raw);
             sessionStorage.removeItem(key);
             if (offset !== null) {
-              window.scrollTo(0, offset);
+              applyOffset(offset);
               break;
             }
           }
