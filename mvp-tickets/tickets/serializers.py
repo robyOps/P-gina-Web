@@ -7,6 +7,7 @@ from .models import (
     TicketLabel,
     TicketLabelSuggestion,
 )
+from .utils import sanitize_text
 
 class TicketSerializer(serializers.ModelSerializer):
     requester = serializers.HiddenField(default=serializers.CurrentUserDefault())
@@ -32,12 +33,30 @@ class TicketSerializer(serializers.ModelSerializer):
             "cluster_id",
         ]
 
+    def validate_title(self, value: str) -> str:
+        cleaned = sanitize_text(value)
+        if not cleaned:
+            raise serializers.ValidationError("El título es obligatorio.")
+        return cleaned
+
+    def validate_description(self, value: str) -> str:
+        cleaned = sanitize_text(value)
+        if not cleaned:
+            raise serializers.ValidationError("La descripción es obligatoria.")
+        return cleaned
+
 class TicketCommentSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
     class Meta:
         model = TicketComment
         fields = ["id", "ticket", "author", "body", "is_internal", "created_at"]
         read_only_fields = ["created_at"]
+
+    def validate_body(self, value: str) -> str:
+        cleaned = sanitize_text(value)
+        if not cleaned:
+            raise serializers.ValidationError("El comentario no puede estar vacío.")
+        return cleaned
 
 class TicketAttachmentSerializer(serializers.ModelSerializer):
     uploaded_by = serializers.HiddenField(default=serializers.CurrentUserDefault())

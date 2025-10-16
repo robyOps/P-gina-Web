@@ -34,7 +34,10 @@ from io import BytesIO
 from urllib.parse import urlencode
 
 # --- Third-party ---
-from xhtml2pdf import pisa
+try:
+    from xhtml2pdf import pisa
+except ImportError:  # pragma: no cover - dependencia opcional
+    pisa = None
 
 # --- Auth / models ---
 from django.contrib.auth import get_user_model
@@ -67,6 +70,12 @@ from .services import (
     get_label_suggestion_threshold,
     accept_ticket_label_suggestion,
 )
+from .utils import (
+    aggregate_top_subcategories,
+    build_ticket_heatmap,
+    recent_ticket_alerts,
+    sanitize_text,
+)
 from .validators import validate_upload, UploadValidationError
 
 User = get_user_model()
@@ -90,6 +99,13 @@ def forbidden_response(request, message: str = "No cuentas con autorización par
         "message": message,
     }
     return TemplateResponse(request, "403.html", context, status=403)
+
+
+def pdf_unavailable_response():
+    return HttpResponse(
+        "Exportación a PDF no disponible en este entorno. Solicita al administrador instalar xhtml2pdf.",
+        status=503,
+    )
 
 
 # ----------------- helpers -----------------
@@ -289,6 +305,10 @@ def dashboard(request):
         }
     )
 
+    top_subcategories = aggregate_top_subcategories(qs)
+    heatmap_payload = build_ticket_heatmap(qs)
+    alerts_panel = recent_ticket_alerts(qs, warn_ratio=0.75, limit=6)
+
     ctx = {
         "counts": counts,
         "chart_data": chart_data,
@@ -298,6 +318,9 @@ def dashboard(request):
         "has_failures_data": bool(failure_totals),
         "failures_since": cutoff,
         "failure_breakdown": failure_breakdown,
+        "top_subcategories": top_subcategories,
+        "heatmap": heatmap_payload,
+        "alerts_panel": alerts_panel,
     }
     return render(request, "dashboard.html", ctx)
 
@@ -452,7 +475,6 @@ def tickets_home(request):
     category = (request.GET.get("category") or "").strip()
     priority = (request.GET.get("priority") or "").strip()
     area = (request.GET.get("area") or "").strip()
-    cluster = (request.GET.get("cluster") or "").strip()
     alerts_only = request.GET.get("alerts") == "1"
     hide_closed = request.GET.get("hide_closed", "1")
     if hide_closed not in {"0", "1"}:
@@ -476,11 +498,6 @@ def tickets_home(request):
             qs = qs.filter(area_id=area)
         else:
             qs = qs.filter(area__name__iexact=area)
-    if cluster:
-        if cluster.isdigit():
-            qs = qs.filter(cluster_id=int(cluster))
-        else:
-            cluster = ""
 
     # Búsqueda
     q = (request.GET.get("q") or "").strip()
@@ -501,7 +518,6 @@ def tickets_home(request):
         "priority__name",
         "area__name",
         "assigned_to__username",
-        "cluster_id",
         "created_at",
         "kind",
     }
@@ -541,12 +557,6 @@ def tickets_home(request):
     # Para el combo de estados (clave y etiqueta en español)
     statuses = Ticket.STATUS_CHOICES
     priorities = list(Priority.objects.order_by("name"))
-    cluster_ids = list(
-        Ticket.objects.exclude(cluster_id__isnull=True)
-        .order_by("cluster_id")
-        .values_list("cluster_id", flat=True)
-        .distinct()
-    )
     areas = list(Area.objects.order_by("name"))
 
     # Para preservar filtros en paginación (opcional, usado en template)
@@ -586,7 +596,6 @@ def tickets_home(request):
             "category": category,
             "priority": priority,
             "area": area,
-            "cluster": cluster,
             "alerts": "1" if alerts_only else "",
             "hide_closed": hide_closed,
         },
@@ -596,7 +605,6 @@ def tickets_home(request):
         "tech_counters": tech_counters,
         "priorities": priorities,
         "areas": areas,
-        "cluster_ids": cluster_ids,
         "current_inbox": inbox,
         "inbox_links": inbox_links,
     }
@@ -779,7 +787,7 @@ def add_comment(request, pk):
     if not (is_admin(u) or is_tech(u) or t.requester_id == u.id):
         return forbidden_response(request)
 
-    body = (request.POST.get("body") or "").strip()
+    body = sanitize_text(request.POST.get("body"))
     if not body:
         return HttpResponseBadRequest("Comentario vacío")
 
@@ -876,8 +884,8 @@ def ticket_assign(request, pk):
             messages.error(request, f"El usuario seleccionado no es {ROLE_TECH}.")
             return redirect("ticket_detail", pk=t.pk)
 
-    reason = (request.POST.get("reason") or "").strip()
-    new_title = (request.POST.get("new_title") or "").strip()
+    reason = sanitize_text(request.POST.get("reason"))
+    new_title = sanitize_text(request.POST.get("new_title"))
     prev = t.assigned_to
     previous_title = t.title
 
@@ -1291,6 +1299,8 @@ def ticket_pdf(request, pk):
     """Genera PDF de la orden desde la misma plantilla de impresión."""
     if not request.user.has_perm("tickets.view_ticket"):
         return forbidden_response(request)
+    if pisa is None:
+        return pdf_unavailable_response()
     t = get_object_or_404(
         Ticket.objects.select_related(
             "category", "priority", "area", "requester", "assigned_to"
@@ -1326,6 +1336,8 @@ def reports_pdf(request):
     u = request.user
     if not u.has_perm("tickets.view_reports"):
         return forbidden_response(request)
+    if pisa is None:
+        return pdf_unavailable_response()
     qs = Ticket.objects.all()
 
     # Visibilidad por rol
@@ -1646,6 +1658,8 @@ def reports_export_pdf(request):
     u = request.user
     if not u.has_perm("tickets.view_reports"):
         return forbidden_response(request)
+    if pisa is None:
+        return pdf_unavailable_response()
     qs = Ticket.objects.select_related("category", "priority", "assigned_to", "requester")
 
     # Visibilidad por rol
