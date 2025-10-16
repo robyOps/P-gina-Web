@@ -86,6 +86,10 @@
           <dd>{{ t.category.name }}</dd>
         </div>
         <div class="space-y-1">
+          <dt class="text-xs font-semibold uppercase text-slate-500">Subcategoría</dt>
+          <dd>{% if t.subcategory %}{{ t.subcategory.name }}{% else %}<span class="text-slate-400">Sin definir</span>{% endif %}</dd>
+        </div>
+        <div class="space-y-1">
           <dt class="text-xs font-semibold uppercase text-slate-500">Área vinculada</dt>
           <dd>{% if t.area %}{{ t.area.name }}{% else %}<span class="text-slate-400">Sin definir</span>{% endif %}</dd>
         </div>
@@ -130,6 +134,10 @@
             <div class="space-y-1">
               <label class="text-xs font-semibold uppercase text-slate-500" for="id_category">Categoría</label>
               {{ quick_edit_form.category }}
+            </div>
+            <div class="space-y-1">
+              <label class="text-xs font-semibold uppercase text-slate-500" for="id_subcategory">Subcategoría</label>
+              {{ quick_edit_form.subcategory }}
             </div>
             <div class="space-y-1">
               <label class="text-xs font-semibold uppercase text-slate-500" for="id_priority">Prioridad</label>
@@ -371,4 +379,58 @@
     </article>
   </section>
 </section>
+{% endblock %}
+
+{% block body_extra %}
+  {{ block.super }}
+  {{ subcategory_map|json_script:"subcategory-map-data" }}
+  <script>
+    (function() {
+      const mapNode = document.getElementById('subcategory-map-data');
+      if (!mapNode) {
+        return;
+      }
+      const subcategoryMap = JSON.parse(mapNode.textContent || '{}');
+      const categorySelect = document.getElementById('id_category');
+      const subcategorySelect = document.getElementById('id_subcategory');
+      if (!categorySelect || !subcategorySelect) {
+        return;
+      }
+
+      function populate(categoryId, keepCurrent) {
+        const options = subcategoryMap[categoryId] || [];
+        const current = keepCurrent ? subcategorySelect.value : '';
+        const fragment = document.createDocumentFragment();
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = options.length ? 'Selecciona…' : 'Sin subcategorías disponibles';
+        placeholder.disabled = options.length === 0;
+        fragment.appendChild(placeholder);
+
+        let restored = false;
+        for (const item of options) {
+          const option = document.createElement('option');
+          option.value = String(item.id);
+          option.textContent = item.name;
+          if (!restored && current && String(item.id) === current) {
+            option.selected = true;
+            restored = true;
+          }
+          fragment.appendChild(option);
+        }
+
+        subcategorySelect.innerHTML = '';
+        subcategorySelect.appendChild(fragment);
+        subcategorySelect.disabled = options.length === 0;
+        if (!restored) {
+          subcategorySelect.value = '';
+        }
+      }
+
+      populate(categorySelect.value, true);
+      categorySelect.addEventListener('change', function() {
+        populate(categorySelect.value, false);
+      });
+    })();
+  </script>
 {% endblock %}

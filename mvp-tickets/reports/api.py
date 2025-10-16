@@ -1,8 +1,8 @@
 # reports/api.py
-from datetime import datetime, timedelta
 from collections import Counter
 import csv
 import calendar
+from datetime import datetime, time, timedelta
 
 from django.db.models import Count, Avg, DurationField, ExpressionWrapper, F
 from django.db.models.functions import ExtractHour, ExtractWeekDay, TruncHour
@@ -12,7 +12,11 @@ from rest_framework.response import Response
 from rest_framework import permissions
 
 from tickets.models import Ticket
-from tickets.utils import aggregate_top_subcategories
+from tickets.utils import (
+    aggregate_top_subcategories,
+    aggregate_area_by_subcategory,
+    build_area_subcategory_heatmap,
+)
 from accounts.roles import is_admin, is_tech
 from django.utils import timezone
 
@@ -303,13 +307,18 @@ class ReportHeatmapView(APIView):
 
 
 class ReportTopSubcategoriesView(APIView):
-    """Devuelve el ranking de etiquetas confirmadas (subcategorías) del período."""
+    """Devuelve el ranking de subcategorías del período."""
 
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         qs = base_queryset(request)
-        since = timezone.now() - timedelta(days=30)
+        raw_from = request.query_params.get("from")
+        raw_to = request.query_params.get("to")
+        dfrom, _ = resolve_range(raw_from, raw_to)
+        since = None
+        if dfrom:
+            since = timezone.make_aware(datetime.combine(dfrom, time.min))
         limit = request.query_params.get("limit")
         try:
             limit_value = int(limit) if limit is not None else 5
@@ -320,8 +329,64 @@ class ReportTopSubcategoriesView(APIView):
         results = aggregate_top_subcategories(qs, since=since, limit=limit_value)
         return Response(
             {
-                "since": since.date().isoformat(),
+                "since": dfrom.isoformat() if dfrom else None,
                 "results": results,
+            }
+        )
+
+
+class ReportAreaBySubcategoryView(APIView):
+    """Devuelve el cruce Área × Subcategoría ordenado por incidencias."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        qs = base_queryset(request)
+        raw_from = request.query_params.get("from")
+        raw_to = request.query_params.get("to")
+        dfrom, _ = resolve_range(raw_from, raw_to)
+        since = None
+        if dfrom:
+            since = timezone.make_aware(datetime.combine(dfrom, time.min))
+
+        limit = request.query_params.get("limit")
+        try:
+            limit_value = int(limit) if limit is not None else 10
+        except ValueError:
+            limit_value = 10
+        limit_value = max(1, min(limit_value, 50))
+
+        rows = aggregate_area_by_subcategory(qs, since=since, limit=limit_value)
+        return Response(
+            {
+                "since": dfrom.isoformat() if dfrom else None,
+                "results": rows,
+            }
+        )
+
+
+class ReportAreaSubcategoryHeatmapView(APIView):
+    """Construye un heatmap Área × Subcategoría."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        qs = base_queryset(request)
+        raw_from = request.query_params.get("from")
+        raw_to = request.query_params.get("to")
+        dfrom, _ = resolve_range(raw_from, raw_to)
+        since = None
+        if dfrom:
+            since = timezone.make_aware(datetime.combine(dfrom, time.min))
+
+        payload = build_area_subcategory_heatmap(qs, since=since)
+        return Response(
+            {
+                "since": dfrom.isoformat() if dfrom else None,
+                "cells": payload["cells"],
+                "areas": payload["areas"],
+                "subcategories": payload["subcategories"],
+                "matrix": payload["matrix"],
             }
         )
 

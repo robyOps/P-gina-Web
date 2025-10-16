@@ -19,7 +19,7 @@ class TicketSerializer(serializers.ModelSerializer):
         model = Ticket
         fields = [
             "id", "code", "title", "description",
-            "category", "priority", "area", "kind",
+            "category", "subcategory", "priority", "area", "kind",
             "status", "assigned_to", "cluster_id",
             "created_at", "updated_at", "resolved_at", "closed_at",
             "requester",
@@ -44,6 +44,18 @@ class TicketSerializer(serializers.ModelSerializer):
         if not cleaned:
             raise serializers.ValidationError("La descripción es obligatoria.")
         return cleaned
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        category = attrs.get("category") or getattr(self.instance, "category", None)
+        subcategory = attrs.get("subcategory") or getattr(self.instance, "subcategory", None)
+        if not subcategory:
+            raise serializers.ValidationError({"subcategory": "La subcategoría es obligatoria."})
+        if category and subcategory and subcategory.category_id != category.id:
+            raise serializers.ValidationError(
+                {"subcategory": "La subcategoría no pertenece a la categoría seleccionada."}
+            )
+        return attrs
 
 class TicketCommentSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())

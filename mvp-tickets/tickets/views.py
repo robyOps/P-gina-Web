@@ -24,7 +24,7 @@ from django.utils.timezone import localtime
 from django.shortcuts import render
 from .forms import AutoAssignRuleForm, FAQForm
 from .models import AutoAssignRule, FAQ
-from catalog.models import Category
+from catalog.models import Category, Subcategory
 
 # --- Stdlib ---
 from datetime import datetime, timedelta
@@ -72,6 +72,8 @@ from .services import (
 )
 from .utils import (
     aggregate_top_subcategories,
+    aggregate_area_by_subcategory,
+    build_area_subcategory_heatmap,
     recent_ticket_alerts,
     sanitize_text,
 )
@@ -309,6 +311,7 @@ def dashboard(request):
     )
 
     top_subcategories = aggregate_top_subcategories(qs, since=month_start)
+    area_by_subcategory = aggregate_area_by_subcategory(qs, since=month_start, limit=10)
     alerts_panel = recent_ticket_alerts(monthly_qs, warn_ratio=0.75, limit=6)
 
     ctx = {
@@ -321,6 +324,7 @@ def dashboard(request):
         "failures_since": month_start,
         "failure_breakdown": failure_breakdown,
         "top_subcategories": top_subcategories,
+        "area_by_subcategory": area_by_subcategory,
         "alerts_panel": alerts_panel,
         "current_month_range": {"start": month_start, "end": month_end_display},
     }
@@ -438,7 +442,7 @@ def tickets_home(request):
     if not u.has_perm("tickets.view_ticket"):
         return forbidden_response(request)
     base_qs = Ticket.objects.select_related(
-        "category", "priority", "area", "assigned_to"
+        "category", "subcategory", "priority", "area", "assigned_to"
     )
     can_view_all = u.has_perm("tickets.view_all_tickets")
 
@@ -475,8 +479,11 @@ def tickets_home(request):
     # Filtros
     status = (request.GET.get("status") or "").strip()
     category = (request.GET.get("category") or "").strip()
+    subcategory = (request.GET.get("subcategory") or "").strip()
     priority = (request.GET.get("priority") or "").strip()
     area = (request.GET.get("area") or "").strip()
+    date_from_raw = (request.GET.get("date_from") or "").strip()
+    date_to_raw = (request.GET.get("date_to") or "").strip()
     alerts_only = request.GET.get("alerts") == "1"
     hide_closed = request.GET.get("hide_closed", "1")
     if hide_closed not in {"0", "1"}:
@@ -490,6 +497,11 @@ def tickets_home(request):
         qs = qs.filter(status=status)
     if category:
         qs = qs.filter(category_id=category)
+    if subcategory:
+        if subcategory.isdigit():
+            qs = qs.filter(subcategory_id=subcategory)
+        else:
+            qs = qs.filter(subcategory__name__iexact=subcategory)
     if priority:
         if priority.isdigit():
             qs = qs.filter(priority_id=priority)
@@ -500,6 +512,21 @@ def tickets_home(request):
             qs = qs.filter(area_id=area)
         else:
             qs = qs.filter(area__name__iexact=area)
+
+    def _parse_date(value: str):
+        if not value:
+            return None
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+    date_from = _parse_date(date_from_raw)
+    date_to = _parse_date(date_to_raw)
+    if date_from:
+        qs = qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(created_at__date__lte=date_to)
 
     # Búsqueda
     q = (request.GET.get("q") or "").strip()
@@ -517,6 +544,7 @@ def tickets_home(request):
         "title",
         "status",
         "category__name",
+        "subcategory__name",
         "priority__name",
         "area__name",
         "assigned_to__username",
@@ -548,8 +576,11 @@ def tickets_home(request):
             bool(q),
             bool(status),
             bool(category),
+            bool(subcategory),
             bool(priority),
             bool(area),
+            bool(date_from_raw),
+            bool(date_to_raw),
             alerts_only,
             hide_closed == "0",
         ]
@@ -572,6 +603,17 @@ def tickets_home(request):
     statuses = Ticket.STATUS_CHOICES
     priorities = list(Priority.objects.order_by("name"))
     areas = list(Area.objects.order_by("name"))
+    categories = list(Category.objects.filter(is_active=True).order_by("name"))
+    subcategories = (
+        Subcategory.objects.filter(is_active=True, category__is_active=True)
+        .values("id", "name", "category_id")
+        .order_by("category__name", "name")
+    )
+    subcategory_map: dict[int, list[dict[str, object]]] = {}
+    for row in subcategories:
+        subcategory_map.setdefault(row["category_id"], []).append(
+            {"id": row["id"], "name": row["name"]}
+        )
 
     # Para preservar filtros en paginación (opcional, usado en template)
     qdict = request.GET.copy()
@@ -608,8 +650,11 @@ def tickets_home(request):
             "q": q,
             "status": status,
             "category": category,
+            "subcategory": subcategory,
             "priority": priority,
             "area": area,
+            "date_from": date_from_raw,
+            "date_to": date_to_raw,
             "alerts": "1" if alerts_only else "",
             "hide_closed": hide_closed,
         },
@@ -619,6 +664,8 @@ def tickets_home(request):
         "tech_counters": tech_counters,
         "priorities": priorities,
         "areas": areas,
+        "categories": categories,
+        "subcategory_map": subcategory_map,
         "current_inbox": inbox,
         "inbox_links": inbox_links,
         "has_active_filters": has_active_filters,
@@ -678,7 +725,23 @@ def ticket_create(request):
         messages.error(request, "Revisa los campos del formulario.")
     else:
         form = TicketCreateForm(user=request.user)
-    return TemplateResponse(request, "tickets/new.html", {"form": form})
+
+    subcategories = (
+        Subcategory.objects.filter(is_active=True, category__is_active=True)
+        .values("id", "name", "category_id")
+        .order_by("category__name", "name")
+    )
+    subcategory_map: dict[int, list[dict[str, object]]] = {}
+    for row in subcategories:
+        subcategory_map.setdefault(row["category_id"], []).append(
+            {"id": row["id"], "name": row["name"]}
+        )
+
+    context = {
+        "form": form,
+        "subcategory_map": subcategory_map,
+    }
+    return TemplateResponse(request, "tickets/new.html", context)
 
 
 @login_required
@@ -695,7 +758,7 @@ def ticket_detail(request, pk):
         return forbidden_response(request)
     t = get_object_or_404(
         Ticket.objects.select_related(
-            "category", "priority", "area", "requester", "assigned_to"
+            "category", "subcategory", "priority", "area", "requester", "assigned_to"
         ),
         pk=pk,
     )
@@ -751,6 +814,17 @@ def ticket_detail(request, pk):
         "can_manage_labels": can_manage_labels,
         "label_suggestion_threshold": get_label_suggestion_threshold(),
     }
+    subcategories = (
+        Subcategory.objects.filter(is_active=True, category__is_active=True)
+        .values("id", "name", "category_id")
+        .order_by("category__name", "name")
+    )
+    subcategory_map: dict[int, list[dict[str, object]]] = {}
+    for row in subcategories:
+        subcategory_map.setdefault(row["category_id"], []).append(
+            {"id": row["id"], "name": row["name"]}
+        )
+    ctx["subcategory_map"] = subcategory_map
     return TemplateResponse(request, "tickets/detail.html", ctx)
 
 
@@ -1666,7 +1740,7 @@ def reports_export_pdf(request):
         return forbidden_response(request)
     if pisa is None:
         return pdf_unavailable_response()
-    qs = Ticket.objects.select_related("category", "priority", "assigned_to", "requester")
+    qs = Ticket.objects.select_related("category", "subcategory", "priority", "assigned_to", "requester")
 
     # Visibilidad por rol
     if is_admin(u):

@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from accounts.roles import ROLE_ADMIN, ROLE_TECH
 from .models import Ticket, AutoAssignRule, FAQ
-from catalog.models import Category, Priority, Area
+from catalog.models import Category, Priority, Area, Subcategory
 from .utils import sanitize_text
 
 User = get_user_model()
@@ -23,11 +23,12 @@ class TicketCreateForm(forms.ModelForm):
 
     class Meta:
         model = Ticket
-        fields = ("title", "description", "category", "priority", "area", "kind")
+        fields = ("title", "description", "category", "subcategory", "priority", "area", "kind")
         widgets = {
             "title": forms.TextInput(attrs={"class": "border rounded px-3 py-2 w-full"}),
             "description": forms.Textarea(attrs={"class": "border rounded px-3 py-2 w-full", "rows": 4}),
             "category": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
+            "subcategory": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
             "priority": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
             "area": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
             "kind": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
@@ -40,7 +41,15 @@ class TicketCreateForm(forms.ModelForm):
         self.fields["category"].queryset = Category.objects.filter(is_active=True).order_by("name")
         self.fields["priority"].queryset = Priority.objects.order_by("sla_hours", "name")
 
+        subcategory_qs = Subcategory.objects.select_related("category").filter(is_active=True)
+        self.fields["subcategory"].queryset = subcategory_qs.order_by("category__name", "name")
+
         self._default_category = self.fields["category"].queryset.first()
+        self._default_subcategory = None
+        if self._default_category:
+            self._default_subcategory = (
+                subcategory_qs.filter(category=self._default_category).order_by("name").first()
+            )
         self._default_priority = self.fields["priority"].queryset.first()
 
         is_admin_user = bool(user and (user.is_superuser or user.groups.filter(name=ROLE_ADMIN).exists()))
@@ -55,14 +64,14 @@ class TicketCreateForm(forms.ModelForm):
             except Group.DoesNotExist:
                 self.fields["assignee"].queryset = User.objects.none()
         else:
-            # Usuarios no admin: no mostramos el campo
+            # Usuarios no admin: ocultamos asignación, pero mantenemos cat/subcat visibles
             self.fields.pop("assignee", None)
             if self._default_category:
                 self.fields["category"].initial = self._default_category.pk
+            if self._default_subcategory:
+                self.fields["subcategory"].initial = self._default_subcategory.pk
             if self._default_priority:
                 self.fields["priority"].initial = self._default_priority.pk
-            self.fields["category"].widget = forms.HiddenInput()
-            self.fields["priority"].widget = forms.HiddenInput()
 
     def clean_title(self):
         title = sanitize_text(self.cleaned_data.get("title"))
@@ -84,6 +93,15 @@ class TicketCreateForm(forms.ModelForm):
             return self._default_category
         raise forms.ValidationError("No hay categorías disponibles. Contacta al administrador.")
 
+    def clean_subcategory(self):
+        category = self.cleaned_data.get("category") or self._default_category
+        subcategory = self.cleaned_data.get("subcategory") or self._default_subcategory
+        if not subcategory:
+            raise forms.ValidationError("Selecciona una subcategoría.")
+        if category and subcategory.category_id != category.id:
+            raise forms.ValidationError("La subcategoría no pertenece a la categoría seleccionada.")
+        return subcategory
+
     def clean_priority(self):
         priority = self.cleaned_data.get("priority")
         if priority:
@@ -98,7 +116,7 @@ class TicketQuickUpdateForm(forms.ModelForm):
 
     class Meta:
         model = Ticket
-        fields = ("title", "category", "priority", "area", "kind")
+        fields = ("title", "category", "subcategory", "priority", "area", "kind")
         widgets = {
             "title": forms.TextInput(
                 attrs={
@@ -107,6 +125,11 @@ class TicketQuickUpdateForm(forms.ModelForm):
                 }
             ),
             "category": forms.Select(
+                attrs={
+                    "class": "w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100",
+                }
+            ),
+            "subcategory": forms.Select(
                 attrs={
                     "class": "w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100",
                 }
@@ -131,6 +154,8 @@ class TicketQuickUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["category"].queryset = Category.objects.order_by("name")
+        subcategory_qs = Subcategory.objects.select_related("category").order_by("category__name", "name")
+        self.fields["subcategory"].queryset = subcategory_qs
         self.fields["priority"].queryset = Priority.objects.order_by("name")
         self.fields["area"].queryset = Area.objects.order_by("name")
         self.fields["area"].required = False
@@ -141,6 +166,15 @@ class TicketQuickUpdateForm(forms.ModelForm):
         if not title:
             raise forms.ValidationError("El título es obligatorio.")
         return title
+
+    def clean_subcategory(self):
+        category = self.cleaned_data.get("category")
+        subcategory = self.cleaned_data.get("subcategory")
+        if not subcategory:
+            raise forms.ValidationError("Selecciona una subcategoría.")
+        if category and subcategory.category_id != category.id:
+            raise forms.ValidationError("La subcategoría no pertenece a la categoría seleccionada.")
+        return subcategory
 
 class AutoAssignRuleForm(forms.ModelForm):
     class Meta:

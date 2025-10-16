@@ -55,6 +55,10 @@ urlpatterns = [
     path("catalog/categories/new/", catalog_views.category_create, name="category_create"),
     path("catalog/categories/<int:pk>/edit/", catalog_views.category_edit, name="category_edit"),
 
+    path("catalog/subcategories/", catalog_views.subcategories_list, name="subcategories_list"),
+    path("catalog/subcategories/new/", catalog_views.subcategory_create, name="subcategory_create"),
+    path("catalog/subcategories/<int:pk>/edit/", catalog_views.subcategory_edit, name="subcategory_edit"),
+
     path("catalog/priorities/", catalog_views.priorities_list, name="priorities_list"),
     path("catalog/priorities/new/", catalog_views.priority_create, name="priority_create"),
     path("catalog/priorities/<int:pk>/edit/", catalog_views.priority_edit, name="priority_edit"),
