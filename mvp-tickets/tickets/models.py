@@ -5,6 +5,7 @@ from django.db import models                     # tipos de campo y utilidades d
 from django.conf import settings                 # para referenciar al modelo de usuario activo (AUTH_USER_MODEL)
 from catalog.models import Category, Priority, Area  # catálogos externos (llaves foráneas)
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 import uuid
 
 # Para cálculo de SLA y tiempos
@@ -199,6 +200,77 @@ class TicketAttachment(models.Model):
 
     def __str__(self):
         return f"Attachment({self.ticket.code}) {self.file.name}"
+
+
+# ------------------------- ETIQUETAS -------------------------
+class TicketLabel(models.Model):
+    """Etiquetas confirmadas para un ticket."""
+
+    ticket = models.ForeignKey(
+        Ticket,
+        on_delete=models.CASCADE,
+        related_name="labels",
+    )
+    name = models.CharField(max_length=100)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ticket_labels_created",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("ticket", "name")
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"Label({self.ticket.code}) {self.name}"
+
+
+class TicketLabelSuggestion(models.Model):
+    """Propuesta de etiqueta automática con puntaje."""
+
+    ticket = models.ForeignKey(
+        Ticket,
+        on_delete=models.CASCADE,
+        related_name="label_suggestions",
+    )
+    label = models.CharField(max_length=100)
+    score = models.DecimalField(max_digits=4, decimal_places=2)
+    is_accepted = models.BooleanField(default=False)
+    accepted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ticket_label_suggestions_accepted",
+    )
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("ticket", "label")
+        ordering = ["-score", "label"]
+
+    def mark_accepted(self, *, user=None):
+        """Marca la sugerencia como aceptada y actualiza metadatos."""
+
+        if self.is_accepted:
+            return
+        self.is_accepted = True
+        self.accepted_by = user
+        self.accepted_at = timezone.now()
+        self.save(update_fields=["is_accepted", "accepted_by", "accepted_at", "updated_at"])
+
+    @property
+    def status_label(self) -> str:
+        return "Aceptada" if self.is_accepted else "Pendiente"
+
+    def __str__(self):
+        return f"Suggestion({self.ticket.code}) {self.label} ({self.score})"
 
 
 # ------------------------- ASIGNACIONES (historial) -------------------------

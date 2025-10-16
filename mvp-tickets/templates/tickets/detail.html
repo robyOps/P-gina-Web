@@ -152,6 +152,66 @@
       </section>
       {% endif %}
 
+      <section class="space-y-4">
+        <div class="flex items-start justify-between gap-3">
+          <h2 class="text-lg font-semibold text-slate-900">Etiquetas del ticket</h2>
+          <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">Umbral {{ label_suggestion_threshold|floatformat:2 }}</span>
+        </div>
+        <div class="space-y-2 text-sm">
+          <h3 class="text-xs font-semibold uppercase text-slate-500">Confirmadas</h3>
+          {% if confirmed_labels %}
+            <div class="flex flex-wrap gap-2">
+              {% for label in confirmed_labels %}
+                <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                  <i class="bi bi-tag"></i> {{ label.name }}
+                </span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500">Aún no hay etiquetas confirmadas.</p>
+          {% endif %}
+        </div>
+        <div class="space-y-3">
+          <h3 class="text-xs font-semibold uppercase text-slate-500">Sugeridas</h3>
+          {% if label_suggestions %}
+            <div class="space-y-3">
+              {% for suggestion in label_suggestions %}
+                <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+                  <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2 text-slate-800">
+                      <i class="bi bi-lightbulb"></i>
+                      <span class="font-semibold">{{ suggestion.label }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs font-semibold">
+                      <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 {% if suggestion.is_accepted %}bg-emerald-100 text-emerald-700{% else %}bg-slate-100 text-slate-600{% endif %}">
+                        <i class="bi {% if suggestion.is_accepted %}bi-check-circle-fill{% else %}bi-hourglass-split{% endif %}"></i>
+                        {{ suggestion.status_label }}
+                      </span>
+                      <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-slate-600">
+                        <i class="bi bi-graph-up"></i> Score {{ suggestion.score|floatformat:2 }}
+                      </span>
+                    </div>
+                  </div>
+                  {% if suggestion.accepted_by %}
+                    <p class="mt-2 text-xs text-slate-500">Aceptada por {{ suggestion.accepted_by.username }} el {{ suggestion.accepted_at }}</p>
+                  {% endif %}
+                  {% if can_manage_labels and not suggestion.is_accepted %}
+                    <form method="post" action="{% url 'ticket_accept_suggestion' t.id suggestion.id %}" class="mt-3">
+                      {% csrf_token %}
+                      <button class="btn inline-flex items-center gap-2 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700" type="submit">
+                        <i class="bi bi-check"></i> Aceptar etiqueta
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500">No hay sugerencias disponibles aún. Puedes recalcular desde la API o forzar una actualización editando el ticket.</p>
+          {% endif %}
+        </div>
+      </section>
+
       {% if can_assign %}
       <section class="space-y-3">
         <h2 class="text-lg font-semibold text-slate-900">Asignación</h2>

@@ -7,6 +7,7 @@ from django.db import transaction
 
 from django.contrib.auth import get_user_model
 from .models import Ticket, TicketComment, TicketAssignment, AuditLog, EventLog
+from .services import recompute_ticket_label_suggestions
 
 User = get_user_model()
 
@@ -70,6 +71,7 @@ def on_ticket_created_or_updated(sender, instance: Ticket, created, **kwargs):
             )
 
     # Ejecuta después del commit de DB (evita enviar si falla la transacción)
+    transaction.on_commit(lambda: recompute_ticket_label_suggestions(instance))
     if created:
         transaction.on_commit(_notify_created)
         return

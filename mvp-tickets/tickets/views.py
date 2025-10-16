@@ -54,11 +54,19 @@ from .models import (
     Notification,
     Priority,
     Area,
+    TicketLabel,
+    TicketLabelSuggestion,
 )
 
 
 from accounts.roles import is_admin, is_tech, ROLE_TECH, ROLE_ADMIN  # helpers de rol
-from .services import run_sla_check, apply_auto_assign, tickets_to_workbook
+from .services import (
+    run_sla_check,
+    apply_auto_assign,
+    tickets_to_workbook,
+    get_label_suggestion_threshold,
+    accept_ticket_label_suggestion,
+)
 from .validators import validate_upload, UploadValidationError
 
 User = get_user_model()
@@ -661,6 +669,7 @@ def ticket_detail(request, pk):
     is_admin_u = is_admin(u)
     is_tech_u = is_tech(u)
     can_assign = is_admin_u or is_tech_u
+    can_manage_labels = is_admin_u or is_tech_u
     allowed_codes = allowed_transitions_for(t, u)
     status_map = dict(Ticket.STATUS_CHOICES)
     allowed = [(code, status_map.get(code, code)) for code in allowed_codes]
@@ -683,6 +692,11 @@ def ticket_detail(request, pk):
         can_quick_edit = True
         quick_edit_form = TicketQuickUpdateForm(instance=t)
 
+    suggestions = list(
+        t.label_suggestions.select_related("accepted_by").order_by("-score", "label")
+    )
+    confirmed_labels = list(t.labels.select_related("created_by").order_by("name"))
+
     ctx = {
         "t": t,
         "can_assign": can_assign,
@@ -694,6 +708,10 @@ def ticket_detail(request, pk):
         "can_upload_files": can_upload_attachments(t, u),
         "can_quick_edit": can_quick_edit,
         "quick_edit_form": quick_edit_form,
+        "label_suggestions": suggestions,
+        "confirmed_labels": confirmed_labels,
+        "can_manage_labels": can_manage_labels,
+        "label_suggestion_threshold": get_label_suggestion_threshold(),
     }
     return TemplateResponse(request, "tickets/detail.html", ctx)
 
@@ -887,6 +905,31 @@ def ticket_assign(request, pk):
     if title_changed:
         msg += " Título actualizado."
     messages.success(request, msg)
+    return redirect("ticket_detail", pk=t.pk)
+
+
+@login_required
+@require_http_methods(["POST"])
+def accept_label_suggestion(request, pk, suggestion_id):
+    """Acepta una sugerencia automática de etiqueta."""
+
+    t = get_object_or_404(Ticket, pk=pk)
+    u = request.user
+
+    if not (is_admin(u) or is_tech(u)):
+        return forbidden_response(request, "Solo técnicos o administradores pueden confirmar etiquetas.")
+
+    try:
+        suggestion = t.label_suggestions.get(pk=suggestion_id)
+    except TicketLabelSuggestion.DoesNotExist:
+        return forbidden_response(request, "La sugerencia indicada no existe.")
+
+    if suggestion.is_accepted:
+        messages.info(request, "Esta sugerencia ya estaba aceptada.")
+        return redirect("ticket_detail", pk=t.pk)
+
+    accept_ticket_label_suggestion(suggestion, actor=u)
+    messages.success(request, f"Etiqueta '{suggestion.label}' confirmada.")
     return redirect("ticket_detail", pk=t.pk)
 
 

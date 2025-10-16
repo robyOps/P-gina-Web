@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import EventLog, FAQ
+from .models import EventLog, FAQ, TicketLabel, TicketLabelSuggestion
 
 
 @admin.register(EventLog)
@@ -28,3 +28,19 @@ class FAQAdmin(admin.ModelAdmin):
     search_fields = ("question", "answer")
     list_filter = ("category",)
     readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(TicketLabel)
+class TicketLabelAdmin(admin.ModelAdmin):
+    list_display = ("ticket", "name", "created_by", "created_at")
+    list_filter = ("created_by",)
+    search_fields = ("name", "ticket__code", "ticket__title")
+    readonly_fields = ("created_at",)
+
+
+@admin.register(TicketLabelSuggestion)
+class TicketLabelSuggestionAdmin(admin.ModelAdmin):
+    list_display = ("ticket", "label", "score", "is_accepted", "accepted_by", "updated_at")
+    list_filter = ("is_accepted",)
+    search_fields = ("label", "ticket__code", "ticket__title")
+    readonly_fields = ("created_at", "updated_at", "accepted_at")

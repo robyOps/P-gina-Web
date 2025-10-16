@@ -5,7 +5,7 @@ from django.utils import timezone  # para sellos de tiempo (resolved_at / closed
 from django.contrib.auth import get_user_model  # para obtener el modelo de usuario (custom o por defecto)
 
 # DRF: vistas, permisos, decoradores para acciones custom, respuesta y parsers de archivos
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action  # define endpoints como /assign, /transition, etc.
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser  # subir archivos (multipart/form-data)
@@ -17,6 +17,8 @@ from .models import (
     TicketAttachment,    # adjuntos
     TicketAssignment,    # historial de asignaciones
     AuditLog,            # historial/auditoría de acciones
+    TicketLabel,
+    TicketLabelSuggestion,
 )
 
 # Serializers (modelos <-> JSON)
@@ -25,12 +27,19 @@ from .serializers import (
     TicketCommentSerializer,
     TicketAttachmentSerializer,
     TicketAssignmentSerializer,  # útil para exponer historial de asignaciones
+    TicketLabelSerializer,
+    TicketLabelSuggestionSerializer,
 )
 
 # Validación de archivos subidos
 from .validators import validate_upload, UploadValidationError
 
-from .services import apply_auto_assign
+from .services import (
+    apply_auto_assign,
+    recompute_ticket_label_suggestions,
+    accept_ticket_label_suggestion,
+    get_label_suggestion_threshold,
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -150,6 +159,81 @@ class TicketViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"message": "Asignado", "from": prev.id if prev else None, "to": to_user.id}, status=200)
+
+    # ---------- Etiquetas sugeridas ----------
+    def _require_label_access(self, request, ticket):
+        if not (is_admin(request.user) or is_tech(request.user)):
+            return Response({"detail": "Solo técnicos o administradores pueden gestionar etiquetas."}, status=status.HTTP_403_FORBIDDEN)
+        return None
+
+    @action(detail=True, methods=["get"], url_path="label-suggestions")
+    def label_suggestions(self, request, pk=None):
+        ticket = self.get_object()
+        forbidden = self._require_label_access(request, ticket)
+        if forbidden:
+            return forbidden
+
+        suggestions = TicketLabelSuggestion.objects.filter(ticket=ticket).order_by("-score", "label")
+        labels = TicketLabel.objects.filter(ticket=ticket).order_by("name")
+
+        return Response(
+            {
+                "threshold": get_label_suggestion_threshold(),
+                "suggestions": TicketLabelSuggestionSerializer(suggestions, many=True).data,
+                "labels": TicketLabelSerializer(labels, many=True).data,
+            }
+        )
+
+    @action(detail=True, methods=["post"], url_path="label-suggestions/recalculate")
+    def recalculate_label_suggestions(self, request, pk=None):
+        ticket = self.get_object()
+        forbidden = self._require_label_access(request, ticket)
+        if forbidden:
+            return forbidden
+
+        threshold = request.data.get("threshold")
+        parsed_threshold = None
+        if threshold is not None:
+            try:
+                parsed_threshold = float(threshold)
+            except (TypeError, ValueError):
+                return Response({"detail": "threshold debe ser numérico."}, status=status.HTTP_400_BAD_REQUEST)
+
+        result = recompute_ticket_label_suggestions(ticket, threshold=parsed_threshold)
+        return Response({"message": "Sugerencias recalculadas", **result})
+
+    @action(detail=True, methods=["post"], url_path="label-suggestions/accept")
+    def accept_label_suggestion(self, request, pk=None):
+        ticket = self.get_object()
+        forbidden = self._require_label_access(request, ticket)
+        if forbidden:
+            return forbidden
+
+        suggestion_id = request.data.get("suggestion_id")
+        if not suggestion_id:
+            return Response({"detail": "suggestion_id requerido."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            suggestion = TicketLabelSuggestion.objects.get(id=suggestion_id, ticket=ticket)
+        except TicketLabelSuggestion.DoesNotExist:
+            return Response({"detail": "Sugerencia no encontrada."}, status=status.HTTP_404_NOT_FOUND)
+
+        if suggestion.is_accepted:
+            serializer = TicketLabelSuggestionSerializer(suggestion)
+            return Response({"message": "La sugerencia ya estaba aceptada.", "suggestion": serializer.data})
+
+        accept_ticket_label_suggestion(suggestion, actor=request.user)
+        suggestion.refresh_from_db()
+        labels = TicketLabel.objects.filter(ticket=ticket).order_by("name")
+
+        return Response(
+            {
+                "message": "Etiqueta confirmada.",
+                "suggestion": TicketLabelSuggestionSerializer(suggestion).data,
+                "labels": TicketLabelSerializer(labels, many=True).data,
+            },
+            status=status.HTTP_200_OK,
+        )
 
     # ---------- H5: Transiciones ----------
     @action(detail=True, methods=["post"])
