@@ -23,6 +23,9 @@
       <div class="space-y-1">
         <label class="text-xs font-semibold uppercase text-slate-500" for="id_name">Nombre</label>
         {{ form.name|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        <div id="category-duplicate-warning" class="hidden text-xs text-rose-600" role="alert">
+          Ya existe una categoría con este nombre.
+        </div>
         {% if form.name.errors %}<div class="text-xs text-rose-600">{{ form.name.errors }}</div>{% endif %}
       </div>
       <div class="space-y-1">
@@ -44,5 +47,68 @@
     </div>
   </form>
 </div>
+{% endblock %}
+
+{% block body_extra %}
+  {{ block.super }}
+  {% if existing_names %}
+    {{ existing_names|json_script:"existing-category-names" }}
+    <script>
+      (function () {
+        const field = document.getElementById('id_name');
+        const warning = document.getElementById('category-duplicate-warning');
+        const dataNode = document.getElementById('existing-category-names');
+        if (!field || !warning || !dataNode) {
+          return;
+        }
+
+        const rawNames = JSON.parse(dataNode.textContent || '[]');
+        const normalizedOriginal = (field.dataset.originalName || '').trim().toUpperCase();
+        const existing = new Set(
+          rawNames
+            .filter((item) => typeof item === 'string')
+            .map((item) => item.trim().toUpperCase())
+            .filter((item) => item.length > 0)
+        );
+
+        const showWarning = () => warning.classList.remove('hidden');
+        const hideWarning = () => warning.classList.add('hidden');
+
+        const isDuplicate = (value) => {
+          const normalized = (value || '').trim().toUpperCase();
+          if (!normalized) {
+            return false;
+          }
+          if (normalizedOriginal && normalized === normalizedOriginal) {
+            return false;
+          }
+          return existing.has(normalized);
+        };
+
+        const syncWarning = () => {
+          if (isDuplicate(field.value)) {
+            showWarning();
+          } else {
+            hideWarning();
+          }
+        };
+
+        field.addEventListener('input', syncWarning);
+        field.addEventListener('blur', syncWarning);
+
+        if (field.form) {
+          field.form.addEventListener('submit', function (event) {
+            if (isDuplicate(field.value)) {
+              event.preventDefault();
+              showWarning();
+              field.focus();
+            }
+          });
+        }
+
+        syncWarning();
+      })();
+    </script>
+  {% endif %}
 {% endblock %}
 
