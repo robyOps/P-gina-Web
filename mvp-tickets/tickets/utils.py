@@ -11,7 +11,7 @@ from django.db.models import Count, QuerySet
 from django.db.models.functions import ExtractHour, ExtractWeekDay, TruncHour
 from django.utils import timezone
 
-from .models import Ticket, TicketLabel
+from .models import Ticket
 from .services import TicketAlertSnapshot, collect_ticket_alerts
 
 
@@ -39,43 +39,115 @@ def aggregate_top_subcategories(
     since: timezone.datetime | None = None,
     limit: int = 5,
 ) -> list[dict[str, float | int | str]]:
-    """Return the most used ticket labels (used as subcategories) in the window.
-
-    The aggregation intentionally works with labels only which prevents exposing
-    Personally Identifiable Information (PII) in analytical widgets.
-    """
+    """Return the most common ticket subcategories within the period."""
 
     if limit <= 0:
         return []
 
     since = since or timezone.now() - timedelta(days=30)
-    filtered_ids = queryset.filter(created_at__gte=since).values("pk")
+    filtered = queryset.filter(created_at__gte=since, subcategory__isnull=False)
 
-    label_rows = (
-        TicketLabel.objects.filter(ticket__in=filtered_ids)
-        .values("name")
+    rows = (
+        filtered.values("subcategory", "subcategory__name", "subcategory__category__name")
         .annotate(total=Count("id"))
-        .order_by("-total", "name")[:limit]
+        .order_by("-total", "subcategory__name")[:limit]
     )
 
-    total = sum(row["total"] for row in label_rows)
+    total = sum(row["total"] for row in rows)
     if total <= 0:
         return []
 
     aggregated: list[dict[str, float | int | str]] = []
-    for row in label_rows:
-        name = row["name"] or "Sin etiqueta"
+    for row in rows:
         subtotal = int(row["total"])
         percentage = (subtotal / total) * 100 if total else 0.0
         aggregated.append(
             {
-                "name": name,
+                "subcategory_id": row["subcategory"],
+                "subcategory": row["subcategory__name"] or "Sin subcategoría",
+                "category": row["subcategory__category__name"] or "Sin categoría",
                 "total": subtotal,
                 "percentage": round(percentage, 2),
             }
         )
 
     return aggregated
+
+
+def aggregate_area_by_subcategory(
+    queryset: QuerySet[Ticket],
+    *,
+    since: timezone.datetime | None = None,
+    limit: int = 10,
+) -> list[dict[str, object]]:
+    """Return rows of area × subcategory counts ordered by volume."""
+
+    since = since or timezone.now() - timedelta(days=30)
+    filtered = queryset.filter(created_at__gte=since, subcategory__isnull=False, area__isnull=False)
+
+    rows = (
+        filtered.values("area__name", "subcategory__name", "subcategory__category__name")
+        .annotate(total=Count("id"))
+        .order_by("-total", "area__name", "subcategory__name")[:limit]
+    )
+
+    return [
+        {
+            "area": row["area__name"] or "Sin área",
+            "subcategory": row["subcategory__name"] or "Sin subcategoría",
+            "category": row["subcategory__category__name"] or "Sin categoría",
+            "total": int(row["total"]),
+        }
+        for row in rows
+    ]
+
+
+def build_area_subcategory_heatmap(
+    queryset: QuerySet[Ticket],
+    *,
+    since: timezone.datetime | None = None,
+) -> dict[str, object]:
+    """Return a matrix-like payload for area × subcategory counts."""
+
+    since = since or timezone.now() - timedelta(days=30)
+    filtered = queryset.filter(created_at__gte=since, subcategory__isnull=False, area__isnull=False)
+
+    rows = (
+        filtered.values("area__name", "subcategory__name")
+        .annotate(total=Count("id"))
+        .order_by("area__name", "subcategory__name")
+    )
+
+    areas = sorted({row["area__name"] or "Sin área" for row in rows})
+    subcategories = sorted({row["subcategory__name"] or "Sin subcategoría" for row in rows})
+
+    area_index = {area: idx for idx, area in enumerate(areas)}
+    subcategory_index = {sub: idx for idx, sub in enumerate(subcategories)}
+
+    matrix = [[0 for _ in subcategories] for _ in areas]
+
+    for row in rows:
+        area = row["area__name"] or "Sin área"
+        sub = row["subcategory__name"] or "Sin subcategoría"
+        matrix[area_index[area]][subcategory_index[sub]] = int(row["total"])
+
+    cells = []
+    for area, area_pos in area_index.items():
+        for sub, sub_pos in subcategory_index.items():
+            cells.append(
+                {
+                    "area": area,
+                    "subcategory": sub,
+                    "count": matrix[area_pos][sub_pos],
+                }
+            )
+
+    return {
+        "areas": areas,
+        "subcategories": subcategories,
+        "matrix": matrix,
+        "cells": cells,
+    }
 
 
 @dataclass(slots=True)

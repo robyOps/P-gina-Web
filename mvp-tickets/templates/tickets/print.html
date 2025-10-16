@@ -80,6 +80,7 @@
       <div><strong>Estado:</strong> {{ t.get_status_display }}</div>
       <div><strong>Tipo:</strong> {{ t.get_kind_display }}</div>
       <div><strong>Categoría:</strong> {{ t.category.name }}</div>
+      <div><strong>Subcategoría:</strong> {% if t.subcategory %}{{ t.subcategory.name }}{% else %}-{% endif %}</div>
       <div><strong>Prioridad:</strong> {{ t.priority.name }}</div>
       {% if t.area %}<div><strong>Área:</strong> {{ t.area.name }}</div>{% endif %}
       <div><strong>Solicitante:</strong> {{ t.requester.username }}</div>

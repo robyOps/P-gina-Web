@@ -48,6 +48,12 @@
           {% if form.category.errors %}<div class="text-xs text-rose-600">{{ form.category.errors }}</div>{% endif %}
         </div>
         {% endif %}
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-slate-500" for="subcategoria">Subcategoría</label>
+          {{ form.subcategory|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"|attr:"id=subcategoria" }}
+          <p class="text-[11px] text-slate-500">Selecciona la opción que mejor describe el problema dentro de la categoría elegida.</p>
+          {% if form.subcategory.errors %}<div class="text-xs text-rose-600">{{ form.subcategory.errors }}</div>{% endif %}
+        </div>
         {% if not form.priority.is_hidden %}
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="prioridad">Prioridad</label>
@@ -93,6 +99,62 @@
     </div>
   </form>
 </section>
+{% endblock %}
+
+{% block body_extra %}
+  {{ block.super }}
+  {{ subcategory_map|json_script:"subcategory-map-data" }}
+  <script>
+    (function() {
+      const mapNode = document.getElementById('subcategory-map-data');
+      if (!mapNode) {
+        return;
+      }
+      const subcategoryMap = JSON.parse(mapNode.textContent || '{}');
+      const categorySelect = document.getElementById('categoria');
+      const subcategorySelect = document.getElementById('subcategoria');
+      if (!categorySelect || !subcategorySelect) {
+        return;
+      }
+
+      const originalValue = subcategorySelect.value;
+
+      function renderOptions(categoryId) {
+        const options = subcategoryMap[categoryId] || [];
+        subcategorySelect.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = options.length ? 'Selecciona…' : 'Sin subcategorías disponibles';
+        placeholder.disabled = options.length === 0;
+        placeholder.selected = true;
+        subcategorySelect.appendChild(placeholder);
+
+        for (const item of options) {
+          const option = document.createElement('option');
+          option.value = String(item.id);
+          option.textContent = item.name;
+          if (String(item.id) === originalValue) {
+            option.selected = true;
+            placeholder.selected = false;
+          }
+          subcategorySelect.appendChild(option);
+        }
+
+        subcategorySelect.disabled = options.length === 0;
+      }
+
+      function handleCategoryChange() {
+        const categoryId = categorySelect.value || '0';
+        renderOptions(categoryId);
+      }
+
+      handleCategoryChange();
+      categorySelect.addEventListener('change', function() {
+        subcategorySelect.value = '';
+        handleCategoryChange();
+      });
+    })();
+  </script>
 {% endblock %}
 
 

@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
-from catalog.models import Category, Priority
+from catalog.models import Category, Priority, Subcategory
 
 from tickets.clustering import train_ticket_clusters
 from tickets.models import Ticket, TicketLabelSuggestion, TicketLabel
@@ -26,6 +26,8 @@ class DashboardAnalyticsTests(TestCase):
         )
         self.category = Category.objects.create(name="Soporte")
         self.priority = Priority.objects.create(name="Alta", sla_hours=24)
+        self.subcategory = Subcategory.objects.create(category=self.category, name="VPN")
+        self.alt_subcategory = Subcategory.objects.create(category=self.category, name="Accesos")
 
     def _create_ticket(self, **kwargs) -> Ticket:
         defaults = {
@@ -33,6 +35,7 @@ class DashboardAnalyticsTests(TestCase):
             "description": "La conexión VPN no responde",
             "requester": self.user,
             "category": self.category,
+            "subcategory": self.subcategory,
             "priority": self.priority,
             "status": Ticket.OPEN,
         }
@@ -96,10 +99,10 @@ class DashboardAnalyticsTests(TestCase):
         self.assertTrue(data["items"])
 
     def test_aggregate_top_subcategories_respects_limit(self):
-        ticket = self._create_ticket()
-        TicketLabel.objects.create(ticket=ticket, name="ACCESO")
-        TicketLabel.objects.create(ticket=ticket, name="VPN")
+        self._create_ticket(subcategory=self.subcategory)
+        self._create_ticket(subcategory=self.subcategory)
+        self._create_ticket(subcategory=self.alt_subcategory)
 
         results = aggregate_top_subcategories(Ticket.objects.all(), limit=1)
         self.assertEqual(len(results), 1)
-        self.assertIn("name", results[0])
+        self.assertEqual(results[0]["subcategory"], self.subcategory.name)

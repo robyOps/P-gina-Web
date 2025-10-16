@@ -7,8 +7,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 
 
-from .forms import AreaForm, CategoryForm, PriorityForm
-from .models import Area, Category, Priority
+from .forms import AreaForm, CategoryForm, PriorityForm, SubcategoryForm
+from .models import Area, Category, Priority, Subcategory
 
 
 # ---------------------------------------------------------------------------
@@ -97,6 +97,45 @@ def category_edit(request, pk):
                 Category.objects.exclude(pk=obj.pk).order_by("name").values_list("name", flat=True)
             )
         },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Subcategorías
+# ---------------------------------------------------------------------------
+@login_required
+@permission_required("catalog.view_subcategory", raise_exception=True)
+def subcategories_list(request):
+    items = (
+        Subcategory.objects.select_related("category")
+        .order_by("category__name", "name")
+    )
+    return TemplateResponse(request, "catalog/subcategories_list.html", {"items": items})
+
+
+@login_required
+@permission_required("catalog.add_subcategory", raise_exception=True)
+def subcategory_create(request):
+    return _handle_simple_form(
+        request,
+        form_class=SubcategoryForm,
+        template_name="catalog/subcategory_form.html",
+        redirect_url="subcategories_list",
+        success_message="Subcategoría creada.",
+    )
+
+
+@login_required
+@permission_required("catalog.change_subcategory", raise_exception=True)
+def subcategory_edit(request, pk):
+    obj = get_object_or_404(Subcategory, pk=pk)
+    return _handle_simple_form(
+        request,
+        form_class=SubcategoryForm,
+        template_name="catalog/subcategory_form.html",
+        redirect_url="subcategories_list",
+        success_message="Subcategoría actualizada.",
+        instance=obj,
     )
 
 

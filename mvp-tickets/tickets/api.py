@@ -2,6 +2,7 @@
 
 # ------------------------- IMPORTS -------------------------
 from django.utils import timezone  # para sellos de tiempo (resolved_at / closed_at)
+from django.utils.dateparse import parse_date
 from django.contrib.auth import get_user_model  # para obtener el modelo de usuario (custom o por defecto)
 
 # DRF: vistas, permisos, decoradores para acciones custom, respuesta y parsers de archivos
@@ -22,6 +23,8 @@ from .models import (
     TicketLabel,
     TicketLabelSuggestion,
 )
+
+from catalog.models import Category, Subcategory, Area
 
 # Serializers (modelos <-> JSON)
 from .serializers import (
@@ -45,6 +48,7 @@ from .services import (
     collect_ticket_alerts,
 )
 from .utils import sanitize_text
+from .backfill import run_subcategory_backfill
 from .clustering import train_ticket_clusters
 import logging
 import time
@@ -97,14 +101,19 @@ class TicketViewSet(viewsets.ModelViewSet):
     # Query base (con relaciones) y orden (últimos creados primero)
     queryset = (
         Ticket.objects.select_related(
-            "category", "priority", "area", "requester", "assigned_to"
+            "category",
+            "subcategory",
+            "priority",
+            "area",
+            "requester",
+            "assigned_to",
         ).order_by("-created_at")
     )
 
     # Filtros por query string (?status=&category=&priority=&area=)
     # Se omite ``cluster_id`` para mantener el listado público alineado con la UI
     # (ya no se expone como criterio en la vista principal) y reducir ruido.
-    filterset_fields = ["status", "category", "priority", "area"]
+    filterset_fields = ["status", "category", "subcategory", "priority", "area"]
 
     # --------- Visibilidad por rol ---------
     def get_queryset(self):
@@ -120,6 +129,40 @@ class TicketViewSet(viewsets.ModelViewSet):
         if is_tech(u):
             return qs.filter(assigned_to=u)
         return qs.filter(requester=u)
+
+    def filter_queryset(self, queryset):
+        qs = super().filter_queryset(queryset)
+        params = self.request.query_params
+
+        category_id = params.get("category_id")
+        if category_id:
+            try:
+                qs = qs.filter(category_id=int(category_id))
+            except ValueError:
+                pass
+
+        subcategory_id = params.get("subcategory_id")
+        if subcategory_id:
+            try:
+                qs = qs.filter(subcategory_id=int(subcategory_id))
+            except ValueError:
+                pass
+
+        area_id = params.get("area_id")
+        if area_id:
+            try:
+                qs = qs.filter(area_id=int(area_id))
+            except ValueError:
+                pass
+
+        date_from = parse_date(params.get("date_from"))
+        date_to = parse_date(params.get("date_to"))
+        if date_from:
+            qs = qs.filter(created_at__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(created_at__date__lte=date_to)
+
+        return qs
 
     def get_suggestion_paginator(self):
         if not hasattr(self, "_suggestion_paginator"):
@@ -605,7 +648,7 @@ class TicketSuggestionBulkRecomputeView(APIView):
         else:
             chunk_size = 200
 
-        qs = Ticket.objects.select_related("priority", "area", "category").order_by("id")
+        qs = Ticket.objects.select_related("priority", "area", "category", "subcategory").order_by("id")
         if only_open:
             qs = qs.filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
         if ticket_ids:
@@ -788,3 +831,58 @@ class TicketAlertListView(APIView):
         }
 
         return response
+
+
+class TicketFilterOptionsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        categories = list(
+            Category.objects.filter(is_active=True)
+            .order_by("name")
+            .values("id", "name")
+        )
+        subcategories = (
+            Subcategory.objects.filter(is_active=True, category__is_active=True)
+            .values("id", "name", "category_id")
+            .order_by("category__name", "name")
+        )
+        subcategory_map: dict[str, list[dict[str, object]]] = {}
+        for row in subcategories:
+            key = str(row["category_id"])
+            subcategory_map.setdefault(key, []).append(
+                {"id": row["id"], "name": row["name"]}
+            )
+
+        areas = list(Area.objects.order_by("name").values("id", "name"))
+
+        return Response(
+            {
+                "categorias": categories,
+                "subcategorias": subcategory_map,
+                "areas": areas,
+            }
+        )
+
+
+class SubcategoryBackfillView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if not (is_admin(request.user) or request.user.has_perm("tickets.manage_reports")):
+            return Response({"detail": "No autorizado"}, status=status.HTTP_403_FORBIDDEN)
+
+        dry_run = str(request.data.get("dry_run", "false")).lower() in {"1", "true", "yes"}
+        report = run_subcategory_backfill(dry_run=dry_run)
+
+        return Response(
+            {
+                "total": report.total,
+                "completados": report.completed,
+                "pendientes": report.pending,
+                "cobertura_pct": report.coverage,
+                "deterministicos": report.deterministic_matches,
+                "heuristicos": report.heuristic_matches,
+                "dry_run": dry_run,
+            }
+        )

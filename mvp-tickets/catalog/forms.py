@@ -1,7 +1,7 @@
 # catalog/forms.py
 from django import forms
 
-from .models import Category, Priority, Area
+from .models import Category, Priority, Area, Subcategory
 
 class CategoryForm(forms.ModelForm):
     """Formulario para crear y editar categorías."""
@@ -47,5 +47,33 @@ class AreaForm(forms.ModelForm):
     class Meta:
         model = Area
         fields = ["name"]
+
+
+class SubcategoryForm(forms.ModelForm):
+    class Meta:
+        model = Subcategory
+        fields = ["category", "name", "description", "is_active"]
+        widgets = {
+            "category": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
+            "name": forms.TextInput(attrs={"class": "border rounded px-3 py-2 w-full"}),
+            "description": forms.Textarea(
+                attrs={"class": "border rounded px-3 py-2 w-full", "rows": 3},
+            ),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        category = cleaned.get("category")
+        subcategory = cleaned.get("name")
+        if category and subcategory:
+            exists = Subcategory.objects.filter(
+                category=category,
+                name__iexact=subcategory.strip(),
+            )
+            if self.instance and self.instance.pk:
+                exists = exists.exclude(pk=self.instance.pk)
+            if exists.exists():
+                self.add_error("name", "Ya existe una subcategoría con ese nombre en la categoría seleccionada.")
+        return cleaned
 
 

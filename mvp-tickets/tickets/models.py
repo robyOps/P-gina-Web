@@ -3,7 +3,7 @@
 # ------------------------- IMPORTS -------------------------
 from django.db import models                     # tipos de campo y utilidades de modelos
 from django.conf import settings                 # para referenciar al modelo de usuario activo (AUTH_USER_MODEL)
-from catalog.models import Category, Priority, Area  # catálogos externos (llaves foráneas)
+from catalog.models import Category, Priority, Area, Subcategory  # catálogos externos (llaves foráneas)
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 import uuid
@@ -57,6 +57,13 @@ class Ticket(models.Model):
 
     # Catálogo: categoría / prioridad (protegidos: no se pueden borrar si hay tickets apuntando)
     category = models.ForeignKey(Category, on_delete=models.PROTECT)
+    subcategory = models.ForeignKey(
+        Subcategory,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="tickets",
+    )
     priority = models.ForeignKey(Priority, on_delete=models.PROTECT)
 
     # Área (opcional). PROTECT para no borrar áreas en uso
@@ -112,6 +119,17 @@ class Ticket(models.Model):
             if self.code != desired:
                 type(self).objects.filter(pk=self.pk).update(code=desired)
                 self.code = desired
+
+    def clean(self):
+        errors = {}
+        if self.subcategory_id:
+            if self.category_id and self.subcategory.category_id != self.category_id:
+                errors["subcategory"] = "La subcategoría seleccionada no pertenece a la categoría."  # noqa: E501
+        elif self.category_id:
+            errors["subcategory"] = "Debes seleccionar una subcategoría."
+
+        if errors:
+            raise ValidationError(errors)
 
     # ------------------------- SLA (helpers) -------------------------
     @property
