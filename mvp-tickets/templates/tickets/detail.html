@@ -29,11 +29,8 @@
         <a href="{% url 'tickets_home' %}" class="btn inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/30">
           <i class="bi bi-arrow-left"></i> Volver a tickets
         </a>
-        <a href="{% url 'ticket_print' t.id %}" target="_blank" class="btn inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-indigo-700 shadow-lg shadow-indigo-900/20 hover:bg-indigo-50">
-          <i class="bi bi-printer"></i> Imprimir
-        </a>
         <a href="{% url 'ticket_pdf' t.id %}" class="btn inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-indigo-700 shadow-lg shadow-indigo-900/20 hover:bg-indigo-50">
-          <i class="bi bi-filetype-pdf"></i> Descargar PDF
+          <i class="bi bi-filetype-pdf"></i> Exportar PDF
         </a>
         {% if request.user.is_staff %}
         <a href="{% url 'logs_list' %}?model=ticket&obj_id={{ t.id }}" class="btn inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-black">

@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ t.code }} · Resumen del ticket</title>
+  <style>
+    body {
+      font-family: "DejaVu Sans", Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      background: #f8fafc;
+      color: #0f172a;
+      margin: 0;
+      padding: 24px;
+    }
+    .sheet {
+      background: #ffffff;
+      border: 1px solid #dbe3f3;
+      border-radius: 18px;
+      padding: 24px 28px;
+    }
+    .header {
+      background: #4338ca;
+      color: #ffffff;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      border-bottom: 4px solid #6366f1;
+    }
+    .header h1 {
+      margin: 6px 0 0;
+      font-size: 22px;
+      line-height: 1.35;
+    }
+    .header .meta {
+      font-size: 11px;
+      opacity: 0.9;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.18);
+      margin-right: 6px;
+    }
+    .status-pill {
+      background: #eef2ff;
+      color: #3730a3;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-block;
+      margin-top: 10px;
+    }
+    .grid {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 18px;
+    }
+    .grid th {
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: #64748b;
+      padding: 6px 8px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      width: 26%;
+    }
+    .grid td {
+      font-size: 12px;
+      padding: 6px 10px;
+      border: 1px solid #e2e8f0;
+    }
+    .section {
+      margin-bottom: 22px;
+    }
+    .section h2 {
+      font-size: 15px;
+      color: #1e293b;
+      margin: 0 0 10px;
+      border-left: 4px solid #6366f1;
+      padding-left: 10px;
+    }
+    .description {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 16px;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+    table.simple {
+      width: 100%;
+      border-collapse: collapse;
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    table.simple th {
+      text-align: left;
+      padding: 8px 10px;
+      background: #eef2ff;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #3730a3;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    table.simple td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #edf2f7;
+      font-size: 12px;
+      vertical-align: top;
+    }
+    table.simple tr:last-child td {
+      border-bottom: none;
+    }
+    .muted {
+      color: #64748b;
+      font-size: 11px;
+    }
+    .chips {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .chips li {
+      display: inline-block;
+      margin: 0 6px 6px 0;
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="header">
+      <div class="meta">Ticket {{ t.code }} · Generado el {{ generated_at|date:"d/m/Y H:i" }}</div>
+      <h1>{{ t.title }}</h1>
+      <div>
+        <span class="tag">Solicitante: {{ t.requester.username }}</span>
+        {% if t.assigned_to %}<span class="tag">Asignado a: {{ t.assigned_to.username }}</span>{% endif %}
+      </div>
+      <div class="status-pill">Estado actual: {{ t.get_status_display }}</div>
+    </div>
+
+    <div class="section">
+      <h2>Ficha principal</h2>
+      <table class="grid">
+        <tr>
+          <th>Tipo</th>
+          <td>{{ t.get_kind_display }}</td>
+          <th>Prioridad</th>
+          <td>{{ t.priority.name }}</td>
+        </tr>
+        <tr>
+          <th>Categoría</th>
+          <td>{{ t.category.name }}</td>
+          <th>Subcategoría</th>
+          <td>{% if t.subcategory %}{{ t.subcategory.name }}{% else %}<span class="muted">Sin subcategoría</span>{% endif %}</td>
+        </tr>
+        <tr>
+          <th>Área</th>
+          <td>{% if t.area %}{{ t.area.name }}{% else %}<span class="muted">Sin área asociada</span>{% endif %}</td>
+          <th>SLA</th>
+          <td>{% if t.resolved_at %}Cumplido en {{ t.resolved_at|date:"d/m/Y H:i" }}{% else %}Vence {{ t.due_at|date:"d/m/Y H:i" }}{% endif %}</td>
+        </tr>
+        <tr>
+          <th>Creado</th>
+          <td>{{ t.created_at|date:"d/m/Y H:i" }}</td>
+          <th>Última actualización</th>
+          <td>{{ t.updated_at|date:"d/m/Y H:i" }}</td>
+        </tr>
+        <tr>
+          <th>Resuelto</th>
+          <td>{% if t.resolved_at %}{{ t.resolved_at|date:"d/m/Y H:i" }}{% else %}<span class="muted">Pendiente</span>{% endif %}</td>
+          <th>Cerrado</th>
+          <td>{% if t.closed_at %}{{ t.closed_at|date:"d/m/Y H:i" }}{% else %}<span class="muted">Pendiente</span>{% endif %}</td>
+        </tr>
+      </table>
+      {% if labels %}
+        <p class="muted" style="margin: 6px 0 2px;">Etiquetas</p>
+        <ul class="chips">
+          {% for label in labels %}
+            <li>{{ label.name }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <div class="section">
+      <h2>Descripción detallada</h2>
+      <div class="description">{{ t.description }}</div>
+    </div>
+
+    {% if public_comments %}
+    <div class="section">
+      <h2>Comentarios visibles</h2>
+      <table class="simple">
+        <thead>
+          <tr>
+            <th>Autor</th>
+            <th>Fecha</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in public_comments %}
+          <tr>
+            <td>{{ c.author.username }}</td>
+            <td>{{ c.created_at|date:"d/m/Y H:i" }}</td>
+            <td>{{ c.body|linebreaksbr }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if attachments %}
+    <div class="section">
+      <h2>Archivos adjuntos</h2>
+      <table class="simple">
+        <thead>
+          <tr>
+            <th>Archivo</th>
+            <th>Peso</th>
+            <th>Subido por</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in attachments %}
+          <tr>
+            <td>{{ a.file.name }}</td>
+            <td>{% if a.size %}{{ a.size|filesizeformat }}{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td>{{ a.uploaded_by.username }}</td>
+            <td>{{ a.uploaded_at|date:"d/m/Y H:i" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <p class="muted">Documento generado automáticamente desde la mesa de ayuda.</p>
+  </div>
+</body>
+</html>

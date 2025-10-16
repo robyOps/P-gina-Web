@@ -18,7 +18,6 @@ urlpatterns = [
     path("tickets/", ticket_views.tickets_home, name="tickets_home"),
     path("tickets/new/", ticket_views.ticket_create, name="ticket_create"),
     path("tickets/<int:pk>/", ticket_views.ticket_detail, name="ticket_detail"),
-    path("tickets/<int:pk>/print/", ticket_views.ticket_print, name="ticket_print"),
     path("tickets/<int:pk>/pdf/", ticket_views.ticket_pdf, name="ticket_pdf"),
     path("tickets/<int:pk>/assign/", ticket_views.ticket_assign, name="ticket_assign"),
     path(
