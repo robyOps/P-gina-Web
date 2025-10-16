@@ -3,47 +3,155 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>{{ t.code }} - Orden de Trabajo</title>
+  <title>{{ t.code }} · Resumen del ticket</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    /* Reset breve */
     * { box-sizing: border-box; }
-    body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; }
-
-    /* Página A4 */
-    .page {
-      width: 210mm; min-height: 297mm; padding: 16mm;
-      margin: 0 auto; background: #fff;
+    body {
+      font-family: "Inter", "Segoe UI", Arial, sans-serif;
+      margin: 0;
+      background: #f1f5f9;
+      color: #0f172a;
     }
-    h1, h2, h3 { margin: 0; }
-    .muted { color: #666; font-size: 12px; }
-    .mb-1 { margin-bottom: 4mm; }
-    .mb-2 { margin-bottom: 8mm; }
-    .mb-3 { margin-bottom: 12mm; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
-    .box { border: 1px solid #e5e7eb; border-radius: 8px; padding: 6mm; }
-    .row { display: flex; gap: 6mm; }
-    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 18mm;
+    }
+    h1, h2, h3 { margin: 0; color: #0f172a; }
+    p { margin: 0 0 6px; }
+    .label {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #4f46e5;
+    }
+    .hero {
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 12mm;
+      margin-bottom: 12mm;
+      display: table;
+      width: 100%;
+    }
+    .hero > div {
+      display: table-cell;
+      vertical-align: top;
+    }
+    .hero-title { padding-right: 12mm; }
+    .hero h1 { font-size: 26px; line-height: 1.25; margin-top: 4mm; }
+    .code-pill {
+      display: inline-block;
+      background: #eef2ff;
+      color: #4338ca;
+      font-weight: 600;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      margin-top: 4mm;
+    }
+    .badge-row {
+      display: inline-flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .badge {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-critical { background: #dc2626; color: #ffffff; }
+    .badge-overdue { background: #991b1b; color: #ffffff; }
+    .badge-warning { background: #fbbf24; color: #111827; }
+    .badge-status { background: #e0e7ff; color: #3730a3; }
 
-    /* Badges */
-    .critical { background: #dc2626; color: #fff; }
-    .warn     { background: #f59e0b; color: #111; }
-    .overdue  { background: #991b1b; color: #fff; }
+    .section { margin-bottom: 14mm; }
+    .section h2 {
+      font-size: 18px;
+      margin-bottom: 6mm;
+      border-left: 4px solid #4f46e5;
+      padding-left: 8px;
+    }
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10mm;
+      background: #fbfdff;
+    }
+    .info-grid {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    .info-grid th {
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: #64748b;
+      padding: 6px 8px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      width: 30%;
+    }
+    .info-grid td {
+      font-size: 12px;
+      padding: 6px 10px;
+      border: 1px solid #e2e8f0;
+    }
+    .description {
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-line;
+      color: #1f2937;
+    }
+    table.simple {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table.simple th {
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #475569;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 6px 8px;
+    }
+    table.simple td {
+      font-size: 12px;
+      padding: 8px 8px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    table.simple tr:last-child td { border-bottom: none; }
+    .muted { color: #64748b; font-size: 11px; }
+    .comment-body { white-space: pre-line; }
 
-    /* Tabla de adjuntos y comentarios */
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #e5e7eb; padding: 6px 8px; font-size: 12px; text-align: left; }
-    th { background: #f3f4f6; }
-
-    /* Controles solo pantalla */
-    .screen-controls { padding: 10px 0; text-align: right; }
-    .btn { border: 1px solid #1f2937; padding: 6px 10px; border-radius: 6px; text-decoration: none; color: #fff; background: #111; font-size: 12px; }
-    .btn + .btn { margin-left: 6px; }
+    .screen-controls { padding: 12px 0; text-align: right; }
+    .btn {
+      display: inline-block;
+      border: 1px solid #4f46e5;
+      background: #4f46e5;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 999px;
+      text-decoration: none;
+    }
+    .btn + .btn { margin-left: 8px; }
 
     @media print {
+      body { background: #ffffff; }
       .screen-controls { display: none; }
-      body { background: #fff; }
-      .page { margin: 0; padding: 10mm; }
+      .page { padding: 14mm; }
     }
   </style>
 </head>
@@ -57,91 +165,126 @@
 </div>
 
 <div class="page">
-  <div class="mb-3">
-    <h1>Orden de Trabajo</h1>
-    <div class="muted">Código: <strong>{{ t.code }}</strong></div>
-  </div>
-
-  <div class="row mb-2" style="justify-content:space-between; align-items:center;">
-    <h2 style="max-width:150mm;">{{ t.title }}</h2>
-    <div>
-      {% if t.is_critical %}<span class="pill critical">CRITICAL</span>{% endif %}
-      {% if t.is_overdue %}
-        <span class="pill overdue">SLA vencido</span>
-      {% elif t.is_warning %}
-        <span class="pill warn">SLA por vencer (~{{ t.remaining_hours|floatformat:0 }}h)</span>
-      {% endif %}
+  <div class="hero">
+    <div class="hero-title">
+      <span class="label">Ticket</span>
+      <h1>{{ t.title }}</h1>
+      <p class="muted">Creado el {{ t.created_at|date:"d/m/Y H:i" }} por {{ t.requester.username }}</p>
+      <span class="code-pill">#{{ t.code }}</span>
     </div>
-  </div>
-
-  <div class="grid mb-3">
-    <div class="box">
-      <h3 class="mb-1">Datos</h3>
-      <div><strong>Estado:</strong> {{ t.get_status_display }}</div>
-      <div><strong>Tipo:</strong> {{ t.get_kind_display }}</div>
-      <div><strong>Categoría:</strong> {{ t.category.name }}</div>
-      <div><strong>Subcategoría:</strong> {% if t.subcategory %}{{ t.subcategory.name }}{% else %}-{% endif %}</div>
-      <div><strong>Prioridad:</strong> {{ t.priority.name }}</div>
-      {% if t.area %}<div><strong>Área:</strong> {{ t.area.name }}</div>{% endif %}
-      <div><strong>Solicitante:</strong> {{ t.requester.username }}</div>
-      <div><strong>Asignado a:</strong> {% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}-{% endif %}</div>
-      <div class="muted" style="margin-top:6px;">
-        Creado: {{ t.created_at }}{% if t.resolved_at %} · Resuelto: {{ t.resolved_at }}{% endif %}{% if t.closed_at %} · Cerrado: {{ t.closed_at }}{% endif %}
-      </div>
-      <div style="margin-top:6px;">
-        <strong>SLA:</strong>
+    <div style="text-align: right;">
+      <div class="badge-row">
+        <span class="badge badge-status">{{ t.get_status_display }}</span>
+        {% if t.is_critical %}<span class="badge badge-critical">Prioridad crítica</span>{% endif %}
         {% if t.is_overdue %}
-          Vencido ({{ t.due_at }})
-        {% else %}
-          Vence {{ t.due_at }} ({{ t.remaining_hours|floatformat:0 }} h restantes)
+          <span class="badge badge-overdue">SLA vencido</span>
+        {% elif t.is_warning %}
+          <span class="badge badge-warning">SLA por vencer (~{{ t.remaining_hours|floatformat:0 }}h)</span>
         {% endif %}
       </div>
-    </div>
-
-    <div class="box">
-      <h3 class="mb-1">Descripción</h3>
-      <div style="white-space:pre-line; font-size: 13px;">{{ t.description }}</div>
+      <p class="muted" style="margin-top: 8px;">Última actualización: {{ t.updated_at|date:"d/m/Y H:i" }}</p>
     </div>
   </div>
 
-  <div class="box mb-2">
-    <h3 class="mb-1">Comentarios (públicos)</h3>
-    <table>
+  <div class="section">
+    <h2>Resumen operativo</h2>
+    <table class="info-grid">
+      <tr>
+        <th>Tipo</th>
+        <td>{{ t.get_kind_display }}</td>
+        <th>Categoría</th>
+        <td>{{ t.category.name }}</td>
+      </tr>
+      <tr>
+        <th>Subcategoría</th>
+        <td>{% if t.subcategory %}{{ t.subcategory.name }}{% else %}<span class="muted">Sin subcategoría</span>{% endif %}</td>
+        <th>Prioridad</th>
+        <td>{{ t.priority.name }}</td>
+      </tr>
+      <tr>
+        <th>Área</th>
+        <td>{% if t.area %}{{ t.area.name }}{% else %}<span class="muted">Sin área asignada</span>{% endif %}</td>
+        <th>Asignado a</th>
+        <td>{% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}<span class="muted">Sin asignar</span>{% endif %}</td>
+      </tr>
+      <tr>
+        <th>SLA</th>
+        <td colspan="3">
+          {% if t.is_overdue %}
+            Vencido el {{ t.due_at|date:"d/m/Y H:i" }}
+          {% else %}
+            Vence el {{ t.due_at|date:"d/m/Y H:i" }} · Restan {{ t.remaining_hours|floatformat:0 }} horas
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <th>Fechas clave</th>
+        <td colspan="3">
+          Creado: {{ t.created_at|date:"d/m/Y H:i" }}
+          {% if t.resolved_at %} · Resuelto: {{ t.resolved_at|date:"d/m/Y H:i" }}{% endif %}
+          {% if t.closed_at %} · Cerrado: {{ t.closed_at|date:"d/m/Y H:i" }}{% endif %}
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Descripción del caso</h2>
+    <div class="card description">{{ t.description }}</div>
+  </div>
+
+  <div class="section">
+    <h2>Comentarios públicos</h2>
+    <table class="simple">
       <thead>
-        <tr><th>Fecha</th><th>Autor</th><th>Comentario</th></tr>
+        <tr>
+          <th style="width: 26%;">Fecha</th>
+          <th style="width: 20%;">Autor</th>
+          <th>Detalle</th>
+        </tr>
       </thead>
       <tbody>
-        {% for c in t.ticketcomment_set.all %}
-          {% if not c.is_internal %}
-          <tr>
-            <td class="muted">{{ c.created_at }}</td>
-            <td>{{ c.author.username }}</td>
-            <td>{{ c.body }}</td>
-          </tr>
+        {% with comments=public_comments|default:[] %}
+          {% if comments %}
+            {% for c in comments %}
+              <tr>
+                <td class="muted">{{ c.created_at|date:"d/m/Y H:i" }}</td>
+                <td>{{ c.author.username }}</td>
+                <td class="comment-body">{{ c.body }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="3" class="muted">Sin comentarios registrados.</td></tr>
           {% endif %}
-        {% empty %}
-        <tr><td colspan="3" class="muted">Sin comentarios.</td></tr>
-        {% endfor %}
+        {% endwith %}
       </tbody>
     </table>
   </div>
 
-  <div class="box">
-    <h3 class="mb-1">Adjuntos</h3>
-    <table>
+  <div class="section">
+    <h2>Adjuntos</h2>
+    <table class="simple">
       <thead>
-        <tr><th>Fecha</th><th>Archivo</th><th>Tamaño</th></tr>
+        <tr>
+          <th style="width: 26%;">Fecha</th>
+          <th>Archivo</th>
+          <th style="width: 20%;">Tamaño</th>
+        </tr>
       </thead>
       <tbody>
-        {% for a in t.ticketattachment_set.all %}
-        <tr>
-          <td class="muted">{{ a.uploaded_at }}</td>
-          <td>{{ a.file.name }}</td>
-          <td>{{ a.size }} bytes</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="3" class="muted">Sin adjuntos.</td></tr>
-        {% endfor %}
+        {% with files=attachments|default:[] %}
+          {% if files %}
+            {% for a in files %}
+              <tr>
+                <td class="muted">{{ a.uploaded_at|date:"d/m/Y H:i" }}</td>
+                <td>{{ a.file.name }}</td>
+                <td>{{ a.size|filesizeformat }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="3" class="muted">Sin archivos adjuntos.</td></tr>
+          {% endif %}
+        {% endwith %}
       </tbody>
     </table>
   </div>

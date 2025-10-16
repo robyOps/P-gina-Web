@@ -16,7 +16,7 @@
     </div>
   </article>
 
-  <form method="post" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-8">
+  <form method="post" enctype="multipart/form-data" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-8">
     {% csrf_token %}
 
     {% for hidden_field in form.hidden_fields %}
@@ -91,6 +91,14 @@
       <p class="text-sm text-slate-500">Relata qué pasó, cómo te afecta y si ya probaste alguna solución. Mientras más contexto, mejor.</p>
       {{ form.description|add_class:"w-full rounded-2xl border border-slate-200 px-4 py-3 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
       {% if form.description.errors %}<div class="text-xs text-rose-600">{{ form.description.errors }}</div>{% endif %}
+    </fieldset>
+
+    <fieldset class="space-y-3">
+      <legend class="text-lg font-semibold text-slate-900">Agrega evidencia (opcional)</legend>
+      <p class="text-sm text-slate-500">Sube capturas, documentos o cualquier archivo que ayude a entender mejor el caso. Cada archivo puede pesar hasta 20&nbsp;MB.</p>
+      {{ form.attachments }}
+      {% if form.attachments.help_text %}<p class="text-[11px] text-slate-500">{{ form.attachments.help_text }}</p>{% endif %}
+      {% if form.attachments.errors %}<div class="text-xs text-rose-600 space-y-1">{% for error in form.attachments.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
     </fieldset>
 
     <div class="flex flex-wrap items-center gap-3 pt-2">
