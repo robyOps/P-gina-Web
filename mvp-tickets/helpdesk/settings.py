@@ -1,13 +1,26 @@
 """
-Configuración de Django para el proyecto helpdesk.
-
-Generado por 'django-admin startproject' usando Django 5.2.5.
-
-Para más información sobre este archivo, ver
-https://docs.djangoproject.com/en/5.2/topics/settings/
-
-Para la lista completa de configuraciones y sus valores, ver
-https://docs.djangoproject.com/en/5.2/ref/settings/
+===============================================================================
+Propósito:
+    Centralizar la configuración de Django para el proyecto ``helpdesk`` y
+    definir valores por defecto seguros para desarrollo.
+API pública:
+    Variables de configuración importables por las apps (``INSTALLED_APPS``,
+    ``REST_FRAMEWORK``, ``SIMPLE_JWT``, rutas de login, etc.).
+Flujo de datos:
+    Variables de entorno → constantes Python → componentes de Django y DRF
+    que consumen estos ajustes durante el arranque.
+Dependencias:
+    ``django``, ``djangorestframework``, ``django-filter``,
+    ``rest_framework_simplejwt``, ``corsheaders`` y utilidades estándar de
+    Python.
+Decisiones:
+    Se habilita ``DEBUG`` y ``CORS_ALLOW_ALL_ORIGINS`` para entornos locales,
+    se mantiene SQLite como base de datos de arranque y se fuerza un umbral
+    mínimo para sugerencias de etiquetas.
+TODOs:
+    TODO:PREGUNTA Definir dominios permitidos y política de tokens para
+    entornos productivos.
+===============================================================================
 """
 
 from pathlib import Path

@@ -1,3 +1,26 @@
+"""
+===============================================================================
+Propósito:
+    Exponer los endpoints REST del proyecto agrupando routers y vistas
+    especializadas bajo el prefijo ``/api/``.
+API pública:
+    ``urlpatterns`` y ``router`` utilizados por Django REST Framework para
+    montar viewsets y vistas basadas en clase.
+Flujo de datos:
+    Solicitudes HTTP → ``DefaultRouter``/``path`` → viewsets o vistas →
+    serializadores → respuestas JSON.
+Dependencias:
+    ``rest_framework``, ``rest_framework_simplejwt`` y vistas propias de
+    ``accounts``, ``catalog``, ``tickets`` y ``reports``.
+Decisiones:
+    Se combinan rutas del router con rutas manuales para exponer operaciones
+    masivas y reportes sin duplicar lógica.
+TODOs:
+    TODO:PREGUNTA Validar si las rutas de reportes deberían versionarse o
+    exponerse bajo un prefijo separado para contratos más estables.
+===============================================================================
+"""
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from catalog.api import CategoryViewSet, PriorityViewSet, AreaViewSet, SubcategoryViewSet

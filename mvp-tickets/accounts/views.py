@@ -1,4 +1,26 @@
-# accounts/views.py
+"""
+===============================================================================
+Propósito:
+    Vistas server-rendered para administrar usuarios, roles y permisos
+    utilizando la UI basada en plantillas.
+API pública:
+    Vistas ``users_list``, ``user_create``, ``user_edit``, ``user_toggle`` y
+    CRUD de roles consumidas en ``helpdesk/urls.py``.
+Flujo de datos:
+    Request autenticada → validación de permisos → formularios → operaciones
+    ORM → respuestas HTML.
+Dependencias:
+    ``django.contrib.auth``, ``accounts.forms``, ``accounts.roles`` y
+    ``accounts.permissions``.
+Decisiones:
+    Uso de helpers privados para construir plantillas de permisos y reducir
+    duplicidad entre creación/edición de roles.
+TODOs:
+    TODO:PREGUNTA Evaluar si debe agregarse paginación server-side a los
+    listados de usuarios cuando la base crezca.
+===============================================================================
+"""
+
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
@@ -17,7 +39,12 @@ User = get_user_model()
 
 
 def _build_permission_templates(form: RoleForm) -> list[dict[str, Any]]:
-    """Construye payload (id de permisos) para las plantillas rápidas de roles."""
+    """Construye payload (id de permisos) para las plantillas rápidas de roles.
+
+    Se traduce el catálogo declarativo de ``PERMISSION_TEMPLATES`` a la lista
+    de IDs actual del formulario para asegurar que las plantillas reflejen el
+    estado real de la base de datos y evitar referencias rotas.
+    """
 
     available = form.fields["permissions"].queryset
     id_by_code = {p.codename: str(p.id) for p in available}
@@ -41,7 +68,12 @@ def _build_permission_templates(form: RoleForm) -> list[dict[str, Any]]:
 
 
 def _role_form_context(form: RoleForm, **extra) -> dict:
-    """Contexto común para crear/editar roles con plantillas predefinidas."""
+    """Contexto común para crear/editar roles con plantillas predefinidas.
+
+    Devuelve estructura apta para la plantilla, incluyendo serialización JSON
+    para el componente HTMX que sugiere permisos. Se agrega ``selected_permissions``
+    para facilitar la rehidratación del formulario cuando hay errores.
+    """
 
     permission_templates = _build_permission_templates(form)
     selected_permissions = {
@@ -61,7 +93,13 @@ def _role_form_context(form: RoleForm, **extra) -> dict:
 
 @login_required
 def users_list(request):
-    """Listado de usuarios. Filtros básicos por texto, estado y grupo."""
+    """Listado de usuarios con filtros de texto, estado y grupo.
+
+    Restringe acceso a usuarios con permiso ``auth.view_user`` y muestra un
+    mensaje de error en caso contrario. El filtrado se realiza sobre campos
+    básicos y utiliza ``order_by`` estable para mantener consistencia en la
+    paginación manual.
+    """
     if not request.user.has_perm("auth.view_user"):
         messages.error(request, "No tienes permiso para ver usuarios.")
         return redirect("tickets_home")
@@ -96,7 +134,12 @@ def users_list(request):
 
 @login_required
 def user_create(request):
-    """Crear nuevo usuario."""
+    """Crear nuevo usuario.
+
+    Cuando la creación es exitosa se fuerza ``is_active`` según lo entregado en
+    el formulario y se llama ``set_password`` para asegurar hashing. Los grupos
+    se guardan con ``save_m2m`` para evitar referencias incompletas.
+    """
     if not request.user.has_perm("auth.add_user"):
         messages.error(request, "No tienes permiso para crear usuarios.")
         return redirect("tickets_home")
@@ -121,7 +164,12 @@ def user_create(request):
 
 @login_required
 def user_edit(request, pk):
-    """Editar usuario."""
+    """Editar usuario existente, permitiendo cambio de password opcional.
+
+    Se usa ``commit=False`` para interceptar la instancia y aplicar ``set_password``
+    solo si se entregó un nuevo secreto. Caso contrario, se preserva el hash
+    existente y se guardan relaciones muchas-a-muchas.
+    """
     if not request.user.has_perm("auth.change_user"):
         messages.error(request, "No tienes permiso para editar usuarios.")
         return redirect("tickets_home")
@@ -149,7 +197,12 @@ def user_edit(request, pk):
 
 @login_required
 def user_toggle(request, pk):
-    """Activar/Desactivar usuario."""
+    """Activar/Desactivar usuario.
+
+    Invierte ``is_active`` y guarda solo ese campo para minimizar escritura. Se
+    notifica al usuario mediante ``messages`` para mantener trazabilidad de la
+    acción en la interfaz.
+    """
     if not request.user.has_perm("auth.change_user"):
         messages.error(request, "No tienes permiso para cambiar el estado de un usuario.")
         return redirect("tickets_home")
@@ -163,7 +216,11 @@ def user_toggle(request, pk):
 
 @login_required
 def roles_list(request):
-    """Listado de roles disponibles."""
+    """Listado de roles disponibles ordenados alfabéticamente.
+
+    Solo accesible para usuarios con permiso ``auth.view_group``. Se centraliza
+    el orden para que la UI mantenga un resultado determinista.
+    """
     if not request.user.has_perm("auth.view_group"):
         messages.error(request, "No tienes permiso para ver los roles.")
         return redirect("tickets_home")
@@ -174,7 +231,12 @@ def roles_list(request):
 
 @login_required
 def role_create(request):
-    """Crear rol y asignar permisos."""
+    """Crear rol y asignar permisos.
+
+    Utiliza ``RoleForm`` para validar combinaciones de permisos y muestra las
+    plantillas predefinidas construidas por ``_role_form_context``. Los errores
+    vuelven a la misma plantilla preservando selección del usuario.
+    """
     if not request.user.has_perm("auth.add_group"):
         messages.error(request, "No tienes permiso para crear roles.")
         return redirect("tickets_home")
@@ -195,7 +257,11 @@ def role_create(request):
 
 @login_required
 def role_edit(request, pk):
-    """Editar rol y sus permisos."""
+    """Editar rol y sus permisos manteniendo consistencia con el formulario.
+
+    Se carga el objeto existente y se confía en las validaciones de ``RoleForm``
+    para prevenir la eliminación accidental de permisos críticos.
+    """
     if not request.user.has_perm("auth.change_group"):
         messages.error(request, "No tienes permiso para editar roles.")
         return redirect("tickets_home")

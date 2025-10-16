@@ -1,3 +1,25 @@
+"""
+===============================================================================
+Propósito:
+    Definir etiquetas y agrupaciones de permisos para construir interfaces de
+    administración más comprensibles.
+API pública:
+    ``PERMISSION_LABELS``, ``PERMISSION_GROUPS`` y helpers ``group_permissions``
+    usados en formularios y vistas.
+Flujo de datos:
+    Codename de permiso → etiqueta amigable/agrupación → renderizado en UI o
+    inicialización de roles.
+Dependencias:
+    ``accounts.roles`` para obtener roles predefinidos y módulos ``django.contrib.auth``.
+Decisiones:
+    Se almacenan etiquetas en español y se agrupan permisos para mantener
+    coherencia en la experiencia de usuario.
+TODOs:
+    TODO:PREGUNTA Revisar si se requieren permisos adicionales para reportes
+    avanzados o integraciones externas.
+===============================================================================
+"""
+
 from dataclasses import dataclass
 from typing import Iterable
 
