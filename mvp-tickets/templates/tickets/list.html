@@ -312,8 +312,13 @@
                   {% endif %}
                 </td>
                 <td class="px-2.5 py-2 text-[11px] text-slate-500 whitespace-nowrap sm:px-3 sm:py-2" title="{{ t.created_at|date:'d/M/Y H:i' }}">
-                  <span class="font-medium text-slate-600">{{ t.created_at|date:"d/M" }}</span>
-                  <span class="ml-1 text-slate-400">{{ t.created_at|time:"H:i" }}</span>
+                  <div class="flex items-center gap-1.5 text-slate-600">
+                    <i class="bi bi-calendar-event"></i>
+                    <div class="leading-tight">
+                      <span class="block font-semibold">{{ t.created_at|date:"d/M/Y" }}</span>
+                      <span class="text-slate-400">{{ t.created_at|time:"H:i" }}</span>
+                    </div>
+                  </div>
                 </td>
               </tr>
               {% empty %}
