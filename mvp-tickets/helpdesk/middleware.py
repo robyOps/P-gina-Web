@@ -5,7 +5,68 @@ from __future__ import annotations
 import logging
 import re
 
+# PATH-FIREWALL: middleware global anti-LFI
+from urllib.parse import unquote
+
 from django.core.exceptions import SuspiciousOperation
+from django.http import HttpResponseBadRequest
+
+# PATH-FIREWALL: middleware global anti-LFI
+SAFE_PATH = re.compile(r"^[a-zA-Z0-9/_\-.~]*$")
+SAFE_KEY = re.compile(r"^[a-zA-Z0-9._-]*$")
+SAFE_VAL = re.compile(r"^[a-zA-Z0-9 .,_-]*$")
+
+
+# PATH-FIREWALL: middleware global anti-LFI
+def _decode_multi(s, times=3):
+    out = s
+    for _ in range(times):
+        try:
+            dec = unquote(out)
+            if dec == out:
+                break
+            out = dec
+        except Exception:
+            break
+    return out
+
+
+class PathFirewall:
+    """Reject traversal attempts and malformed paths before reaching Django."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        raw = (request.META.get("RAW_URI") or request.get_full_path()).split("?", 1)[0]
+        path_dec = _decode_multi(raw)
+
+        # Bloqueos duros
+        raw_lower = raw.lower()
+        if (
+            ".." in path_dec
+            or "\\" in path_dec
+            or "\x00" in path_dec
+            or ("%2e" in raw_lower)
+            or ("%2f" in raw_lower)
+            or ("%5c" in raw_lower)
+        ):
+            return HttpResponseBadRequest()
+
+        # Allowlist de caracteres de ruta
+        if not SAFE_PATH.fullmatch(path_dec):
+            return HttpResponseBadRequest()
+
+        # Validación simple de querystring
+        for k, v in request.GET.lists():
+            k_dec = _decode_multi(k)
+            if not SAFE_KEY.fullmatch(k_dec):
+                return HttpResponseBadRequest()
+            for val in v:
+                if not SAFE_VAL.fullmatch(_decode_multi(val)):
+                    return HttpResponseBadRequest()
+
+        return self.get_response(request)
 
 logger = logging.getLogger(__name__)
 

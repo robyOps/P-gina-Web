@@ -58,7 +58,9 @@ INSTALLED_APPS = [
 ]
 
 # Middleware (CORS bien arriba)
+# PATH-FIREWALL: registrar primero
 MIDDLEWARE = [
+    "helpdesk.middleware.PathFirewall",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
