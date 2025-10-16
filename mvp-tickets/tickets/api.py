@@ -6,12 +6,17 @@ from django.utils.dateparse import parse_date
 from django.contrib.auth import get_user_model  # para obtener el modelo de usuario (custom o por defecto)
 
 # DRF: vistas, permisos, decoradores para acciones custom, respuesta y parsers de archivos
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, status
 from rest_framework.decorators import action  # define endpoints como /assign, /transition, etc.
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser  # subir archivos (multipart/form-data)
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import APIView
+
+from helpdesk.permissions import (
+    AuthenticatedSafeMethodsOnlyForRequesters,
+    PrivilegedOnlyPermission,
+)
 
 # Modelos (incluye AuditLog para trazabilidad)
 from .models import (
@@ -95,7 +100,7 @@ class TicketViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = TicketSerializer                     # serializer por defecto
-    permission_classes = [permissions.IsAuthenticated]      # exige JWT/usuario logeado
+    permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]      # exige JWT/usuario logeado
     suggestion_pagination_class = TicketSuggestionPagination
 
     # Query base (con relaciones) y orden (últimos creados primero)
@@ -580,7 +585,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 
 
 class TicketSuggestionBulkRecomputeView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [PrivilegedOnlyPermission]
 
     def post(self, request):
         if not is_admin(request.user):
@@ -677,7 +682,7 @@ class TicketSuggestionBulkRecomputeView(APIView):
 
 
 class TicketClusterRetrainView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [PrivilegedOnlyPermission]
 
     def post(self, request):
         if not is_admin(request.user):
@@ -738,7 +743,7 @@ class TicketClusterRetrainView(APIView):
 
 
 class TicketAlertListView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
     pagination_class = TicketAlertPagination
 
     def get(self, request):
@@ -834,7 +839,7 @@ class TicketAlertListView(APIView):
 
 
 class TicketFilterOptionsView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
 
     def get(self, request):
         categories = list(
@@ -866,7 +871,7 @@ class TicketFilterOptionsView(APIView):
 
 
 class SubcategoryBackfillView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [PrivilegedOnlyPermission]
 
     def post(self, request):
         if not (is_admin(request.user) or request.user.has_perm("tickets.manage_reports")):

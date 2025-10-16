@@ -9,7 +9,7 @@ from django.db.models.functions import ExtractHour, ExtractWeekDay, TruncHour
 from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import permissions
+from helpdesk.permissions import AuthenticatedSafeMethodsOnlyForRequesters
 
 from tickets.models import Ticket
 from tickets.utils import (
@@ -117,7 +117,7 @@ def base_queryset(request):
 
 
 class ReportSummaryView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
 
     def get(self, request):
         qs = base_queryset(request)
@@ -178,7 +178,7 @@ class ReportSummaryView(APIView):
 
 
 class ReportExportView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
 
     def get(self, request):
         qs = base_queryset(request)
@@ -237,7 +237,7 @@ class ReportExportView(APIView):
 class ReportHeatmapView(APIView):
     """Entrega una matriz día x hora para alimentar el mapa de calor."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
     WEEKDAY_LABELS = [
         "Lunes",
         "Martes",
@@ -310,7 +310,7 @@ class ReportHeatmapView(APIView):
 class ReportTopSubcategoriesView(APIView):
     """Devuelve el ranking de subcategorías del período."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
 
     def get(self, request):
         qs = base_queryset(request)
@@ -339,7 +339,7 @@ class ReportTopSubcategoriesView(APIView):
 class ReportAreaBySubcategoryView(APIView):
     """Devuelve el cruce Área × Subcategoría ordenado por incidencias."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
 
     def get(self, request):
         qs = base_queryset(request)
@@ -369,7 +369,7 @@ class ReportAreaBySubcategoryView(APIView):
 class ReportAreaSubcategoryHeatmapView(APIView):
     """Construye un heatmap Área × Subcategoría."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
 
     def get(self, request):
         qs = base_queryset(request)

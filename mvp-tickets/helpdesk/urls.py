@@ -105,10 +105,14 @@ urlpatterns = [
 
 
     # Admin
-    path("admin/", admin.site.urls),
+path("admin/", admin.site.urls),
 ]
 
 # Servir MEDIA en dev
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+handler404 = "helpdesk.views.redirect_to_safe_location"
+handler500 = "helpdesk.views.handle_server_error"
 
