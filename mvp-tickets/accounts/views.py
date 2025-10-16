@@ -30,6 +30,8 @@ from typing import Any
 from django.template.response import TemplateResponse
 from django.db.models import Q
 from django.contrib.auth import get_user_model
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import Group
 
 from .forms import UserCreateForm, UserEditForm, RoleForm
@@ -280,6 +282,25 @@ def role_edit(request, pk):
 
     ctx = _role_form_context(form, is_new=False, obj=role)
     return TemplateResponse(request, "accounts/role_form.html", ctx)
+
+
+
+@login_required
+def password_change(request):
+    """Permitir que cualquier usuario actualice su contraseña aplicando validadores."""
+
+    if request.method == "POST":
+        form = PasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, "Tu contraseña se actualizó correctamente.")
+            return redirect("account_password_change")
+        messages.error(request, "Corrige los errores antes de continuar.")
+    else:
+        form = PasswordChangeForm(user=request.user)
+
+    return TemplateResponse(request, "accounts/password_change.html", {"form": form})
 
 
 

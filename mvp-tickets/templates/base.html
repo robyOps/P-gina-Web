@@ -289,6 +289,7 @@
                 {% endif %}
               </a>
               <span>Hola, <span class="font-medium">{{ request.user.username }}</span></span>
+              <a href="{% url 'account_password_change' %}" class="hover:text-orange-300 transition-colors">Cambiar contraseña</a>
               <form action="{% url 'logout' %}" method="post">
                 {% csrf_token %}
                 <button type="submit" class="hover:text-orange-300 transition-colors">Salir</button>
