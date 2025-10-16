@@ -12,17 +12,25 @@ class TicketSerializer(serializers.ModelSerializer):
     requester = serializers.HiddenField(default=serializers.CurrentUserDefault())
     code = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
+    cluster_id = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Ticket
         fields = [
             "id", "code", "title", "description",
             "category", "priority", "area", "kind",
-            "status", "assigned_to",
+            "status", "assigned_to", "cluster_id",
             "created_at", "updated_at", "resolved_at", "closed_at",
             "requester",
         ]
-        read_only_fields = ["assigned_to", "created_at", "updated_at", "resolved_at", "closed_at"]
+        read_only_fields = [
+            "assigned_to",
+            "created_at",
+            "updated_at",
+            "resolved_at",
+            "closed_at",
+            "cluster_id",
+        ]
 
 class TicketCommentSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())

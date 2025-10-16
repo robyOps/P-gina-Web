@@ -62,6 +62,9 @@ class Ticket(models.Model):
     # Área (opcional). PROTECT para no borrar áreas en uso
     area = models.ForeignKey(Area, on_delete=models.PROTECT, null=True, blank=True)
 
+    # Agrupación automática por similitud textual (se calcula vía job/API)
+    cluster_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+
     # Estado del ticket con choices y default
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=OPEN)
 

@@ -40,6 +40,7 @@ from .services import (
     accept_ticket_label_suggestion,
     get_label_suggestion_threshold,
 )
+from .clustering import train_ticket_clusters
 import logging
 
 logger = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ class TicketViewSet(viewsets.ModelViewSet):
     )
 
     # Filtros por query string (?status=&category=&priority=&area=)
-    filterset_fields = ["status", "category", "priority", "area"]
+    filterset_fields = ["status", "category", "priority", "area", "cluster_id"]
 
     # --------- Visibilidad por rol ---------
     def get_queryset(self):
@@ -159,6 +160,47 @@ class TicketViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"message": "Asignado", "from": prev.id if prev else None, "to": to_user.id}, status=200)
+
+    @action(detail=False, methods=["post"], url_path="retrain-clusters")
+    def retrain_clusters(self, request):
+        if not (is_admin(request.user) or is_tech(request.user)):
+            return Response(
+                {"detail": "Solo técnicos o administradores pueden reentrenar clústeres."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        raw_clusters = request.data.get("clusters") or request.data.get("num_clusters")
+        if raw_clusters is None:
+            return Response(
+                {"detail": "Debe indicar la cantidad de clústeres en 'clusters'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            clusters = int(raw_clusters)
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "El parámetro 'clusters' debe ser un entero mayor a cero."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if clusters <= 0:
+            return Response(
+                {"detail": "El parámetro 'clusters' debe ser un entero mayor a cero."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        summary = train_ticket_clusters(num_clusters=clusters)
+
+        return Response(
+            {
+                "message": "Clusterización completada",
+                "total_tickets": summary.total_tickets,
+                "requested_clusters": summary.requested_clusters,
+                "effective_clusters": summary.effective_clusters,
+                "assignments": summary.assignments,
+            }
+        )
 
     # ---------- Etiquetas sugeridas ----------
     def _require_label_access(self, request, ticket):
