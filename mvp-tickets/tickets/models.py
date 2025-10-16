@@ -99,6 +99,14 @@ class Ticket(models.Model):
             ("view_all_tickets", "Puede ver todos los tickets"),
             ("view_reports", "Puede ver reportes"),
             ("manage_reports", "Puede administrar reportes"),
+            (
+                "set_ticket_category",
+                "Puede seleccionar la categoría al crear o actualizar un ticket",
+            ),
+            (
+                "set_ticket_priority",
+                "Puede seleccionar la prioridad al crear o actualizar un ticket",
+            ),
         ]
 
     def __str__(self):

@@ -43,6 +43,8 @@ class Command(BaseCommand):
             "view_all_tickets",
             "view_reports",
             "manage_reports",
+            "set_ticket_category",
+            "set_ticket_priority",
         ]
         custom_perms = list(Permission.objects.filter(codename__in=custom_codes))
 
@@ -67,6 +69,11 @@ class Command(BaseCommand):
                     perm
                     for perm in ticket_perms
                     if perm.codename in ("add_ticket", "view_ticket")
+                ],
+                *[
+                    perm
+                    for perm in ticket_perms
+                    if perm.codename in ("set_ticket_category", "set_ticket_priority")
                 ],
                 # Puede agregar y ver comentarios
                 *[

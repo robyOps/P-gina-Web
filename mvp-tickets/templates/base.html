@@ -115,7 +115,9 @@
         historyApi.scrollRestoration = 'manual';
       }
 
-      const storageKey = `scroll-position:${window.location.pathname}${window.location.search}`;
+      const storageKeyBase = `scroll-position:${window.location.pathname}`;
+      const storageKeyLegacy = `${storageKeyBase}${window.location.search}`;
+      const storageKeys = [storageKeyBase, storageKeyLegacy];
       let restored = false;
 
       const parseOffset = (value) => {
@@ -129,13 +131,17 @@
         }
         restored = true;
         try {
-          const raw = sessionStorage.getItem(storageKey);
-          if (raw !== null) {
+          for (const key of storageKeys) {
+            const raw = sessionStorage.getItem(key);
+            if (raw === null) {
+              continue;
+            }
             const offset = parseOffset(raw);
+            sessionStorage.removeItem(key);
             if (offset !== null) {
               window.scrollTo(0, offset);
+              break;
             }
-            sessionStorage.removeItem(storageKey);
           }
         } catch (error) {
           /* ignore storage issues */
@@ -158,7 +164,10 @@
       const saveScroll = () => {
         try {
           const offset = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
-          sessionStorage.setItem(storageKey, String(Math.max(0, Math.round(offset))));
+          sessionStorage.setItem(storageKeyBase, String(Math.max(0, Math.round(offset))));
+          if (storageKeyLegacy !== storageKeyBase) {
+            sessionStorage.removeItem(storageKeyLegacy);
+          }
         } catch (error) {
           /* ignore storage issues */
         }
@@ -177,7 +186,10 @@
           const reset = event.target instanceof Element ? event.target.closest('[data-reset-scroll]') : null;
           if (reset) {
             try {
-              sessionStorage.removeItem(storageKey);
+              sessionStorage.removeItem(storageKeyBase);
+              if (storageKeyLegacy !== storageKeyBase) {
+                sessionStorage.removeItem(storageKeyLegacy);
+              }
             } catch (error) {
               /* ignore storage issues */
             }
