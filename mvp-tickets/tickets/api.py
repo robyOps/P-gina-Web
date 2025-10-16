@@ -44,6 +44,7 @@ from .services import (
     bulk_recompute_ticket_label_suggestions,
     collect_ticket_alerts,
 )
+from .utils import sanitize_text
 from .clustering import train_ticket_clusters
 import logging
 import time
@@ -101,7 +102,9 @@ class TicketViewSet(viewsets.ModelViewSet):
     )
 
     # Filtros por query string (?status=&category=&priority=&area=)
-    filterset_fields = ["status", "category", "priority", "area", "cluster_id"]
+    # Se omite ``cluster_id`` para mantener el listado público alineado con la UI
+    # (ya no se expone como criterio en la vista principal) y reducir ruido.
+    filterset_fields = ["status", "category", "priority", "area"]
 
     # --------- Visibilidad por rol ---------
     def get_queryset(self):
@@ -160,7 +163,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         # Body esperado
         to_user_id = request.data.get("to_user_id")
-        reason = request.data.get("reason", "")
+        reason = sanitize_text(request.data.get("reason", ""))
 
         if not to_user_id:
             return Response({"detail": "to_user_id requerido"}, status=400)
@@ -374,9 +377,10 @@ class TicketViewSet(viewsets.ModelViewSet):
         ticket.save()
 
         comment_obj = None
-        if comment:
+        comment_clean = sanitize_text(comment)
+        if comment_clean:
             comment_obj = TicketComment.objects.create(
-                ticket=ticket, author=u, body=comment, is_internal=is_internal
+                ticket=ticket, author=u, body=comment_clean, is_internal=is_internal
             )
 
         AuditLog.objects.create(
@@ -386,7 +390,7 @@ class TicketViewSet(viewsets.ModelViewSet):
                 "from_label": status_map.get(previous_status),
                 "to": next_status,
                 "to_label": status_map.get(next_status),
-                "with_comment": bool(comment),
+                "with_comment": bool(comment_clean),
                 "internal": bool(is_internal),
                 "comment_id": getattr(comment_obj, "id", None),
                 "body_preview": comment_obj.body[:120] if comment_obj else "",

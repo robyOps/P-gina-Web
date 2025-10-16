@@ -9,7 +9,12 @@ from tickets.api import (
     TicketClusterRetrainView,
     TicketAlertListView,
 )
-from reports.api import ReportSummaryView, ReportExportView, ReportHeatmapView
+from reports.api import (
+    ReportSummaryView,
+    ReportExportView,
+    ReportHeatmapView,
+    ReportTopSubcategoriesView,
+)
 
 router = DefaultRouter()
 router.register("categories", CategoryViewSet, basename="category")
@@ -43,4 +48,5 @@ urlpatterns += [
     path("reports/summary/", ReportSummaryView.as_view(), name="reports_summary"),
     path("reports/export/", ReportExportView.as_view(), name="reports_export"),
     path("reports/heatmap/", ReportHeatmapView.as_view(), name="reports_heatmap"),
+    path("reports/subcategories/", ReportTopSubcategoriesView.as_view(), name="reports_subcategories"),
 ]

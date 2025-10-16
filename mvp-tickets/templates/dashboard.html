@@ -262,6 +262,129 @@
             </div>
           </article>
         </section>
+
+        <section class="grid gap-5 xl:grid-cols-[1.1fr_1.1fr_0.9fr]">
+          <article class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 class="text-2xl font-semibold text-slate-900">Top subcategorías 30 días</h2>
+                <p class="text-sm text-slate-600">Etiquetas confirmadas que concentran la mayor cantidad de tickets recientes.</p>
+              </div>
+              <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600"><i class="bi bi-calendar3"></i> Últimos 30 días</span>
+            </div>
+            {% if top_subcategories %}
+            <ol class="mt-4 space-y-3" role="list">
+              {% for item in top_subcategories %}
+              <li class="space-y-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 shadow-inner">
+                <div class="flex items-center justify-between text-sm font-semibold text-slate-700">
+                  <div class="flex items-center gap-3">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-emerald-600 shadow">{{ forloop.counter }}</span>
+                    <span class="text-base text-slate-900">{{ item.name }}</span>
+                  </div>
+                  <span class="text-sm text-emerald-600">{{ item.total }} tickets</span>
+                </div>
+                <div class="relative h-2.5 w-full overflow-hidden rounded-full bg-white/70">
+                  <div class="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400 to-sky-400" style="width: {{ item.percentage }}%;"></div>
+                </div>
+                <p class="text-xs text-emerald-700">{{ item.percentage }}% del total etiquetado</p>
+              </li>
+              {% endfor %}
+            </ol>
+            {% else %}
+            <div class="mt-6 flex flex-col items-center justify-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-8 text-center text-sm text-emerald-600">
+              <i class="bi bi-tags text-3xl"></i>
+              <p class="max-w-sm text-base">Aún no hay suficientes etiquetas confirmadas en los últimos 30 días para construir un ranking.</p>
+            </div>
+            {% endif %}
+          </article>
+
+          <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 class="text-2xl font-semibold text-slate-900">Heatmap de actividad</h2>
+                <p class="text-sm text-slate-600">Concentración de tickets creados por día y hora (últimas dos semanas).</p>
+              </div>
+              <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-slate-500"><i class="bi bi-grid-3x3"></i> {{ heatmap.overall_total }} totales</span>
+            </div>
+            {% if heatmap.max_value %}
+            <div class="mt-4 overflow-x-auto">
+              <table class="min-w-full table-fixed text-xs text-slate-600">
+                <thead>
+                  <tr>
+                    <th class="w-24 px-2 py-1 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400">Día / Hora</th>
+                    {% for hour in heatmap.hours %}
+                    <th class="w-10 px-1 py-1 text-[11px] font-semibold text-slate-400">{{ hour }}</th>
+                    {% endfor %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in heatmap.rows %}
+                  <tr>
+                    <th scope="row" class="px-2 py-1 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">{{ row.weekday }}</th>
+                    {% for cell in row.cells %}
+                    {% with intensity=cell.intensity count=cell.count %}
+                    <td class="px-1 py-1">
+                      <div class="h-7 w-full rounded-md border border-slate-100 bg-slate-100/70" style="background: linear-gradient(135deg, rgba(14,165,233,{{ intensity|floatformat:2 }}), rgba(59,130,246,{{ intensity|floatformat:2 }}));">
+                        <span class="sr-only">{{ count }} tickets</span>
+                      </div>
+                    </td>
+                    {% endwith %}
+                    {% endfor %}
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">Mientras más intensa la celda, mayor cantidad de tickets registrados en esa franja horaria.</p>
+            {% else %}
+            <div class="mt-6 flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-8 text-center text-sm text-slate-600">
+              <i class="bi bi-activity text-3xl"></i>
+              <p class="max-w-sm text-base">Sin datos suficientes en las últimas semanas para renderizar el heatmap.</p>
+            </div>
+            {% endif %}
+          </article>
+
+          <article class="rounded-3xl border border-rose-100 bg-white p-6 shadow-sm">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 class="text-2xl font-semibold text-slate-900">Alertas recientes</h2>
+                <p class="text-sm text-slate-600">Tickets que requieren atención por riesgo o incumplimiento de SLA.</p>
+              </div>
+              <span class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-rose-500"><i class="bi bi-exclamation-octagon"></i> {{ alerts_panel.summary.breaches }} incumplidos · {{ alerts_panel.summary.warnings }} en riesgo</span>
+            </div>
+            {% if alerts_panel.items %}
+            <ul class="mt-4 space-y-3" role="list">
+              {% for alert in alerts_panel.items %}
+              <li class="space-y-2 rounded-2xl border border-rose-100 bg-rose-50/60 p-4 shadow-inner">
+                <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <div class="flex items-center gap-2">
+                    <a href="{% url 'ticket_detail' alert.id %}" class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 font-semibold text-rose-600 shadow" aria-label="Abrir ticket {{ alert.code }}">
+                      <i class="bi bi-hash"></i> {{ alert.code }}
+                    </a>
+                    <span class="text-sm font-semibold text-slate-800">{{ alert.title }}</span>
+                  </div>
+                  <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold {% if alert.severity == 'breach' %}bg-rose-500 text-white{% else %}bg-amber-100 text-amber-700{% endif %}">
+                    {% if alert.severity == 'breach' %}<i class="bi bi-x-octagon"></i> Vencido{% else %}<i class="bi bi-hourglass-split"></i> En riesgo{% endif %}
+                  </span>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                  <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1"><i class="bi bi-calendar-event"></i>Vence {{ alert.due_at|localtime|date:"d/m" }} a las {{ alert.due_at|localtime|time:"H:i" }}</span>
+                  <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1"><i class="bi bi-clock-history"></i>{{ alert.remaining_hours|floatformat:1 }}h restantes</span>
+                  {% if alert.assigned_to %}
+                  <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1"><i class="bi bi-person-circle"></i>{{ alert.assigned_to }}</span>
+                  {% endif %}
+                </div>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <div class="mt-6 flex flex-col items-center justify-center gap-3 rounded-2xl border border-rose-100 bg-rose-50/60 p-8 text-center text-sm text-rose-600">
+              <i class="bi bi-shield-check text-3xl"></i>
+              <p class="max-w-sm text-base">No hay alertas activas. Mantén el monitoreo para anticipar desviaciones de SLA.</p>
+            </div>
+            {% endif %}
+          </article>
+        </section>
       </div>
     </div>
   </div>

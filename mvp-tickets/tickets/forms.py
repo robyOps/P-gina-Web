@@ -5,6 +5,7 @@ from django.contrib.auth.models import Group
 from accounts.roles import ROLE_ADMIN, ROLE_TECH
 from .models import Ticket, AutoAssignRule, FAQ
 from catalog.models import Category, Priority, Area
+from .utils import sanitize_text
 
 User = get_user_model()
 
@@ -48,6 +49,18 @@ class TicketCreateForm(forms.ModelForm):
         else:
             # Usuarios no admin: no mostramos el campo
             self.fields.pop("assignee", None)
+
+    def clean_title(self):
+        title = sanitize_text(self.cleaned_data.get("title"))
+        if not title:
+            raise forms.ValidationError("El título es obligatorio.")
+        return title
+
+    def clean_description(self):
+        description = sanitize_text(self.cleaned_data.get("description"))
+        if not description:
+            raise forms.ValidationError("La descripción es obligatoria.")
+        return description
 
 
 class TicketQuickUpdateForm(forms.ModelForm):
@@ -93,6 +106,12 @@ class TicketQuickUpdateForm(forms.ModelForm):
         self.fields["area"].required = False
         self.fields["area"].empty_label = "Sin área"
 
+    def clean_title(self):
+        title = sanitize_text(self.cleaned_data.get("title"))
+        if not title:
+            raise forms.ValidationError("El título es obligatorio.")
+        return title
+
 class AutoAssignRuleForm(forms.ModelForm):
     class Meta:
         model = AutoAssignRule
@@ -136,3 +155,15 @@ class FAQForm(forms.ModelForm):
         self.fields["category"].queryset = Category.objects.order_by("name")
         self.fields["category"].required = False
         self.fields["category"].empty_label = "Sin categoría"
+
+    def clean_question(self):
+        question = sanitize_text(self.cleaned_data.get("question"))
+        if not question:
+            raise forms.ValidationError("La pregunta no puede estar vacía.")
+        return question
+
+    def clean_answer(self):
+        answer = sanitize_text(self.cleaned_data.get("answer"))
+        if not answer:
+            raise forms.ValidationError("La respuesta no puede estar vacía.")
+        return answer

@@ -1,5 +1,5 @@
 # reports/api.py
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import Counter
 import csv
 import calendar
@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework import permissions
 
 from tickets.models import Ticket
+from tickets.utils import aggregate_top_subcategories
 from accounts.roles import is_admin, is_tech
 from django.utils import timezone
 
@@ -297,6 +298,30 @@ class ReportHeatmapView(APIView):
                     "overall": total,
                 },
                 "max_value": max_value,
+            }
+        )
+
+
+class ReportTopSubcategoriesView(APIView):
+    """Devuelve el ranking de etiquetas confirmadas (subcategorías) del período."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        qs = base_queryset(request)
+        since = timezone.now() - timedelta(days=30)
+        limit = request.query_params.get("limit")
+        try:
+            limit_value = int(limit) if limit is not None else 5
+        except ValueError:
+            limit_value = 5
+        limit_value = max(1, min(limit_value, 20))
+
+        results = aggregate_top_subcategories(qs, since=since, limit=limit_value)
+        return Response(
+            {
+                "since": since.date().isoformat(),
+                "results": results,
             }
         )
 

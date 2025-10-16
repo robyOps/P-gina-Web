@@ -78,7 +78,7 @@ class Ticket(models.Model):
     )
 
     # Timestamps de ciclo de vida
-    created_at = models.DateTimeField(auto_now_add=True)  # se fija al crear
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)  # se fija al crear
     updated_at = models.DateTimeField(auto_now=True)      # se actualiza en cada save()
     resolved_at = models.DateTimeField(null=True, blank=True)  # cuando pasa a RESOLVED
     closed_at = models.DateTimeField(null=True, blank=True)    # cuando pasa a CLOSED
@@ -227,6 +227,9 @@ class TicketLabel(models.Model):
     class Meta:
         unique_together = ("ticket", "name")
         ordering = ["name"]
+        indexes = [
+            models.Index(fields=["name"], name="ticketlabel_name_idx"),
+        ]
 
     def __str__(self):
         return f"Label({self.ticket.code}) {self.name}"

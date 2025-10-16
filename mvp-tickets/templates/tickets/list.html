@@ -86,7 +86,7 @@
       id="filters-panel"
       class="hidden rounded-2xl border border-slate-200 bg-white p-2.5 shadow-sm sm:p-3"
       data-filter-panel
-      {% if filters.q or filters.status or filters.category or filters.priority or filters.area or filters.cluster or filters.alerts or filters.hide_closed == '1' %}data-open="true"{% endif %}
+      {% if filters.q or filters.status or filters.category or filters.priority or filters.area or filters.alerts or filters.hide_closed == '1' %}data-open="true"{% endif %}
     >
       <div class="flex flex-wrap items-center justify-between gap-1.5">
         <h2 class="text-sm font-semibold text-slate-900">Filtros</h2>
@@ -128,15 +128,6 @@
               <option value="" {% if not filters.area %}selected{% endif %}>(Todas)</option>
               {% for a in areas %}
                 <option value="{{ a.id }}" {% if filters.area|stringformat:'s' == a.id|stringformat:'s' %}selected{% endif %}>{{ a.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-semibold uppercase text-slate-500" for="cluster">Cluster</label>
-            <select id="cluster" name="cluster" class="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-              <option value="" {% if not filters.cluster %}selected{% endif %}>(Todos)</option>
-              {% for cid in cluster_ids %}
-                <option value="{{ cid }}" {% if filters.cluster|stringformat:'s' == cid|stringformat:'s' %}selected{% endif %}>{{ cid }}</option>
               {% endfor %}
             </select>
           </div>
@@ -242,15 +233,6 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-2 py-2 text-left sm:w-20 sm:px-2 sm:py-2">
-                  <div class="flex items-center gap-1">
-                    <span>Cluster</span>
-                    <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
-                      <a href="?sort=cluster_id{{ qs_no_sort }}" class="inline-flex h-7 w-8 items-center justify-center border-r border-slate-200 bg-white text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600"><i class="bi bi-arrow-up-short"></i></a>
-                      <a href="?sort=-cluster_id{{ qs_no_sort }}" class="inline-flex h-7 w-8 items-center justify-center bg-white text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600"><i class="bi bi-arrow-down-short"></i></a>
-                    </span>
-                  </div>
-                </th>
                 <th scope="col" class="px-2.5 py-2 text-left sm:w-28 sm:px-2.5 sm:py-2">
                   <div class="flex items-center gap-1">
                     <span>Asignado</span>
@@ -260,7 +242,6 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-2.5 py-2 text-left sm:px-3 sm:py-2.5">SLA</th>
                 <th scope="col" class="px-2.5 py-2 text-left sm:w-24 sm:px-3 sm:py-2">
                   <div class="flex items-center gap-1">
                     <span>Creado</span>
@@ -270,6 +251,7 @@
                     </span>
                   </div>
                 </th>
+                <th scope="col" class="px-2.5 py-2 text-left sm:px-3 sm:py-2.5">SLA</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -312,22 +294,11 @@
                 <td class="px-2.5 py-2 text-slate-600 sm:px-3 sm:py-2.5">{{ t.category.name }}</td>
                 <td class="px-2.5 py-2 text-slate-600 sm:px-3 sm:py-2.5">{% if t.area %}{{ t.area.name }}{% else %}<span class="text-slate-400">Sin área</span>{% endif %}</td>
                 <td class="px-2.5 py-2 text-slate-600 sm:px-3 sm:py-2.5">{{ t.priority.name }}</td>
-                <td class="px-2 py-2 text-slate-600 text-center sm:px-2 sm:py-2">{% if t.cluster_id %}#{{ t.cluster_id }}{% else %}<span class="text-slate-400">Sin cluster</span>{% endif %}</td>
                 <td class="px-2.5 py-2 text-slate-600 sm:w-28 sm:px-2.5 sm:py-2">
                   {% if t.assigned_to %}
                     <span class="block truncate max-w-[6rem] sm:max-w-[7rem]" title="{{ t.assigned_to.username }}">{{ t.assigned_to.username }}</span>
                   {% else %}
                     <span class="text-slate-400">Sin asignar</span>
-                  {% endif %}
-                </td>
-                <td class="px-2.5 py-2 space-y-1 sm:px-3 sm:py-2.5">
-                  {% if t.is_overdue %}
-                    <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-600"><i class="bi bi-alarm"></i> SLA vencido</span>
-                  {% elif t.is_warning %}
-                    <span class="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"><i class="bi bi-hourglass"></i> Por vencer (~{{ t.remaining_hours|floatformat:0 }}h)</span>
-                  {% endif %}
-                  {% if t.is_critical %}
-                    <span class="inline-flex items-center gap-2 rounded-full bg-rose-600 px-3 py-1 text-xs font-semibold text-white"><i class="bi bi-lightning"></i> Crítico</span>
                   {% endif %}
                 </td>
                 <td class="px-2.5 py-2 text-[11px] text-slate-500 whitespace-nowrap sm:px-3 sm:py-2" title="{{ t.created_at|date:'d/M/Y H:i' }}">
@@ -338,6 +309,16 @@
                       <span class="text-slate-400">{{ t.created_at|time:"H:i" }}</span>
                     </div>
                   </div>
+                </td>
+                <td class="px-2.5 py-2 space-y-1 sm:px-3 sm:py-2.5">
+                  {% if t.is_overdue %}
+                    <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-600"><i class="bi bi-alarm"></i> SLA vencido</span>
+                  {% elif t.is_warning %}
+                    <span class="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"><i class="bi bi-hourglass"></i> Por vencer (~{{ t.remaining_hours|floatformat:0 }}h)</span>
+                  {% endif %}
+                  {% if t.is_critical %}
+                    <span class="inline-flex items-center gap-2 rounded-full bg-rose-600 px-3 py-1 text-xs font-semibold text-white"><i class="bi bi-lightning"></i> Crítico</span>
+                  {% endif %}
                 </td>
               </tr>
               {% empty %}

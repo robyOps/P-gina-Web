@@ -90,5 +90,6 @@ Todos los endpoints requieren autenticación JWT (`Authorization: Bearer <token>
 
 - `GET /api/tickets/alerts/?severity=warning&warn_ratio=0.75` devuelve tickets en estado de alerta con información SLA (paginado y resumen `{warnings, breaches}` al final).
 - `GET /api/reports/heatmap/?from=2024-01-01&to=2024-01-31` (ya existente) entrega horas, días y matriz para construir mapas de calor.
+- `GET /api/reports/subcategories/?limit=5` retorna el ranking de etiquetas confirmadas (subcategorías) de los últimos 30 días, respetando el alcance del usuario autenticado y sin exponer datos personales.
 
 En todos los casos la validación de roles se aplica automáticamente: administradores pueden operar globalmente, técnicos solo sobre sus tickets y solicitantes acceden únicamente a sus datos.
