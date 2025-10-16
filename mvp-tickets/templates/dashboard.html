@@ -79,17 +79,17 @@
   .dashboard-heatmap__grid {
     --heatmap-hours: 24;
     display: grid;
-    gap: 0.4rem;
-    overflow-x: auto;
+    gap: 0.35rem;
+    overflow-x: hidden;
   }
   .dashboard-heatmap__grid-inner {
     display: grid;
-    gap: 0.4rem;
-    min-width: 48rem;
+    gap: 0.35rem;
+    min-width: 100%;
   }
   .heatmap-cell {
-    border-radius: 0.9rem;
-    padding: 0.5rem;
+    border-radius: 0.75rem;
+    padding: 0.4rem;
     text-align: center;
     font-size: 0.75rem;
     line-height: 1.1rem;
@@ -412,9 +412,6 @@
             </div>
             <div class="flex flex-col items-start gap-1 text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 sm:items-end">
               <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600"><i class="bi bi-graph-up"></i> Datos en tiempo local</span>
-              <a href="{% url 'reports_dashboard' %}" class="inline-flex items-center gap-2 text-[11px] font-semibold text-indigo-500 hover:text-indigo-600">
-                <i class="bi bi-arrow-up-right"></i> Ver analítica completa
-              </a>
             </div>
           </div>
 
@@ -501,8 +498,8 @@
         const maxValue = Number(data?.max_value || 0);
 
         const columnTemplate = hours.length
-          ? `minmax(7rem, 1.1fr) repeat(${hours.length}, minmax(3.25rem, 1fr))`
-          : 'minmax(7rem, 1fr)';
+          ? `minmax(5rem, 0.9fr) repeat(${hours.length}, minmax(0, 1fr))`
+          : 'minmax(5rem, 1fr)';
         heatmapGrid.style.gridTemplateColumns = columnTemplate;
 
         heatmapGrid.innerHTML = '';
