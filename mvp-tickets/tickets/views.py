@@ -28,6 +28,7 @@ from catalog.models import Category
 
 # --- Stdlib ---
 from datetime import datetime, timedelta
+import calendar
 import json
 from io import BytesIO
 from urllib.parse import urlencode
@@ -69,6 +70,20 @@ def create_notification(user, message, url=""):
         Notification.objects.create(user=user, message=message, url=url)
 
 
+# ----------------- respuestas -----------------
+def forbidden_response(request, message: str = "No cuentas con autorización para acceder a este contenido."):
+    """Devuelve una respuesta 403 con una plantilla estilizada, salvo en peticiones HTMX."""
+
+    hx_header = request.headers.get("HX-Request") or request.headers.get("Hx-Request")
+    if (hx_header or "").lower() == "true":
+        return HttpResponseForbidden(message)
+
+    context = {
+        "message": message,
+    }
+    return TemplateResponse(request, "403.html", context, status=403)
+
+
 # ----------------- helpers -----------------
 def allowed_transitions_for(ticket: Ticket, user) -> list[str]:
     """Transiciones permitidas según estado actual y rol."""
@@ -91,6 +106,38 @@ def _parse_date_param(s: str | None):
         return datetime.fromisoformat(s).date() if s else None
     except Exception:
         return None
+
+
+def _current_month_bounds():
+    """Devuelve (primer_día_mes_actual, hoy)."""
+
+    today = timezone.localdate()
+    return today.replace(day=1), today
+
+
+def _resolved_range(raw_from: str | None, raw_to: str | None):
+    """Calcula un rango de fechas aplicando el mes actual como valor por defecto."""
+
+    dfrom = _parse_date_param(raw_from)
+    dto = _parse_date_param(raw_to)
+    start_month, today = _current_month_bounds()
+
+    if not raw_from and not raw_to:
+        dfrom, dto = start_month, today
+    else:
+        if not dfrom and dto:
+            dfrom = dto.replace(day=1)
+        elif not dfrom:
+            dfrom = start_month
+
+        if not dto and dfrom:
+            if dfrom.year == today.year and dfrom.month == today.month:
+                dto = today
+            else:
+                last_day = calendar.monthrange(dfrom.year, dfrom.month)[1]
+                dto = dfrom.replace(day=last_day)
+
+    return dfrom, dto
 
 
 def can_upload_attachments(ticket: Ticket, user) -> bool:
@@ -130,7 +177,7 @@ def dashboard(request):
     """Panel con indicadores clave según rol."""
     u = request.user
     if not (u.has_perm("tickets.view_ticket") or u.has_perm("tickets.view_reports")):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     base = Ticket.objects.all()
     can_view_all = u.has_perm("tickets.view_all_tickets") or is_admin(u)
     if can_view_all:
@@ -145,7 +192,7 @@ def dashboard(request):
             scope = "de tus tickets asignados"
     else:
         if not u.has_perm("tickets.view_ticket"):
-            return HttpResponseForbidden("Sin autorización")
+            return forbidden_response(request)
         qs = base.filter(requester=u)
         scope = "de tus tickets"
 
@@ -252,7 +299,7 @@ def faq_list(request):
     """Listado de preguntas frecuentes y formulario de alta rápida."""
     user = request.user
     if not user.has_perm("tickets.view_faq"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
 
     can_manage = any(
         user.has_perm(f"tickets.{code}")
@@ -277,7 +324,7 @@ def faq_list(request):
     form = FAQForm()
     if request.method == "POST":
         if not user.has_perm("tickets.add_faq"):
-            return HttpResponseForbidden("Sin autorización")
+            return forbidden_response(request)
         form = FAQForm(request.POST)
         if form.is_valid():
             faq = form.save(commit=False)
@@ -306,7 +353,7 @@ def faq_edit(request, pk):
     faq = get_object_or_404(FAQ, pk=pk)
     user = request.user
     if not user.has_perm("tickets.change_faq"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
 
     if request.method == "POST":
         form = FAQForm(request.POST, instance=faq)
@@ -337,7 +384,7 @@ def faq_delete(request, pk):
     """Elimina una pregunta frecuente."""
     user = request.user
     if not user.has_perm("tickets.delete_faq"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
 
     faq = get_object_or_404(FAQ, pk=pk)
     faq.delete()
@@ -356,7 +403,7 @@ def tickets_home(request):
     """
     u = request.user
     if not u.has_perm("tickets.view_ticket"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     base_qs = Ticket.objects.select_related(
         "category", "priority", "area", "assigned_to"
     )
@@ -537,7 +584,7 @@ def tickets_home(request):
 def ticket_create(request):
     """Renderiza el formulario de creación y procesa el envío del ticket."""
     if not request.user.has_perm("tickets.add_ticket"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     if request.method == "POST":
         form = TicketCreateForm(request.POST, user=request.user)
         if form.is_valid():
@@ -599,7 +646,7 @@ def notifications_list(request):
 def ticket_detail(request, pk):
     """Detalle + panel de gestión + comentarios/adjuntos (HTMX)."""
     if not request.user.has_perm("tickets.view_ticket"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     t = get_object_or_404(
         Ticket.objects.select_related(
             "category", "priority", "area", "requester", "assigned_to"
@@ -608,7 +655,7 @@ def ticket_detail(request, pk):
     )
     u = request.user
     if not (is_admin(u) or is_tech(u) or t.requester_id == u.id):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
 
     # Panel de gestión
     is_admin_u = is_admin(u)
@@ -655,7 +702,7 @@ def ticket_detail(request, pk):
 def ticket_print(request, pk):
     """Vista imprimible (PDF con Ctrl+P)."""
     if not request.user.has_perm("tickets.view_ticket"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     t = get_object_or_404(
         Ticket.objects.select_related(
             "category", "priority", "area", "requester", "assigned_to"
@@ -668,7 +715,7 @@ def ticket_print(request, pk):
         or (is_tech(u) and t.assigned_to_id in (None, u.id))
         or t.requester_id == u.id
     ):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     return TemplateResponse(request, "tickets/print.html", {"t": t})
 
 
@@ -678,11 +725,11 @@ def discussion_partial(request, pk):
     """HTMX: renderiza el historial de comentarios en un solo bloque."""
 
     if not request.user.has_perm("tickets.view_ticket"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     t = get_object_or_404(Ticket, pk=pk)
     u = request.user
     if not (is_admin(u) or is_tech(u) or t.requester_id == u.id):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
 
     payload = discussion_payload(t, u)
     return TemplateResponse(request, "tickets/partials/discussion.html", payload)
@@ -695,9 +742,9 @@ def add_comment(request, pk):
     t = get_object_or_404(Ticket, pk=pk)
     u = request.user
     if not u.has_perm("tickets.add_ticketcomment"):
-        return HttpResponseForbidden("Sin autorización para comentar")
+        return forbidden_response(request, "Sin autorización para comentar")
     if not (is_admin(u) or is_tech(u) or t.requester_id == u.id):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
 
     body = (request.POST.get("body") or "").strip()
     if not body:
@@ -710,7 +757,7 @@ def add_comment(request, pk):
 
     uploaded_file = request.FILES.get("file")
     if uploaded_file and not can_upload_attachments(t, u):
-        return HttpResponseForbidden("Sin autorización para adjuntar")
+        return forbidden_response(request, "Sin autorización para adjuntar")
 
     if uploaded_file:
         try:
@@ -765,10 +812,10 @@ def ticket_assign(request, pk):
     t = get_object_or_404(Ticket, pk=pk)
     u = request.user
     if not u.has_perm("tickets.assign_ticket"):
-        return HttpResponseForbidden("Sin autorización para asignar")
+        return forbidden_response(request, "Sin autorización para asignar")
 
     if not (is_admin(u) or is_tech(u)):
-        return HttpResponseForbidden("Sin autorización para asignar")
+        return forbidden_response(request, "Sin autorización para asignar")
 
     # ADMINISTRADOR: combo; TECNICO: autoasignación
     to_user_id = request.POST.get("to_user_id")
@@ -862,7 +909,7 @@ def ticket_quick_update(request, pk):
         u.has_perm("tickets.change_ticket")
         and (is_admin_u or (is_tech_u and assigned_to_user))
     ):
-        return HttpResponseForbidden("Sin autorización para editar el ticket")
+        return forbidden_response(request, "Sin autorización para editar el ticket")
 
     form = TicketQuickUpdateForm(request.POST, instance=t)
     if not form.is_valid():
@@ -956,7 +1003,7 @@ def ticket_transition(request, pk):
 
     allowed = allowed_transitions_for(t, u)
     if not allowed:
-        return HttpResponseForbidden("Sin autorización para cambiar estado")
+        return forbidden_response(request, "Sin autorización para cambiar estado")
 
     next_status = request.POST.get("next_status")
     comment = (request.POST.get("comment") or "").strip()
@@ -1017,7 +1064,7 @@ def ticket_transition(request, pk):
 def reports_dashboard(request):
     u = request.user
     if not u.has_perm("tickets.view_reports"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     qs = Ticket.objects.all()  # NO select_related para evitar FieldError
 
     # Visibilidad por rol
@@ -1029,8 +1076,9 @@ def reports_dashboard(request):
         qs = qs.filter(requester=u)
 
     # Filtro por fechas (rango en created_at)
-    dfrom = _parse_date_param(request.GET.get("from"))
-    dto = _parse_date_param(request.GET.get("to"))
+    raw_from = request.GET.get("from")
+    raw_to = request.GET.get("to")
+    dfrom, dto = _resolved_range(raw_from, raw_to)
     if dfrom:
         qs = qs.filter(created_at__date__gte=dfrom)
     if dto:
@@ -1157,7 +1205,7 @@ def reports_dashboard(request):
 def reports_check_sla(request):
     """Ejecuta el chequeo SLA desde la web (requiere manage_reports)."""
     if not request.user.has_perm("tickets.manage_reports"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
 
     try:
         warn_ratio = float(request.POST.get("warn_ratio", "0.8"))
@@ -1176,7 +1224,7 @@ def reports_check_sla(request):
 def ticket_pdf(request, pk):
     """Genera PDF de la orden desde la misma plantilla de impresión."""
     if not request.user.has_perm("tickets.view_ticket"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     t = get_object_or_404(
         Ticket.objects.select_related(
             "category", "priority", "area", "requester", "assigned_to"
@@ -1189,7 +1237,7 @@ def ticket_pdf(request, pk):
         or (is_tech(u) and t.assigned_to_id in (None, u.id))
         or t.requester_id == u.id
     ):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
 
     template = get_template("tickets/print.html")
     html = template.render({"t": t, "for_pdf": True, "request": request})
@@ -1211,7 +1259,7 @@ def reports_pdf(request):
     """
     u = request.user
     if not u.has_perm("tickets.view_reports"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     qs = Ticket.objects.all()
 
     # Visibilidad por rol
@@ -1223,8 +1271,9 @@ def reports_pdf(request):
         qs = qs.filter(requester=u)
 
     # Filtros de fecha (rango en created_at)
-    dfrom = _parse_date_param(request.GET.get("from"))
-    dto   = _parse_date_param(request.GET.get("to"))
+    raw_from = request.GET.get("from")
+    raw_to = request.GET.get("to")
+    dfrom, dto = _resolved_range(raw_from, raw_to)
     if dfrom:
         qs = qs.filter(created_at__date__gte=dfrom)
     if dto:
@@ -1279,10 +1328,10 @@ def audit_partial(request, pk):
     t = get_object_or_404(Ticket, pk=pk)
     u = request.user
     if not u.has_perm("tickets.view_ticket"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     # Misma regla de visibilidad que attachments/comments:
     if not (is_admin(u) or is_tech(u) or t.requester_id == u.id):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
 
     # Traemos los últimos 50 eventos (del más nuevo al más antiguo)
     logs = list(
@@ -1409,7 +1458,7 @@ def reports_export_excel(request):
     """Exporta a Excel (.xlsx) los tickets visibles para el usuario."""
     u = request.user
     if not u.has_perm("tickets.view_reports"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     qs = Ticket.objects.select_related(
         "category", "priority", "area", "requester", "assigned_to"
     ).order_by("-created_at")
@@ -1421,8 +1470,9 @@ def reports_export_excel(request):
     else:
         qs = qs.filter(requester=u)
 
-    dfrom = _parse_date_param(request.GET.get("from"))
-    dto = _parse_date_param(request.GET.get("to"))
+    raw_from = request.GET.get("from")
+    raw_to = request.GET.get("to")
+    dfrom, dto = _resolved_range(raw_from, raw_to)
     if dfrom:
         qs = qs.filter(created_at__date__gte=dfrom)
     if dto:
@@ -1465,14 +1515,14 @@ def reports_export_excel(request):
 @login_required
 def auto_rules_list(request):
     if not request.user.has_perm("tickets.view_autoassignrule"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     rules = AutoAssignRule.objects.select_related("category","area","tech").order_by("-is_active","category__name","area__name")
     return TemplateResponse(request, "tickets/auto_rules/list.html", {"rules": rules})
 
 @login_required
 def auto_rule_create(request):
     if not request.user.has_perm("tickets.add_autoassignrule"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     if request.method == "POST":
         form = AutoAssignRuleForm(request.POST)
         if form.is_valid():
@@ -1487,7 +1537,7 @@ def auto_rule_create(request):
 @login_required
 def auto_rule_edit(request, pk):
     if not request.user.has_perm("tickets.change_autoassignrule"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     rule = get_object_or_404(AutoAssignRule, pk=pk)
     if request.method == "POST":
         form = AutoAssignRuleForm(request.POST, instance=rule)
@@ -1504,7 +1554,7 @@ def auto_rule_edit(request, pk):
 @require_http_methods(["POST"])
 def auto_rule_toggle(request, pk):
     if not request.user.has_perm("tickets.change_autoassignrule"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     rule = get_object_or_404(AutoAssignRule, pk=pk)
     rule.is_active = not rule.is_active
     rule.save(update_fields=["is_active"])
@@ -1515,7 +1565,7 @@ def auto_rule_toggle(request, pk):
 @require_http_methods(["POST"])
 def auto_rule_delete(request, pk):
     if not request.user.has_perm("tickets.delete_autoassignrule"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     rule = get_object_or_404(AutoAssignRule, pk=pk)
     rule.delete()
     messages.success(request, "Regla eliminada.")
@@ -1529,7 +1579,7 @@ def reports_export_pdf(request):
     """
     u = request.user
     if not u.has_perm("tickets.view_reports"):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     qs = Ticket.objects.select_related("category", "priority", "assigned_to", "requester")
 
     # Visibilidad por rol
@@ -1541,8 +1591,9 @@ def reports_export_pdf(request):
         qs = qs.filter(requester=u)
 
     # Fechas y filtros adicionales
-    dfrom = _parse_date_param(request.GET.get("from"))
-    dto   = _parse_date_param(request.GET.get("to"))
+    raw_from = request.GET.get("from")
+    raw_to = request.GET.get("to")
+    dfrom, dto = _resolved_range(raw_from, raw_to)
     if dfrom:
         qs = qs.filter(created_at__date__gte=dfrom)
     if dto:
@@ -1616,7 +1667,7 @@ def logs_list(request):
         or user.has_perm("admin.view_logentry")
         or getattr(user, "is_staff", False)
     ):
-        return HttpResponseForbidden("Sin autorización")
+        return forbidden_response(request)
     qs = EventLog.objects.select_related("actor").all()
     model = request.GET.get("model")
     if model == "ticket":
