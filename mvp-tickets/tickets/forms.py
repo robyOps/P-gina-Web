@@ -36,8 +36,16 @@ class TicketCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-        # Solo ADMINISTRADOR ve y puede usar el campo para asignar
-        if user and (user.is_superuser or user.groups.filter(name=ROLE_ADMIN).exists()):
+
+        self.fields["category"].queryset = Category.objects.filter(is_active=True).order_by("name")
+        self.fields["priority"].queryset = Priority.objects.order_by("sla_hours", "name")
+
+        self._default_category = self.fields["category"].queryset.first()
+        self._default_priority = self.fields["priority"].queryset.first()
+
+        is_admin_user = bool(user and (user.is_superuser or user.groups.filter(name=ROLE_ADMIN).exists()))
+
+        if is_admin_user:
             try:
                 tech_group = Group.objects.get(name=ROLE_TECH)
                 self.fields["assignee"].queryset = (
@@ -49,6 +57,12 @@ class TicketCreateForm(forms.ModelForm):
         else:
             # Usuarios no admin: no mostramos el campo
             self.fields.pop("assignee", None)
+            if self._default_category:
+                self.fields["category"].initial = self._default_category.pk
+            if self._default_priority:
+                self.fields["priority"].initial = self._default_priority.pk
+            self.fields["category"].widget = forms.HiddenInput()
+            self.fields["priority"].widget = forms.HiddenInput()
 
     def clean_title(self):
         title = sanitize_text(self.cleaned_data.get("title"))
@@ -61,6 +75,22 @@ class TicketCreateForm(forms.ModelForm):
         if not description:
             raise forms.ValidationError("La descripción es obligatoria.")
         return description
+
+    def clean_category(self):
+        category = self.cleaned_data.get("category")
+        if category:
+            return category
+        if self._default_category:
+            return self._default_category
+        raise forms.ValidationError("No hay categorías disponibles. Contacta al administrador.")
+
+    def clean_priority(self):
+        priority = self.cleaned_data.get("priority")
+        if priority:
+            return priority
+        if self._default_priority:
+            return self._default_priority
+        raise forms.ValidationError("No hay prioridades disponibles. Contacta al administrador.")
 
 
 class TicketQuickUpdateForm(forms.ModelForm):

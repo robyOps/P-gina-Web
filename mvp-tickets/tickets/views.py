@@ -82,7 +82,7 @@ User = get_user_model()
 
 # ----------------- notificaciones -----------------
 def create_notification(user, message, url=""):
-    if user:
+    if user and not is_admin(user):
         Notification.objects.create(user=user, message=message, url=url)
 
 
