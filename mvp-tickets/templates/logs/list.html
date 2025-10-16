@@ -13,11 +13,19 @@
     </div>
   </header>
 
-  <section class="grid gap-6 lg:grid-cols-[minmax(0,18rem)_1fr]">
-    <aside>
-      <form method="get" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 text-sm">
-        <h2 class="text-lg font-semibold text-slate-900">Filtrar registros</h2>
-        <p class="text-xs text-slate-500">Combina los filtros para encontrar cambios específicos.</p>
+  <section class="space-y-6">
+    <form method="get" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">Filtrar registros</h2>
+          <p class="text-xs text-slate-500">Combina los filtros para encontrar cambios específicos.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700" type="submit"><i class="bi bi-funnel"></i> Aplicar filtros</button>
+          <a href="{% url 'logs_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600"><i class="bi bi-eraser"></i> Limpiar</a>
+        </div>
+      </div>
+      <div class="mt-4 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="f-actor">Actor</label>
           <input id="f-actor" type="text" name="actor" value="{{ filters.actor }}" placeholder="Usuario" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
@@ -30,26 +38,23 @@
           <label class="text-xs font-semibold uppercase text-slate-500" for="f-resource">Recurso</label>
           <input id="f-resource" type="text" name="resource" value="{{ filters.resource }}" placeholder="Ticket, usuario" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
         </div>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div class="space-y-1">
-            <label class="text-xs font-semibold uppercase text-slate-500" for="f-from">Desde</label>
-            <input id="f-from" type="date" name="from" value="{{ filters.from }}" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
-          </div>
-          <div class="space-y-1">
-            <label class="text-xs font-semibold uppercase text-slate-500" for="f-to">Hasta</label>
-            <input id="f-to" type="date" name="to" value="{{ filters.to }}" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
-          </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-slate-500" for="f-from">Desde</label>
+          <input id="f-from" type="date" name="from" value="{{ filters.from }}" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
         </div>
-        <input type="hidden" name="obj_id" value="{{ filters.obj_id }}" />
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-slate-500" for="f-to">Hasta</label>
+          <input id="f-to" type="date" name="to" value="{{ filters.to }}" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-slate-500" for="f-obj">ID</label>
+          <input id="f-obj" type="text" name="obj_id" value="{{ filters.obj_id }}" placeholder="ID" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+        </div>
         {% if filters.model %}
         <input type="hidden" name="model" value="{{ filters.model }}" />
         {% endif %}
-        <div class="flex flex-wrap items-center gap-2 pt-2">
-          <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 font-semibold text-white shadow hover:bg-indigo-700" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>
-          <a href="{% url 'logs_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600"><i class="bi bi-eraser"></i> Limpiar</a>
-        </div>
-      </form>
-    </aside>
+      </div>
+    </form>
 
     <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
       <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
@@ -60,7 +65,7 @@
         <table class="min-w-full divide-y divide-slate-100 text-sm">
           <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
             <tr>
-              <th scope="col" class="px-4 py-3 text-left">Fecha</th>
+              <th scope="col" class="px-4 py-3 text-left text-xs">Fecha</th>
               <th scope="col" class="px-4 py-3 text-left">Actor</th>
               <th scope="col" class="px-4 py-3 text-left">Tipo</th>
               <th scope="col" class="px-4 py-3 text-left">ID</th>
@@ -71,7 +76,7 @@
           <tbody class="divide-y divide-slate-100">
             {% for row in rows %}
             <tr class="transition hover:bg-slate-50">
-              <td class="px-4 py-3 text-slate-500">{{ row.created_at }}</td>
+              <td class="px-4 py-3 text-xs font-medium text-slate-500 whitespace-nowrap">{{ row.created_at_display }}</td>
               <td class="px-4 py-3 font-medium text-slate-800">{{ row.actor }}</td>
               <td class="px-4 py-3 text-slate-600">{{ row.model }}</td>
               <td class="px-4 py-3">

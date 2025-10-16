@@ -75,13 +75,13 @@ def allowed_transitions_for(ticket: Ticket, user) -> list[str]:
     if not user.has_perm("tickets.transition_ticket"):
         return []
     allowed = {
-        Ticket.OPEN: {Ticket.IN_PROGRESS},
-        Ticket.IN_PROGRESS: {Ticket.RESOLVED, Ticket.OPEN},
-        Ticket.RESOLVED: {Ticket.CLOSED, Ticket.IN_PROGRESS},
-        Ticket.CLOSED: set(),
+        Ticket.OPEN: [Ticket.IN_PROGRESS],
+        Ticket.IN_PROGRESS: [Ticket.RESOLVED, Ticket.OPEN],
+        Ticket.RESOLVED: [Ticket.CLOSED, Ticket.IN_PROGRESS],
+        Ticket.CLOSED: [],
     }
     if is_admin(user) or (is_tech(user) and ticket.assigned_to_id == user.id):
-        return list(allowed.get(ticket.status, set()))
+        return list(allowed.get(ticket.status, []))
     return []
 
 
@@ -398,13 +398,13 @@ def tickets_home(request):
     priority = (request.GET.get("priority") or "").strip()
     area = (request.GET.get("area") or "").strip()
     alerts_only = request.GET.get("alerts") == "1"
-    hide_closed = request.GET.get("hide_closed", "0")
+    hide_closed = request.GET.get("hide_closed", "1")
     if hide_closed not in {"0", "1"}:
-        hide_closed = "0"
+        hide_closed = "1"
 
-    # Ocultar tickets cerrados solo si el usuario lo solicita explícitamente
+    # Oculta tickets resueltos/cerrados por defecto; se muestran solo cuando se filtra
     if hide_closed == "1" and not status:
-        qs = qs.exclude(status=Ticket.CLOSED)
+        qs = qs.exclude(status__in=[Ticket.RESOLVED, Ticket.CLOSED])
 
     if status:
         qs = qs.filter(status=status)
@@ -1120,6 +1120,13 @@ def reports_dashboard(request):
         ],
     }
 
+    tech_ids = (
+        qs.exclude(assigned_to__isnull=True)
+        .values_list("assigned_to", flat=True)
+        .distinct()
+    )
+    techs = User.objects.filter(id__in=tech_ids).order_by("username")
+
     return TemplateResponse(
         request,
         "reports/dashboard.html",
@@ -1138,7 +1145,7 @@ def reports_dashboard(request):
             "chart_tech": chart_tech,
             "chart_hist": chart_hist,
             "chart_cat_slow": chart_cat_slow,
-            "techs": User.objects.filter(groups__name=ROLE_TECH).order_by("username"),
+            "techs": techs,
             "tech_selected": tech_selected,
             "report_type": report_type,
         },
@@ -1652,9 +1659,11 @@ def logs_list(request):
     model_labels = {"ticket": "Ticket"}
     rows = []
     for item in page_obj:
+        created_at_local = localtime(item.created_at)
         rows.append(
             {
-                "created_at": localtime(item.created_at),
+                "created_at": created_at_local,
+                "created_at_display": created_at_local.strftime("%d-%m %H:%M"),
                 "actor": getattr(item.actor, "username", "(sistema)"),
                 "model": model_labels.get(item.model, item.model),
                 "obj_id": item.obj_id,

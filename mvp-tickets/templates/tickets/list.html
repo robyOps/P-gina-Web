@@ -65,13 +65,22 @@
   </section>
   {% endif %}
 
-  <section class="grid gap-6 lg:grid-cols-[minmax(0,18rem)_1fr]">
-    <aside class="space-y-6">
-      <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 class="text-lg font-semibold text-slate-900">Filtros</h2>
-        <p class="mt-1 text-sm text-slate-500">Afinemos la búsqueda para encontrar rápido el ticket que necesitas.</p>
-        <form method="get" class="mt-4 space-y-4 text-sm">
-          <div class="space-y-1">
+  <section class="space-y-6">
+    <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">Filtros</h2>
+          <p class="text-sm text-slate-500">Afinemos la búsqueda para encontrar rápido el ticket que necesitas.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <a href="{% url 'tickets_home' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600">
+            <i class="bi bi-eraser"></i> Limpiar
+          </a>
+        </div>
+      </div>
+      <form method="get" class="mt-4 space-y-4 text-sm">
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+          <div class="space-y-1 sm:col-span-2 xl:col-span-3">
             <label class="text-xs font-semibold uppercase text-slate-500" for="buscar">Buscar</label>
             <input id="buscar" name="q" value="{{ filters.q }}" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Código, título o descripción" />
           </div>
@@ -106,34 +115,32 @@
               {% endfor %}
             </select>
           </div>
-          <div class="flex items-center justify-between gap-3">
-            <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase text-slate-500">
-              <input type="checkbox" name="alerts" value="1" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" {% if filters.alerts %}checked{% endif %}>
-              Alertas SLA
-            </label>
-            <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase text-slate-500">
-              <input type="checkbox" name="hide_closed" value="1" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" {% if filters.hide_closed == '1' %}checked{% endif %}>
-              Ocultar cerrados
-            </label>
-          </div>
           <div class="space-y-1">
             <label class="text-xs font-semibold uppercase text-slate-500" for="pagina">Por página</label>
             <input id="pagina" name="page_size" value="{{ page_size }}" class="w-24 rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
           </div>
-          <div class="flex flex-wrap items-center gap-2">
+        </div>
+        <div class="flex flex-wrap items-center gap-3 pt-2">
+          <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase text-slate-500">
+            <input type="checkbox" name="alerts" value="1" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" {% if filters.alerts %}checked{% endif %}>
+            Alertas SLA
+          </label>
+          <input type="hidden" name="hide_closed" value="0">
+          <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase text-slate-500">
+            <input type="checkbox" name="hide_closed" value="1" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" {% if filters.hide_closed == '1' %}checked{% endif %}>
+            Ocultar resueltos y cerrados
+          </label>
+          <div class="ml-auto flex flex-wrap items-center gap-2">
             <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 font-semibold text-white shadow hover:bg-indigo-700" type="submit">
               <i class="bi bi-funnel"></i> Aplicar
             </button>
-            <a href="{% url 'tickets_home' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600">
-              <i class="bi bi-eraser"></i> Limpiar
-            </a>
           </div>
-        </form>
-      </article>
-      <p class="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-500">
-        Consejo: deja registro de cada actualización para que todo el equipo mantenga el contexto al instante.
-      </p>
-    </aside>
+        </div>
+      </form>
+    </article>
+    <p class="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-500">
+      Consejo: deja registro de cada actualización para que todo el equipo mantenga el contexto al instante.
+    </p>
 
     <div class="space-y-6">
       <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
