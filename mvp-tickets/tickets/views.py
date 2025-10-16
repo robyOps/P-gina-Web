@@ -1386,6 +1386,14 @@ def reports_dashboard(request):
         .distinct()
     )
     techs = User.objects.filter(id__in=tech_ids).order_by("username")
+    export_params = {
+        "from": raw_from or "",
+        "to": raw_to or "",
+        "type": report_type or "",
+        "tech": tech_selected or "",
+    }
+    export_query = urlencode({key: value for key, value in export_params.items() if value not in (None, "")})
+
     return TemplateResponse(
         request,
         "reports/dashboard.html",
@@ -1407,6 +1415,7 @@ def reports_dashboard(request):
             "techs": techs,
             "tech_selected": tech_selected,
             "report_type": report_type,
+            "export_query": export_query,
         },
     )
 
@@ -1685,7 +1694,7 @@ def reports_export_excel(request):
     if not u.has_perm("tickets.view_reports"):
         return forbidden_response(request)
     qs = Ticket.objects.select_related(
-        "category", "priority", "area", "requester", "assigned_to"
+        "category", "subcategory", "priority", "area", "requester", "assigned_to"
     ).order_by("-created_at")
 
     if is_admin(u):
@@ -1705,6 +1714,7 @@ def reports_export_excel(request):
 
     status = (request.GET.get("status") or "").strip()
     category = (request.GET.get("category") or "").strip()
+    subcategory = (request.GET.get("subcategory") or "").strip()
     priority = (request.GET.get("priority") or "").strip()
     tech = (request.GET.get("tech") or "").strip()
     report_type = (request.GET.get("type") or "").strip()
@@ -1716,6 +1726,8 @@ def reports_export_excel(request):
         qs = qs.filter(category_id=category)
     if priority:
         qs = qs.filter(priority_id=priority)
+    if subcategory:
+        qs = qs.filter(subcategory_id=subcategory)
     if tech:
         qs = qs.filter(assigned_to_id=tech)
     if report_type == "urgencia":
