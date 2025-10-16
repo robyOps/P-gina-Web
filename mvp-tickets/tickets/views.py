@@ -221,12 +221,16 @@ def dashboard(request):
         scope = "de tus tickets"
 
     month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_end = (month_start + timedelta(days=32)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_end_display = month_end - timedelta(seconds=1)
+
+    monthly_qs = qs.filter(created_at__gte=month_start, created_at__lt=month_end)
 
     counts = {
-        "open": qs.filter(status=Ticket.OPEN).count(),
-        "in_progress": qs.filter(status=Ticket.IN_PROGRESS).count(),
-        "resolved": qs.filter(resolved_at__gte=month_start).count(),
-        "closed": qs.filter(closed_at__gte=month_start).count(),
+        "open": monthly_qs.filter(status=Ticket.OPEN).count(),
+        "in_progress": monthly_qs.filter(status=Ticket.IN_PROGRESS).count(),
+        "resolved": qs.filter(resolved_at__gte=month_start, resolved_at__lt=month_end).count(),
+        "closed": qs.filter(closed_at__gte=month_start, closed_at__lt=month_end).count(),
     }
 
     chart_labels = ["Abierto", "En progreso", "Resuelto (mes)", "Cerrado (mes)"]
@@ -241,7 +245,7 @@ def dashboard(request):
     })
 
     urgent_candidates = (
-        qs.filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
+        monthly_qs.filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
         .select_related("priority")
         .order_by("created_at")
     )
@@ -252,8 +256,7 @@ def dashboard(request):
             urgent_tickets.append(ticket)
     urgent_tickets.sort(key=lambda t: t.remaining_hours)
 
-    cutoff = timezone.now() - timedelta(days=60)
-    failure_qs = qs.filter(created_at__gte=cutoff)
+    failure_qs = monthly_qs
     failure_rows = (
         failure_qs.values("category__name")
         .annotate(total=Count("id"))
@@ -301,13 +304,14 @@ def dashboard(request):
             "labels": failure_labels,
             "data": failure_totals,
             "colors": [item["color"] for item in failure_breakdown],
-            "since": cutoff.date().isoformat(),
+            "since": month_start.date().isoformat(),
+            "until": month_end_display.date().isoformat(),
         }
     )
 
-    top_subcategories = aggregate_top_subcategories(qs)
-    heatmap_payload = build_ticket_heatmap(qs)
-    alerts_panel = recent_ticket_alerts(qs, warn_ratio=0.75, limit=6)
+    top_subcategories = aggregate_top_subcategories(qs, since=month_start)
+    heatmap_payload = build_ticket_heatmap(qs, since=month_start)
+    alerts_panel = recent_ticket_alerts(monthly_qs, warn_ratio=0.75, limit=6)
 
     ctx = {
         "counts": counts,
@@ -316,11 +320,12 @@ def dashboard(request):
         "urgent_tickets": urgent_tickets,
         "failures_chart_data": failures_chart_data,
         "has_failures_data": bool(failure_totals),
-        "failures_since": cutoff,
+        "failures_since": month_start,
         "failure_breakdown": failure_breakdown,
         "top_subcategories": top_subcategories,
         "heatmap": heatmap_payload,
         "alerts_panel": alerts_panel,
+        "current_month_range": {"start": month_start, "end": month_end_display},
     }
     return render(request, "dashboard.html", ctx)
 
@@ -541,6 +546,18 @@ def tickets_home(request):
     paginator = Paginator(tickets_list, page_size)
     page_obj = paginator.get_page(request.GET.get("page"))
 
+    has_active_filters = any(
+        [
+            bool(q),
+            bool(status),
+            bool(category),
+            bool(priority),
+            bool(area),
+            alerts_only,
+            hide_closed == "0",
+        ]
+    )
+
     # Resumen exclusivo para técnicos: permite decidir si autoasignarse.
     tech_counters = None
     if is_tech(u):
@@ -607,6 +624,7 @@ def tickets_home(request):
         "areas": areas,
         "current_inbox": inbox,
         "inbox_links": inbox_links,
+        "has_active_filters": has_active_filters,
     }
     return TemplateResponse(request, "tickets/list.html", ctx)
 

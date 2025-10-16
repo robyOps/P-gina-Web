@@ -157,8 +157,8 @@
           <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div class="flex flex-col gap-3">
               <div>
-                <h2 class="text-2xl font-semibold text-slate-900">Distribución actual</h2>
-                <p class="text-sm text-slate-600">Una visión clara del estado de los tickets al momento.</p>
+                <h2 class="text-2xl font-semibold text-slate-900">Distribución del mes en curso</h2>
+                <p class="text-sm text-slate-600">Tickets creados entre {{ current_month_range.start|localtime|date:"d/m/Y" }} y {{ current_month_range.end|localtime|date:"d/m/Y" }}.</p>
               </div>
               <div class="mx-auto mt-3 h-80 w-full max-w-2xl">
                 <canvas id="statusChart" aria-label="Gráfico circular de estado de tickets"></canvas>
@@ -207,11 +207,11 @@
             <div class="flex flex-col gap-3">
               <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 class="text-2xl font-semibold text-slate-900">Tendencias de fallas</h2>
-                  <p class="text-sm text-slate-600">Detecta patrones, dimensiona impacto y acciona planes preventivos.</p>
+                  <h2 class="text-2xl font-semibold text-slate-900">Tendencias de fallas por categoría</h2>
+                  <p class="text-sm text-slate-600">Detecta patrones y dimensiona el impacto de cada categoría durante el mes actual.</p>
                 </div>
                 {% if has_failures_data %}
-                <span class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-sky-600"><i class="bi bi-clock-history"></i> Datos desde {{ failures_since|localtime|date:"d/m/Y" }}</span>
+                <span class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-sky-600"><i class="bi bi-clock-history"></i> Mes en curso · {{ current_month_range.start|localtime|date:"d/m" }}-{{ current_month_range.end|localtime|date:"d/m" }}</span>
                 {% endif %}
               </div>
 
@@ -234,7 +234,7 @@
             <div class="flex h-full flex-col gap-3">
               <div>
                 <h3 class="text-lg font-semibold text-slate-900">Fallas más comunes</h3>
-                <p class="text-sm text-slate-600">Top 15 categorías con mayor volumen reportado.</p>
+                <p class="text-sm text-slate-600">Top 15 categorías con mayor volumen reportado durante el mes en curso.</p>
               </div>
               {% if failure_breakdown %}
               <ul class="space-y-3 overflow-y-auto pr-2" role="list">
@@ -267,10 +267,10 @@
           <article class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 class="text-2xl font-semibold text-slate-900">Top subcategorías 30 días</h2>
-                <p class="text-sm text-slate-600">Etiquetas confirmadas que concentran la mayor cantidad de tickets recientes.</p>
+                <h2 class="text-2xl font-semibold text-slate-900">Top subcategorías del mes</h2>
+                <p class="text-sm text-slate-600">Etiquetas confirmadas que concentran la mayor cantidad de tickets creados en el mes actual.</p>
               </div>
-              <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600"><i class="bi bi-calendar3"></i> Últimos 30 días</span>
+              <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600"><i class="bi bi-calendar3"></i> Mes en curso</span>
             </div>
             {% if top_subcategories %}
             <ol class="mt-4 space-y-3" role="list">
@@ -302,7 +302,7 @@
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 class="text-2xl font-semibold text-slate-900">Heatmap de actividad</h2>
-                <p class="text-sm text-slate-600">Concentración de tickets creados por día y hora (últimas dos semanas).</p>
+                <p class="text-sm text-slate-600">Concentración de tickets creados por día y hora durante el mes en curso.</p>
               </div>
               <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-slate-500"><i class="bi bi-grid-3x3"></i> {{ heatmap.overall_total }} totales</span>
             </div>
@@ -482,9 +482,9 @@
       const failureCanvas = document.getElementById('failuresChart');
       if (failureCanvas) {
         const failureCtx = failureCanvas.getContext('2d');
-        const barGradient = failureCtx.createLinearGradient(0, 0, 0, failureCanvas.height);
-        barGradient.addColorStop(0, 'rgba(56, 189, 248, 0.9)');
-        barGradient.addColorStop(1, 'rgba(59, 130, 246, 0.4)');
+        const failureColors = Array.isArray(failuresConfig.colors) && failuresConfig.colors.length
+          ? failuresConfig.colors
+          : ['#2563eb'];
 
         new Chart(failureCtx, {
           type: 'bar',
@@ -493,12 +493,12 @@
             datasets: [{
               label: 'Tickets',
               data: failuresConfig.data,
-              backgroundColor: barGradient,
-              borderColor: '#0ea5e9',
-              borderWidth: 1,
+              backgroundColor: failureColors,
+              borderColor: failureColors,
+              borderWidth: 2,
               borderRadius: 14,
               borderSkipped: false,
-              hoverBackgroundColor: '#38bdf8',
+              hoverBackgroundColor: failureColors,
               maxBarThickness: 36
             }]
           },
