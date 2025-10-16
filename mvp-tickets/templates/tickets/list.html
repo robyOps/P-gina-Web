@@ -97,7 +97,7 @@
         </a>
       </div>
       <form method="get" class="mt-1.5 space-y-1.5 text-[11px] sm:text-xs">
-        <div class="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-6">
+        <div class="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-7">
           <div class="space-y-1 sm:col-span-2 xl:col-span-3">
             <label class="text-xs font-semibold uppercase text-slate-500" for="buscar">Buscar</label>
             <input id="buscar" name="q" value="{{ filters.q }}" class="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Código, título o descripción" />
@@ -117,6 +117,15 @@
               <option value="" {% if not filters.category %}selected{% endif %}>(Todas)</option>
               {% for c in categories %}
                 <option value="{{ c.id }}" {% if filters.category|stringformat:'s' == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs font-semibold uppercase text-slate-500" for="subcategoria">Subcategoría</label>
+            <select id="subcategoria" name="subcategory" class="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+              <option value="" {% if not filters.subcategory %}selected{% endif %}>(Todas)</option>
+              {% for sc in subcategories %}
+                <option value="{{ sc.id }}" {% if filters.subcategory|stringformat:'s' == sc.id|stringformat:'s' %}selected{% endif %}>{{ sc.category.name }} · {{ sc.name }}</option>
               {% endfor %}
             </select>
           </div>
@@ -355,7 +364,7 @@
             Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} resultados
           </div>
           <nav class="flex flex-wrap items-center gap-2" aria-label="Paginación">
-            {% with qsp="q="|add:filters.q|urlencode|add:"&status="|add:filters.status|add:"&category="|add:filters.category|add:"&priority="|add:filters.priority|add:"&area="|add:filters.area|add:"&date_from="|add:filters.date_from|add:"&date_to="|add:filters.date_to|add:"&alerts="|add:filters.alerts|add:"&hide_closed="|add:filters.hide_closed|add:"&page_size="|add:page_size %}
+            {% with qsp="q="|add:filters.q|urlencode|add:"&status="|add:filters.status|add:"&category="|add:filters.category|add:"&subcategory="|add:filters.subcategory|add:"&priority="|add:filters.priority|add:"&area="|add:filters.area|add:"&date_from="|add:filters.date_from|add:"&date_to="|add:filters.date_to|add:"&alerts="|add:filters.alerts|add:"&hide_closed="|add:filters.hide_closed|add:"&page_size="|add:page_size %}
               {% if page_obj.has_previous %}
                 <a class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600" href="?{{ qsp }}&page=1">&laquo; Primera</a>
                 <a class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600" href="?{{ qsp }}&page={{ page_obj.previous_page_number }}">Anterior</a>

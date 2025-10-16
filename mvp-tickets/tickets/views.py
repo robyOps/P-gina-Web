@@ -3,7 +3,7 @@ from __future__ import annotations
 
 # --- Django core ---
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods, require_POST
 from django.contrib import messages
@@ -497,6 +497,7 @@ def tickets_home(request):
     # Filtros
     status = (request.GET.get("status") or "").strip()
     category = (request.GET.get("category") or "").strip()
+    subcategory = (request.GET.get("subcategory") or "").strip()
     priority = (request.GET.get("priority") or "").strip()
     area = (request.GET.get("area") or "").strip()
     date_from_raw = (request.GET.get("date_from") or "").strip()
@@ -514,6 +515,11 @@ def tickets_home(request):
         qs = qs.filter(status=status)
     if category:
         qs = qs.filter(category_id=category)
+    if subcategory:
+        if subcategory.isdigit():
+            qs = qs.filter(subcategory_id=subcategory)
+        else:
+            qs = qs.filter(subcategory__name__iexact=subcategory)
     if priority:
         if priority.isdigit():
             qs = qs.filter(priority_id=priority)
@@ -587,6 +593,7 @@ def tickets_home(request):
             bool(q),
             bool(status),
             bool(category),
+            bool(subcategory),
             bool(priority),
             bool(area),
             bool(date_from_raw),
@@ -614,13 +621,19 @@ def tickets_home(request):
     priorities = list(Priority.objects.order_by("name"))
     areas = list(Area.objects.order_by("name"))
     categories = list(Category.objects.filter(is_active=True).order_by("name"))
+    subcategories = list(
+        Subcategory.objects.select_related("category")
+        .filter(is_active=True, category__is_active=True)
+        .order_by("category__name", "name")
+    )
     # Para preservar filtros en paginación (opcional, usado en template)
-    qdict = request.GET.copy()
-    qdict.pop("page", None)
-    qs_no_page = qdict.urlencode()
+    params_all = request.GET.copy()
+    qdict_no_page = params_all.copy()
+    qdict_no_page.pop("page", None)
+    qs_no_page = qdict_no_page.urlencode()
     qs_no_page = f"&{qs_no_page}" if qs_no_page else ""
 
-    qdict_no_sort = qdict.copy()
+    qdict_no_sort = params_all.copy()
     qdict_no_sort.pop("sort", None)
     qs_no_sort = qdict_no_sort.urlencode()
     qs_no_sort = f"&{qs_no_sort}" if qs_no_sort else ""
@@ -649,6 +662,7 @@ def tickets_home(request):
             "q": q,
             "status": status,
             "category": category,
+            "subcategory": subcategory,
             "priority": priority,
             "area": area,
             "date_from": date_from_raw,
@@ -663,6 +677,7 @@ def tickets_home(request):
         "priorities": priorities,
         "areas": areas,
         "categories": categories,
+        "subcategories": subcategories,
         "current_inbox": inbox,
         "inbox_links": inbox_links,
         "has_active_filters": has_active_filters,
@@ -676,7 +691,7 @@ def ticket_create(request):
     if not request.user.has_perm("tickets.add_ticket"):
         return forbidden_response(request)
     if request.method == "POST":
-        form = TicketCreateForm(request.POST, user=request.user)
+        form = TicketCreateForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             assignee = None
             if "assignee" in form.cleaned_data:
@@ -687,6 +702,22 @@ def ticket_create(request):
             if assignee:
                 t.assigned_to = assignee
             t.save()
+
+            attachments = form.cleaned_data.get("attachments", []) or []
+            saved_attachments = []
+            for uploaded in attachments:
+                if not uploaded:
+                    continue
+                content_type = getattr(uploaded, "content_type", "") or ""
+                saved_attachments.append(
+                    TicketAttachment.objects.create(
+                        ticket=t,
+                        uploaded_by=request.user,
+                        file=uploaded,
+                        content_type=content_type,
+                        size=getattr(uploaded, "size", 0),
+                    )
+                )
 
             if assignee:
                 TicketAssignment.objects.create(
@@ -711,6 +742,19 @@ def ticket_create(request):
                     apply_auto_assign(t)
                 except Exception:
                     pass
+
+            for attachment in saved_attachments:
+                AuditLog.objects.create(
+                    ticket=t,
+                    actor=request.user,
+                    action="ATTACH",
+                    meta={
+                        "filename": attachment.file.name.rsplit("/", 1)[-1],
+                        "size": attachment.size,
+                        "content_type": attachment.content_type,
+                        "source": "ticket_create",
+                    },
+                )
 
             link = reverse("ticket_detail", args=[t.pk])
             create_notification(request.user, f"Ticket {t.code} creado", link)
@@ -832,7 +876,17 @@ def ticket_print(request, pk):
         return forbidden_response(request)
     t = get_object_or_404(
         Ticket.objects.select_related(
-            "category", "priority", "area", "requester", "assigned_to"
+            "category", "subcategory", "priority", "area", "requester", "assigned_to"
+        )
+        .prefetch_related(
+            Prefetch(
+                "ticketcomment_set",
+                queryset=TicketComment.objects.select_related("author").order_by("created_at"),
+            ),
+            Prefetch(
+                "ticketattachment_set",
+                queryset=TicketAttachment.objects.order_by("uploaded_at"),
+            ),
         ),
         pk=pk,
     )
@@ -843,7 +897,13 @@ def ticket_print(request, pk):
         or t.requester_id == u.id
     ):
         return forbidden_response(request)
-    return TemplateResponse(request, "tickets/print.html", {"t": t})
+    public_comments = [c for c in t.ticketcomment_set.all() if not c.is_internal]
+    attachments = list(t.ticketattachment_set.all())
+    return TemplateResponse(
+        request,
+        "tickets/print.html",
+        {"t": t, "public_comments": public_comments, "attachments": attachments},
+    )
 
 
 # --------- partials HTMX ---------
@@ -1393,7 +1453,17 @@ def ticket_pdf(request, pk):
         return forbidden_response(request)
 
     template = get_template("tickets/print.html")
-    html = template.render({"t": t, "for_pdf": True, "request": request})
+    public_comments = [c for c in t.ticketcomment_set.all() if not c.is_internal]
+    attachments = list(t.ticketattachment_set.all())
+    html = template.render(
+        {
+            "t": t,
+            "for_pdf": True,
+            "request": request,
+            "public_comments": public_comments,
+            "attachments": attachments,
+        }
+    )
     result = BytesIO()
     pisa_status = pisa.CreatePDF(src=html, dest=result, encoding="utf-8")
 

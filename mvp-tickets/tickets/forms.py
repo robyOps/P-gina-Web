@@ -6,8 +6,32 @@ from accounts.roles import ROLE_ADMIN, ROLE_TECH
 from .models import Ticket, AutoAssignRule, FAQ
 from catalog.models import Category, Priority, Area, Subcategory
 from .utils import sanitize_text
+from .validators import validate_upload, UploadValidationError
 
 User = get_user_model()
+
+class MultiFileInput(forms.ClearableFileInput):
+    """Widget que habilita la selección múltiple manteniendo el estilo estándar."""
+
+    allow_multiple_selected = True
+
+
+class MultipleFileField(forms.Field):
+    """Campo ligero que devuelve siempre una lista de archivos subidos."""
+
+    widget = MultiFileInput
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("required", False)
+        super().__init__(*args, **kwargs)
+
+    def to_python(self, data):
+        if not data:
+            return []
+        if isinstance(data, (list, tuple)):
+            return [item for item in data if item]
+        return [data]
+
 
 class TicketCreateForm(forms.ModelForm):
     """
@@ -19,6 +43,16 @@ class TicketCreateForm(forms.ModelForm):
         required=False,
         label="Asignar a",
         widget=forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"})
+    )
+    attachments = MultipleFileField(
+        label="Adjuntar archivos",
+        help_text="Formatos permitidos: PNG, JPG, PDF, TXT, DOC, DOCX. Máx. 20MB por archivo.",
+        widget=MultiFileInput(
+            attrs={
+                "class": "w-full rounded-xl border border-dashed border-slate-300 px-3 py-4 text-sm text-slate-600 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100",
+                "multiple": True,
+            }
+        ),
     )
 
     class Meta:
@@ -85,6 +119,15 @@ class TicketCreateForm(forms.ModelForm):
                 self.fields["category"].initial = self._default_category.pk
             if self._can_choose_priority and self._default_priority:
                 self.fields["priority"].initial = self._default_priority.pk
+
+    def clean(self):
+        data = super().clean()
+        for uploaded in data.get("attachments", []) or []:
+            try:
+                validate_upload(uploaded)
+            except UploadValidationError as exc:
+                self.add_error("attachments", str(exc))
+        return data
 
     def clean_title(self):
         title = sanitize_text(self.cleaned_data.get("title"))
