@@ -5,7 +5,6 @@ import calendar
 from datetime import datetime, time, timedelta
 
 from django.db.models import Count, Avg, DurationField, ExpressionWrapper, F
-from django.db.models.functions import ExtractHour, ExtractWeekDay, TruncHour
 from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -15,9 +14,9 @@ from tickets.models import Ticket
 from tickets.utils import (
     aggregate_top_subcategories,
     aggregate_area_by_subcategory,
+    build_ticket_heatmap,
     build_area_subcategory_heatmap,
 )
-from tickets.timezones import get_local_timezone
 from accounts.roles import is_admin, is_tech
 from django.utils import timezone
 
@@ -238,71 +237,22 @@ class ReportHeatmapView(APIView):
     """Entrega una matriz día x hora para alimentar el mapa de calor."""
 
     permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
-    WEEKDAY_LABELS = [
-        "Lunes",
-        "Martes",
-        "Miércoles",
-        "Jueves",
-        "Viernes",
-        "Sábado",
-        "Domingo",
-    ]
 
     def get(self, request):
         qs = base_queryset(request)
-        tz = get_local_timezone()
-
-        aggregated = (
-            qs.annotate(local_created=TruncHour("created_at", tzinfo=tz))
-            .annotate(
-                weekday=ExtractWeekDay("local_created"),
-                hour=ExtractHour("local_created"),
-            )
-            .values("weekday", "hour")
-            .annotate(count=Count("id"))
-            .order_by("weekday", "hour")
-        )
-
-        hours = list(range(24))
-        weekdays = list(self.WEEKDAY_LABELS)
-        matrix = [[0 for _ in hours] for _ in weekdays]
-        totals_by_weekday = [0 for _ in weekdays]
-        totals_by_hour = [0 for _ in hours]
-        max_value = 0
-
-        for row in aggregated:
-            weekday_raw = row.get("weekday")
-            hour = row.get("hour")
-            count = int(row.get("count") or 0)
-
-            if weekday_raw is None or hour is None:
-                continue
-
-            weekday_index = (weekday_raw + 5) % 7  # django: 1=domingo → 6
-            if weekday_index < 0 or weekday_index >= len(weekdays):
-                continue
-            if hour < 0 or hour >= len(hours):
-                continue
-
-            matrix[weekday_index][hour] = count
-            totals_by_weekday[weekday_index] += count
-            totals_by_hour[hour] += count
-            if count > max_value:
-                max_value = count
-
-        total = sum(totals_by_weekday)
+        payload = build_ticket_heatmap(qs, since=None, auto_range=False)
 
         return Response(
             {
-                "hours": hours,
-                "weekdays": weekdays,
-                "matrix": matrix,
+                "hours": list(payload.hours),
+                "weekdays": list(payload.weekdays),
+                "matrix": [list(row) for row in payload.matrix],
                 "totals": {
-                    "by_weekday": totals_by_weekday,
-                    "by_hour": totals_by_hour,
-                    "overall": total,
+                    "by_weekday": list(payload.totals_by_weekday),
+                    "by_hour": list(payload.totals_by_hour),
+                    "overall": payload.overall_total,
                 },
-                "max_value": max_value,
+                "max_value": payload.max_value,
             }
         )
 

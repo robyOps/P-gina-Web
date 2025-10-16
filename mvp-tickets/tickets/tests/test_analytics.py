@@ -84,6 +84,20 @@ class DashboardAnalyticsTests(TestCase):
         flattened = [count for row in payload.matrix for count in row]
         self.assertIn(1, flattened)
 
+    def test_build_ticket_heatmap_uses_local_timezone(self):
+        tz = timezone.get_current_timezone()
+        aware = timezone.datetime(2024, 7, 1, 15, 30, tzinfo=tz)
+        ticket = self._create_ticket(title="Falla horario")
+
+        Ticket.objects.filter(pk=ticket.pk).update(created_at=aware)
+
+        payload = build_ticket_heatmap(
+            Ticket.objects.all(), since=aware - timedelta(days=1)
+        )
+
+        self.assertEqual(payload.overall_total, 1)
+        self.assertEqual(payload.matrix[0][15], 1)
+
     def test_recent_ticket_alerts_detects_warning_and_breach(self):
         now = timezone.now()
         overdue = self._create_ticket(title="Portal caído", assigned_to=self.tech)

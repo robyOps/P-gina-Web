@@ -8,7 +8,6 @@ from datetime import timedelta
 from typing import Sequence
 
 from django.db.models import Count, QuerySet
-from django.db.models.functions import ExtractHour, ExtractWeekDay, TruncHour
 from django.utils import timezone
 
 from .timezones import get_local_timezone
@@ -169,23 +168,17 @@ def build_ticket_heatmap(
     queryset: QuerySet[Ticket],
     *,
     since: timezone.datetime | None = None,
+    auto_range: bool = True,
 ) -> HeatmapPayload:
     """Produce a week-day/hour matrix with ticket counts."""
 
-    since = since or timezone.now() - timedelta(days=13)
+    if auto_range and since is None:
+        since = timezone.now() - timedelta(days=13)
     tz = get_local_timezone()
 
-    filtered = queryset.filter(created_at__gte=since)
-    aggregated = (
-        filtered.annotate(local_created=TruncHour("created_at", tzinfo=tz))
-        .annotate(
-            weekday=ExtractWeekDay("local_created"),
-            hour=ExtractHour("local_created"),
-        )
-        .values("weekday", "hour")
-        .annotate(count=Count("id"))
-        .order_by("weekday", "hour")
-    )
+    filtered = queryset
+    if since is not None:
+        filtered = filtered.filter(created_at__gte=since)
 
     hours = list(range(24))
     weekdays = [
@@ -203,25 +196,32 @@ def build_ticket_heatmap(
     totals_by_hour = [0 for _ in hours]
     max_value = 0
 
-    for row in aggregated:
-        weekday_raw = row.get("weekday")
-        hour = row.get("hour")
-        count = int(row.get("count") or 0)
+    created_values = (
+        filtered.order_by("created_at")
+        .values_list("created_at", flat=True)
+        .iterator()
+    )
 
-        if weekday_raw is None or hour is None:
+    for created_at in created_values:
+        if not created_at:
             continue
 
-        # Django: 1=domingo…7=sábado → shift to Monday based index
-        weekday_index = (int(weekday_raw) + 5) % 7
+        local_created = created_at
+        if timezone.is_naive(local_created):
+            local_created = timezone.make_aware(local_created, timezone.utc)
+        local_created = timezone.localtime(local_created, tz)
+
+        weekday_index = local_created.weekday()
+        hour = local_created.hour
+
         if weekday_index < 0 or weekday_index >= len(weekdays):
             continue
-        if hour < 0 or hour >= len(hours):
-            continue
 
-        matrix[weekday_index][hour] = count
-        totals_by_weekday[weekday_index] += count
-        totals_by_hour[hour] += count
-        max_value = max(max_value, count)
+        matrix[weekday_index][hour] += 1
+        totals_by_weekday[weekday_index] += 1
+        totals_by_hour[hour] += 1
+        if matrix[weekday_index][hour] > max_value:
+            max_value = matrix[weekday_index][hour]
 
     overall_total = sum(totals_by_weekday)
     if max_value > 0:
