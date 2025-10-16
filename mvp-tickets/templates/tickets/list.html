@@ -52,33 +52,16 @@
   </section>
   {% endif %}
 
-  {% if inbox_links %}
-  <section aria-label="Bandejas rápidas" class="flex flex-wrap items-center gap-1.5">
-    {% for option in inbox_links %}
-      <a href="{{ option.url }}"
-         class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium transition {% if current_inbox == option.value %}bg-indigo-600 text-white shadow{% else %}bg-white text-slate-600 hover:border-indigo-200 hover:text-indigo-600{% endif %} sm:text-sm">
-        <i class="bi bi-inbox"></i>
-        {{ option.label }}
-      </a>
-    {% endfor %}
-  </section>
-  {% endif %}
-
   <section class="space-y-4">
-    <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 class="text-lg font-semibold text-slate-900">Filtros</h2>
-          <p class="text-sm text-slate-500">Afinemos la búsqueda para encontrar rápido el ticket que necesitas.</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <a href="{% url 'tickets_home' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600 sm:text-sm">
-            <i class="bi bi-eraser"></i> Limpiar
-          </a>
-        </div>
+    <article class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-base font-semibold text-slate-900">Filtros</h2>
+        <a href="{% url 'tickets_home' %}" class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600 sm:text-sm">
+          <i class="bi bi-eraser"></i> Limpiar
+        </a>
       </div>
-      <form method="get" class="mt-2 space-y-3 text-sm">
-        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <form method="get" class="mt-2 space-y-2 text-xs sm:text-sm">
+        <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
           <div class="space-y-1 sm:col-span-2 xl:col-span-3">
             <label class="text-xs font-semibold uppercase text-slate-500" for="buscar">Buscar</label>
             <input id="buscar" name="q" value="{{ filters.q }}" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Código, título o descripción" />
@@ -119,21 +102,19 @@
             <input id="pagina" name="page_size" value="{{ page_size }}" class="w-24 rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-3 pt-1.5">
-          <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase text-slate-500">
+        <div class="flex flex-wrap items-center gap-2 pt-1">
+          <label class="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:text-xs">
             <input type="checkbox" name="alerts" value="1" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" {% if filters.alerts %}checked{% endif %}>
             Alertas SLA
           </label>
           <input type="hidden" name="hide_closed" value="0">
-          <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase text-slate-500">
+          <label class="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:text-xs">
             <input type="checkbox" name="hide_closed" value="1" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" {% if filters.hide_closed == '1' %}checked{% endif %}>
             Ocultar resueltos y cerrados
           </label>
-          <div class="ml-auto flex flex-wrap items-center gap-2">
-            <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow hover:bg-indigo-700" type="submit">
-              <i class="bi bi-funnel"></i> Aplicar
-            </button>
-          </div>
+          <button class="btn ml-auto inline-flex items-center gap-2 rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-indigo-700 sm:text-sm" type="submit">
+            <i class="bi bi-funnel"></i> Aplicar
+          </button>
         </div>
       </form>
     </article>
@@ -143,9 +124,24 @@
 
     <div class="space-y-4">
       <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-          <h2 class="text-lg font-semibold text-slate-900">Listado de tickets</h2>
-          <p class="text-xs text-slate-500">Ordena por columna para ver lo más urgente primero.</p>
+        <div class="flex flex-col gap-2 border-b border-slate-100 px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="space-y-0.5">
+            <div class="flex flex-wrap items-center gap-2">
+              <h2 class="text-lg font-semibold text-slate-900">Listado de tickets</h2>
+              {% if inbox_links %}
+                <nav aria-label="Bandejas" class="flex flex-wrap items-center gap-1.5">
+                  {% for option in inbox_links %}
+                    <a href="{{ option.url }}"
+                       class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-medium transition {% if current_inbox == option.value %}bg-indigo-600 text-white shadow{% else %}bg-white text-slate-600 hover:border-indigo-200 hover:text-indigo-600{% endif %} sm:text-xs">
+                      <i class="bi bi-inbox"></i>
+                      {{ option.label }}
+                    </a>
+                  {% endfor %}
+                </nav>
+              {% endif %}
+            </div>
+            <p class="text-xs text-slate-500">Ordena por columna para ver lo más urgente primero.</p>
+          </div>
         </div>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-100 text-sm">
