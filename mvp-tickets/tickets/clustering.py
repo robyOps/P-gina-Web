@@ -13,10 +13,15 @@ from django.db import transaction
 try:
     from sklearn.cluster import KMeans
     from sklearn.feature_extraction.text import TfidfVectorizer
-except ImportError as exc:  # pragma: no cover - dependencia opcional en runtime
-    raise ImportError(
+except ImportError:  # pragma: no cover - dependencia opcional en runtime
+    KMeans = None  # type: ignore[assignment]
+    TfidfVectorizer = None  # type: ignore[assignment]
+
+    SKLEARN_MISSING_MESSAGE = (
         "scikit-learn es requerido para agrupar tickets. Instálalo o añade la dependencia."
-    ) from exc
+    )
+else:
+    SKLEARN_MISSING_MESSAGE = ""
 
 from .models import Ticket
 
@@ -113,6 +118,8 @@ def _normalize_text(text: str | None) -> str:
 
 
 def _vectorize(texts: Sequence[str]):
+    if TfidfVectorizer is None:
+        raise RuntimeError(SKLEARN_MISSING_MESSAGE)
     vectorizer = TfidfVectorizer(stop_words=list(STOPWORDS), min_df=1)
     matrix = vectorizer.fit_transform(texts)
     return matrix
@@ -120,6 +127,9 @@ def _vectorize(texts: Sequence[str]):
 
 def train_ticket_clusters(*, num_clusters: int) -> ClusterSummary:
     """Calcula agrupaciones por similitud y persiste el cluster_id en cada ticket."""
+
+    if KMeans is None:
+        raise RuntimeError(SKLEARN_MISSING_MESSAGE)
 
     if num_clusters <= 0:
         raise ValueError("num_clusters debe ser mayor a cero")
