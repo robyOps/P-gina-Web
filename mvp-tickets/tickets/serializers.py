@@ -48,9 +48,9 @@ class TicketSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         attrs = super().validate(attrs)
         category = attrs.get("category") or getattr(self.instance, "category", None)
-        subcategory = attrs.get("subcategory") or getattr(self.instance, "subcategory", None)
-        if not subcategory:
-            raise serializers.ValidationError({"subcategory": "La subcategoría es obligatoria."})
+        subcategory = attrs.get("subcategory")
+        if subcategory is None and self.instance is not None:
+            subcategory = getattr(self.instance, "subcategory", None)
         if category and subcategory and subcategory.category_id != category.id:
             raise serializers.ValidationError(
                 {"subcategory": "La subcategoría no pertenece a la categoría seleccionada."}

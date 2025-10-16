@@ -159,6 +159,7 @@
                   {% if perms.auth.view_user or perms.auth.change_user %}<a href="{% url 'accounts:users_list' %}"><i class="bi bi-people"></i>Usuarios</a>{% endif %}
                   {% if perms.auth.view_group or perms.auth.change_group %}<a href="{% url 'accounts:roles_list' %}"><i class="bi bi-person-gear"></i>Roles</a>{% endif %}
                   {% if perms.catalog.view_category %}<a href="{% url 'categories_list' %}"><i class="bi bi-diagram-3"></i>Categorías</a>{% endif %}
+                  {% if perms.catalog.view_subcategory %}<a href="{% url 'subcategories_list' %}"><i class="bi bi-diagram-2"></i>Subcategorías</a>{% endif %}
                   {% if perms.catalog.view_priority %}<a href="{% url 'priorities_list' %}"><i class="bi bi-lightning"></i>Prioridades</a>{% endif %}
                   {% if perms.catalog.view_area %}<a href="{% url 'areas_list' %}"><i class="bi bi-layers"></i>Áreas</a>{% endif %}
                   {% if perms.tickets.view_autoassignrule %}<a href="{% url 'auto_rules_list' %}"><i class="bi bi-magic"></i>Auto-asignación</a>{% endif %}

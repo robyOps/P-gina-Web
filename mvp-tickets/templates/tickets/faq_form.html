@@ -43,6 +43,13 @@
           <p class="text-xs text-rose-600 mt-1">{{ error }}</p>
         {% endfor %}
       </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_subcategory">Subcategoría</label>
+        {{ form.subcategory|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% for error in form.subcategory.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ error }}</p>
+        {% endfor %}
+      </div>
       <div class="flex flex-wrap items-center gap-3">
         <button class="btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700" type="submit">
           <i class="bi bi-check2-circle"></i>

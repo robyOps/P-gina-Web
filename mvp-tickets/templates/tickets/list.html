@@ -143,13 +143,7 @@
             <input id="pagina" name="page_size" value="{{ page_size }}" class="w-24 max-w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
           </div>
         </div>
-        <div class="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-5">
-          <div class="space-y-1 xl:col-span-2">
-            <label class="text-xs font-semibold uppercase text-slate-500" for="subcategoria">Subcategoría</label>
-            <select id="subcategoria" name="subcategory" class="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-              <option value="">(Todas)</option>
-            </select>
-          </div>
+        <div class="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-4">
           <div class="space-y-1">
             <label class="text-xs font-semibold uppercase text-slate-500" for="desde">Desde</label>
             <input id="desde" type="date" name="date_from" value="{{ filters.date_from }}" class="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
@@ -240,15 +234,6 @@
                 </th>
                 <th scope="col" class="px-2.5 py-2 text-left sm:px-3 sm:py-2.5">
                   <div class="flex items-center gap-1">
-                    <span>Subcategoría</span>
-                    <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
-                      <a href="?sort=subcategory__name{{ qs_no_sort }}" data-sort-link class="inline-flex h-7 w-8 items-center justify-center border-r border-slate-200 bg-white text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600"><i class="bi bi-arrow-up-short"></i></a>
-                      <a href="?sort=-subcategory__name{{ qs_no_sort }}" data-sort-link class="inline-flex h-7 w-8 items-center justify-center bg-white text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600"><i class="bi bi-arrow-down-short"></i></a>
-                    </span>
-                  </div>
-                </th>
-                <th scope="col" class="px-2.5 py-2 text-left sm:px-3 sm:py-2.5">
-                  <div class="flex items-center gap-1">
                     <span>Área</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
                       <a href="?sort=area__name{{ qs_no_sort }}" data-sort-link class="inline-flex h-7 w-8 items-center justify-center border-r border-slate-200 bg-white text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600"><i class="bi bi-arrow-up-short"></i></a>
@@ -324,7 +309,6 @@
                   </span>
                 </td>
                 <td class="px-2.5 py-2 text-slate-600 sm:px-3 sm:py-2.5">{{ t.category.name }}</td>
-                <td class="px-2.5 py-2 text-slate-600 sm:px-3 sm:py-2.5">{% if t.subcategory %}{{ t.subcategory.name }}{% else %}<span class="text-slate-400">Sin definir</span>{% endif %}</td>
                 <td class="px-2.5 py-2 text-slate-600 sm:px-3 sm:py-2.5">{% if t.area %}{{ t.area.name }}{% else %}<span class="text-slate-400">Sin área</span>{% endif %}</td>
                 <td class="px-2.5 py-2 text-slate-600 sm:w-20 sm:px-3 sm:py-2.5">{{ t.priority.name }}</td>
                 <td class="px-2.5 py-2 text-slate-600 sm:w-28 sm:px-2.5 sm:py-2">
@@ -371,7 +355,7 @@
             Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} resultados
           </div>
           <nav class="flex flex-wrap items-center gap-2" aria-label="Paginación">
-            {% with qsp="q="|add:filters.q|urlencode|add:"&status="|add:filters.status|add:"&category="|add:filters.category|add:"&subcategory="|add:filters.subcategory|add:"&priority="|add:filters.priority|add:"&area="|add:filters.area|add:"&date_from="|add:filters.date_from|add:"&date_to="|add:filters.date_to|add:"&alerts="|add:filters.alerts|add:"&hide_closed="|add:filters.hide_closed|add:"&page_size="|add:page_size %}
+            {% with qsp="q="|add:filters.q|urlencode|add:"&status="|add:filters.status|add:"&category="|add:filters.category|add:"&priority="|add:filters.priority|add:"&area="|add:filters.area|add:"&date_from="|add:filters.date_from|add:"&date_to="|add:filters.date_to|add:"&alerts="|add:filters.alerts|add:"&hide_closed="|add:filters.hide_closed|add:"&page_size="|add:page_size %}
               {% if page_obj.has_previous %}
                 <a class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600" href="?{{ qsp }}&page=1">&laquo; Primera</a>
                 <a class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600" href="?{{ qsp }}&page={{ page_obj.previous_page_number }}">Anterior</a>
@@ -398,50 +382,6 @@
 
 {% block body_extra %}
 {{ block.super }}
-{{ subcategory_map|json_script:"subcategory-filter-map" }}
-<script>
-  (function () {
-    const mapNode = document.getElementById('subcategory-filter-map');
-    if (!mapNode) {
-      return;
-    }
-    const subcategoryMap = JSON.parse(mapNode.textContent || '{}');
-    const categoryField = document.getElementById('categoria');
-    const subcategoryField = document.getElementById('subcategoria');
-    if (!categoryField || !subcategoryField) {
-      return;
-    }
-
-    function renderOptions(categoryId, selectedValue) {
-      const options = subcategoryMap[categoryId] || [];
-      subcategoryField.innerHTML = '';
-      const placeholder = document.createElement('option');
-      placeholder.value = '';
-      placeholder.textContent = options.length ? '(Todas)' : 'Sin subcategorías';
-      subcategoryField.appendChild(placeholder);
-
-      for (const item of options) {
-        const option = document.createElement('option');
-        option.value = String(item.id);
-        option.textContent = item.name;
-        if (selectedValue && String(item.id) === selectedValue) {
-          option.selected = true;
-        }
-        subcategoryField.appendChild(option);
-      }
-
-      subcategoryField.disabled = options.length === 0;
-    }
-
-    const initialCategory = categoryField.value || '';
-    const initialSubcategory = '{{ filters.subcategory|default:"" }}';
-    renderOptions(initialCategory, initialSubcategory);
-
-    categoryField.addEventListener('change', function () {
-      renderOptions(categoryField.value || '', '');
-    });
-  })();
-</script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const storageKey = 'tickets-list-scroll';

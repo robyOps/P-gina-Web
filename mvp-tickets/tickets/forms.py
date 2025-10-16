@@ -43,13 +43,10 @@ class TicketCreateForm(forms.ModelForm):
 
         subcategory_qs = Subcategory.objects.select_related("category").filter(is_active=True)
         self.fields["subcategory"].queryset = subcategory_qs.order_by("category__name", "name")
+        self.fields["subcategory"].required = False
+        self.fields["subcategory"].empty_label = "Sin subcategoría"
 
         self._default_category = self.fields["category"].queryset.first()
-        self._default_subcategory = None
-        if self._default_category:
-            self._default_subcategory = (
-                subcategory_qs.filter(category=self._default_category).order_by("name").first()
-            )
         self._default_priority = self.fields["priority"].queryset.first()
 
         is_admin_user = bool(user and (user.is_superuser or user.groups.filter(name=ROLE_ADMIN).exists()))
@@ -64,14 +61,13 @@ class TicketCreateForm(forms.ModelForm):
             except Group.DoesNotExist:
                 self.fields["assignee"].queryset = User.objects.none()
         else:
-            # Usuarios no admin: ocultamos asignación, pero mantenemos cat/subcat visibles
+            # Usuarios no admin: ocultamos asignación y subcategoría
             self.fields.pop("assignee", None)
             if self._default_category:
                 self.fields["category"].initial = self._default_category.pk
-            if self._default_subcategory:
-                self.fields["subcategory"].initial = self._default_subcategory.pk
             if self._default_priority:
                 self.fields["priority"].initial = self._default_priority.pk
+            self.fields["subcategory"].widget = forms.HiddenInput()
 
     def clean_title(self):
         title = sanitize_text(self.cleaned_data.get("title"))
@@ -95,9 +91,9 @@ class TicketCreateForm(forms.ModelForm):
 
     def clean_subcategory(self):
         category = self.cleaned_data.get("category") or self._default_category
-        subcategory = self.cleaned_data.get("subcategory") or self._default_subcategory
+        subcategory = self.cleaned_data.get("subcategory")
         if not subcategory:
-            raise forms.ValidationError("Selecciona una subcategoría.")
+            return None
         if category and subcategory.category_id != category.id:
             raise forms.ValidationError("La subcategoría no pertenece a la categoría seleccionada.")
         return subcategory
@@ -160,6 +156,8 @@ class TicketQuickUpdateForm(forms.ModelForm):
         self.fields["area"].queryset = Area.objects.order_by("name")
         self.fields["area"].required = False
         self.fields["area"].empty_label = "Sin área"
+        self.fields["subcategory"].required = False
+        self.fields["subcategory"].empty_label = "Sin subcategoría"
 
     def clean_title(self):
         title = sanitize_text(self.cleaned_data.get("title"))
@@ -171,7 +169,7 @@ class TicketQuickUpdateForm(forms.ModelForm):
         category = self.cleaned_data.get("category")
         subcategory = self.cleaned_data.get("subcategory")
         if not subcategory:
-            raise forms.ValidationError("Selecciona una subcategoría.")
+            return None
         if category and subcategory.category_id != category.id:
             raise forms.ValidationError("La subcategoría no pertenece a la categoría seleccionada.")
         return subcategory
@@ -201,7 +199,7 @@ class AutoAssignRuleForm(forms.ModelForm):
 class FAQForm(forms.ModelForm):
     class Meta:
         model = FAQ
-        fields = ["question", "answer", "category"]
+        fields = ["question", "answer", "category", "subcategory"]
         widgets = {
             "question": forms.TextInput(
                 attrs={"class": "border rounded px-3 py-2 w-full", "maxlength": 255}
@@ -212,6 +210,9 @@ class FAQForm(forms.ModelForm):
             "category": forms.Select(
                 attrs={"class": "border rounded px-3 py-2 w-full"}
             ),
+            "subcategory": forms.Select(
+                attrs={"class": "border rounded px-3 py-2 w-full"}
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -219,6 +220,9 @@ class FAQForm(forms.ModelForm):
         self.fields["category"].queryset = Category.objects.order_by("name")
         self.fields["category"].required = False
         self.fields["category"].empty_label = "Sin categoría"
+        self.fields["subcategory"].queryset = Subcategory.objects.select_related("category").order_by("category__name", "name")
+        self.fields["subcategory"].required = False
+        self.fields["subcategory"].empty_label = "Sin subcategoría"
 
     def clean_question(self):
         question = sanitize_text(self.cleaned_data.get("question"))
@@ -231,3 +235,17 @@ class FAQForm(forms.ModelForm):
         if not answer:
             raise forms.ValidationError("La respuesta no puede estar vacía.")
         return answer
+
+    def clean(self):
+        cleaned = super().clean()
+        category = cleaned.get("category")
+        subcategory = cleaned.get("subcategory")
+        if subcategory:
+            if category and subcategory.category_id != category.id:
+                self.add_error(
+                    "subcategory",
+                    "La subcategoría seleccionada no pertenece a la categoría indicada.",
+                )
+            elif not category:
+                cleaned["category"] = subcategory.category
+        return cleaned
