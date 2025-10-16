@@ -8,3 +8,4 @@ djangorestframework-simplejwt
 psycopg2-binary
 xhtml2pdf
 openpyxl
+scikit-learn

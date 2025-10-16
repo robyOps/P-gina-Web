@@ -73,6 +73,17 @@ def base_queryset(request):
         qs = qs.filter(created_at__date__gte=dfrom)
     if dto:
         qs = qs.filter(created_at__date__lte=dto)
+
+    cluster = (
+        request.query_params.get("cluster_id")
+        or request.query_params.get("cluster")
+        or ""
+    ).strip()
+    if cluster:
+        if cluster.isdigit():
+            qs = qs.filter(cluster_id=int(cluster))
+        else:
+            cluster = ""
     return qs
 
 
@@ -103,6 +114,14 @@ class ReportSummaryView(APIView):
             for name, c in qs.values_list("priority__name").annotate(c=Count("id"))
         ]
 
+        by_cluster = [
+            {
+                "cluster": cluster_id if cluster_id is not None else "Sin cluster",
+                "count": c,
+            }
+            for cluster_id, c in qs.values_list("cluster_id").annotate(c=Count("id"))
+        ]
+
         # por técnico asignado
         ass = qs.exclude(assigned_to__isnull=True)
         by_tech = [
@@ -123,6 +142,7 @@ class ReportSummaryView(APIView):
             },
             "by_category": by_category,
             "by_priority": by_priority,
+            "by_cluster": by_cluster,
             "by_tech": by_tech,
             "avg_resolve_hours": avg_resolve_hours,
         })
@@ -161,7 +181,7 @@ class ReportExportView(APIView):
         # Encabezados
         writer.writerow([
             "id","code","title","status","requester","assigned_to",
-            "category","priority","area","created_at","resolved_at","closed_at"
+            "category","priority","area","cluster_id","created_at","resolved_at","closed_at"
         ])
 
         # Filas
@@ -176,6 +196,7 @@ class ReportExportView(APIView):
                 getattr(t.category, "name", ""),
                 getattr(t.priority, "key", ""),
                 getattr(t.area, "name", "") if t.area_id else "",
+                t.cluster_id or "",
                 t.created_at.isoformat(timespec="seconds"),
                 t.resolved_at.isoformat(timespec="seconds") if t.resolved_at else "",
                 t.closed_at.isoformat(timespec="seconds") if t.closed_at else "",

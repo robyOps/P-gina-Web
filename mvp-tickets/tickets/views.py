@@ -452,6 +452,7 @@ def tickets_home(request):
     category = (request.GET.get("category") or "").strip()
     priority = (request.GET.get("priority") or "").strip()
     area = (request.GET.get("area") or "").strip()
+    cluster = (request.GET.get("cluster") or "").strip()
     alerts_only = request.GET.get("alerts") == "1"
     hide_closed = request.GET.get("hide_closed", "1")
     if hide_closed not in {"0", "1"}:
@@ -475,6 +476,11 @@ def tickets_home(request):
             qs = qs.filter(area_id=area)
         else:
             qs = qs.filter(area__name__iexact=area)
+    if cluster:
+        if cluster.isdigit():
+            qs = qs.filter(cluster_id=int(cluster))
+        else:
+            cluster = ""
 
     # Búsqueda
     q = (request.GET.get("q") or "").strip()
@@ -495,6 +501,7 @@ def tickets_home(request):
         "priority__name",
         "area__name",
         "assigned_to__username",
+        "cluster_id",
         "created_at",
         "kind",
     }
@@ -534,6 +541,12 @@ def tickets_home(request):
     # Para el combo de estados (clave y etiqueta en español)
     statuses = Ticket.STATUS_CHOICES
     priorities = list(Priority.objects.order_by("name"))
+    cluster_ids = list(
+        Ticket.objects.exclude(cluster_id__isnull=True)
+        .order_by("cluster_id")
+        .values_list("cluster_id", flat=True)
+        .distinct()
+    )
     areas = list(Area.objects.order_by("name"))
 
     # Para preservar filtros en paginación (opcional, usado en template)
@@ -573,6 +586,7 @@ def tickets_home(request):
             "category": category,
             "priority": priority,
             "area": area,
+            "cluster": cluster,
             "alerts": "1" if alerts_only else "",
             "hide_closed": hide_closed,
         },
@@ -582,6 +596,7 @@ def tickets_home(request):
         "tech_counters": tech_counters,
         "priorities": priorities,
         "areas": areas,
+        "cluster_ids": cluster_ids,
         "current_inbox": inbox,
         "inbox_links": inbox_links,
     }
