@@ -170,7 +170,7 @@
           <table class="w-full table-auto divide-y divide-slate-100 text-xs sm:text-sm">
             <thead class="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-600 sm:text-xs">
               <tr>
-                <th scope="col" class="px-3 py-2 text-left sm:w-20 sm:px-3 sm:py-2">
+                <th scope="col" class="px-2.5 py-2 text-left sm:w-16 sm:px-2.5 sm:py-2">
                   <div class="flex items-center gap-1">
                     <span>Código</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -264,8 +264,8 @@
                 role="link"
                 aria-label="Abrir ticket {{ t.code }}"
               >
-                <td class="px-3 py-2 font-semibold text-indigo-600 sm:w-20 sm:px-3 sm:py-2">
-                  <a class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-sm font-semibold text-indigo-700 transition group-hover:bg-indigo-100 focus-visible:outline-none" href="{% url 'ticket_detail' t.id %}">
+                <td class="px-2.5 py-2 font-semibold text-indigo-600 sm:w-16 sm:px-2.5 sm:py-2">
+                  <a class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-sm font-semibold text-indigo-700 transition group-hover:bg-indigo-100 focus-visible:outline-none" href="{% url 'ticket_detail' t.id %}">
                     <i class="bi bi-hash"></i>
                     {{ t.code }}
                   </a>
