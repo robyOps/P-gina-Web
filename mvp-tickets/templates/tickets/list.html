@@ -162,11 +162,11 @@
             {% endif %}
           </div>
         </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-100 text-sm">
-            <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-600">
+        <div class="overflow-x-auto lg:overflow-visible">
+          <table class="w-full table-auto divide-y divide-slate-100 text-xs sm:text-sm">
+            <thead class="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-600 sm:text-xs">
               <tr>
-                <th scope="col" class="px-4 py-2.5 text-left">
+                <th scope="col" class="px-3 py-2 text-left sm:px-4 sm:py-2.5">
                   <div class="flex items-center gap-1">
                     <span>Código</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -175,7 +175,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="min-w-[18rem] px-4 py-2 text-left">
+                <th scope="col" class="px-3 py-2 text-left sm:px-4 sm:py-2 lg:min-w-[16rem]">
                   <div class="flex items-center gap-1">
                     <span>Título</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -184,7 +184,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-left">
+                <th scope="col" class="px-3 py-2 text-left sm:px-4 sm:py-2.5">
                   <div class="flex items-center gap-1">
                     <span>Estado</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -193,7 +193,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-left">
+                <th scope="col" class="px-3 py-2 text-left sm:px-4 sm:py-2.5">
                   <div class="flex items-center gap-1">
                     <span>Tipo</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -202,7 +202,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-left">
+                <th scope="col" class="px-3 py-2 text-left sm:px-4 sm:py-2.5">
                   <div class="flex items-center gap-1">
                     <span>Categoría</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -211,7 +211,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-left">
+                <th scope="col" class="px-3 py-2 text-left sm:px-4 sm:py-2.5">
                   <div class="flex items-center gap-1">
                     <span>Área</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -220,7 +220,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-left">
+                <th scope="col" class="px-3 py-2 text-left sm:px-4 sm:py-2.5">
                   <div class="flex items-center gap-1">
                     <span>Prioridad</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -229,7 +229,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-left">
+                <th scope="col" class="px-3 py-2 text-left sm:px-4 sm:py-2.5">
                   <div class="flex items-center gap-1">
                     <span>Asignado</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -238,8 +238,8 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-left">SLA</th>
-                <th scope="col" class="w-24 px-3 py-2 text-left">
+                <th scope="col" class="px-3 py-2 text-left sm:px-4 sm:py-2.5">SLA</th>
+                <th scope="col" class="px-3 py-2 text-left sm:w-24 sm:px-4 sm:py-2">
                   <div class="flex items-center gap-1">
                     <span>Creado</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -260,20 +260,20 @@
                 role="link"
                 aria-label="Abrir ticket {{ t.code }}"
               >
-                <td class="px-4 py-2.5 font-semibold text-indigo-600">
+                <td class="px-3 py-2 font-semibold text-indigo-600 sm:px-4 sm:py-2.5">
                   <a class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-sm font-semibold text-indigo-700 transition group-hover:bg-indigo-100 focus-visible:outline-none" href="{% url 'ticket_detail' t.id %}">
                     <i class="bi bi-hash"></i>
                     {{ t.code }}
                   </a>
                 </td>
-                <td class="min-w-[18rem] px-4 py-2 text-slate-700">{{ t.title }}</td>
-                <td class="px-4 py-2.5">
+                <td class="px-3 py-2 text-slate-700 sm:px-4 sm:py-2 lg:min-w-[16rem]">{{ t.title }}</td>
+                <td class="px-3 py-2 sm:px-4 sm:py-2.5">
                   <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold {% if t.status == 'OPEN' %}bg-sky-100 text-sky-700{% elif t.status == 'IN_PROGRESS' %}bg-amber-100 text-amber-700{% elif t.status == 'RESOLVED' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-100 text-slate-600{% endif %}">
                     <i class="bi bi-circle-fill text-[8px]"></i>
                     {{ t.get_status_display }}
                   </span>
                 </td>
-                <td class="px-4 py-2.5">
+                <td class="px-3 py-2 sm:px-4 sm:py-2.5">
                   <span class="inline-flex items-center gap-1 text-slate-600">
                     {{ t.get_kind_display }}
                     {% if t.kind == 'INCIDENT' %}
@@ -285,11 +285,11 @@
                     {% endif %}
                   </span>
                 </td>
-                <td class="px-4 py-2.5 text-slate-600">{{ t.category.name }}</td>
-                <td class="px-4 py-2.5 text-slate-600">{% if t.area %}{{ t.area.name }}{% else %}<span class="text-slate-400">Sin área</span>{% endif %}</td>
-                <td class="px-4 py-2.5 text-slate-600">{{ t.priority.name }}</td>
-                <td class="px-4 py-2.5 text-slate-600">{% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}<span class="text-slate-400">Sin asignar</span>{% endif %}</td>
-                <td class="px-4 py-2.5 space-y-1">
+                <td class="px-3 py-2 text-slate-600 sm:px-4 sm:py-2.5">{{ t.category.name }}</td>
+                <td class="px-3 py-2 text-slate-600 sm:px-4 sm:py-2.5">{% if t.area %}{{ t.area.name }}{% else %}<span class="text-slate-400">Sin área</span>{% endif %}</td>
+                <td class="px-3 py-2 text-slate-600 sm:px-4 sm:py-2.5">{{ t.priority.name }}</td>
+                <td class="px-3 py-2 text-slate-600 sm:px-4 sm:py-2.5">{% if t.assigned_to %}{{ t.assigned_to.username }}{% else %}<span class="text-slate-400">Sin asignar</span>{% endif %}</td>
+                <td class="px-3 py-2 space-y-1 sm:px-4 sm:py-2.5">
                   {% if t.is_overdue %}
                     <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-600"><i class="bi bi-alarm"></i> SLA vencido</span>
                   {% elif t.is_warning %}
@@ -299,16 +299,14 @@
                     <span class="inline-flex items-center gap-2 rounded-full bg-rose-600 px-3 py-1 text-xs font-semibold text-white"><i class="bi bi-lightning"></i> Crítico</span>
                   {% endif %}
                 </td>
-                <td class="w-24 px-3 py-2 text-sm text-slate-500">
-                  <div class="leading-tight">
-                    <span>{{ t.created_at|date:"d/M/Y" }}</span>
-                    <span class="block text-slate-400">{{ t.created_at|time:"H:i" }}</span>
-                  </div>
+                <td class="px-3 py-2 text-[11px] text-slate-500 whitespace-nowrap sm:px-4 sm:py-2">
+                  <span class="font-medium text-slate-600">{{ t.created_at|date:"d/M/Y" }}</span>
+                  <span class="ml-1 text-slate-400">{{ t.created_at|time:"H:i" }}</span>
                 </td>
               </tr>
               {% empty %}
               <tr>
-                <td class="px-4 py-6 text-center text-sm text-slate-500" colspan="9">
+                <td class="px-4 py-6 text-center text-sm text-slate-500" colspan="10">
                   <div class="flex flex-col items-center gap-2">
                     <i class="bi bi-emoji-smile text-2xl text-indigo-400"></i>
                     <p>No tienes tickets en esta vista. Aprovecha de tomarte un cafecito.</p>
