@@ -125,7 +125,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",   # <-- agrega esto
     ),
     "DEFAULT_PERMISSION_CLASSES": (
-        "helpdesk.permissions.AuthenticatedSafeMethodsOnlyForRequesters",
+        "helpdesk.permissions.PrivilegedOnlyPermission",
     ),
     "DEFAULT_RENDERER_CLASSES": (
         "rest_framework.renderers.JSONRenderer",

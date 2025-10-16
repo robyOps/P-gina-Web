@@ -27,11 +27,15 @@ from django.conf.urls.static import static
 
 from tickets import views as ticket_views
 from catalog import views as catalog_views
+from accounts import views as account_views
 
 urlpatterns = [
     # --- Auth web ---
     path("login/",  auth_views.LoginView.as_view(template_name="auth/login.html"), name="login"),
     path("logout/", auth_views.LogoutView.as_view(next_page="login"), name="logout"),
+
+    # --- Preferencias personales ---
+    path("account/password/", account_views.password_change, name="account_password_change"),
 
     # --- UI (server-rendered) ---
     path("", ticket_views.dashboard, name="dashboard"),
