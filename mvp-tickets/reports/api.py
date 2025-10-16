@@ -2,6 +2,7 @@
 from datetime import datetime
 from collections import Counter
 import csv
+import calendar
 
 from django.db.models import Count, Avg, DurationField, ExpressionWrapper, F
 from django.http import HttpResponse
@@ -11,13 +12,45 @@ from rest_framework import permissions
 
 from tickets.models import Ticket
 from accounts.roles import is_admin, is_tech
+from django.utils import timezone
 
 
 def parse_dt(s):
     # admite YYYY-MM-DD; si viene vacío, devuelve None
     if not s:
         return None
-    return datetime.fromisoformat(s)
+    try:
+        return datetime.fromisoformat(s).date()
+    except ValueError:
+        return None
+
+
+def current_month_bounds():
+    today = timezone.localdate()
+    return today.replace(day=1), today
+
+
+def resolve_range(raw_from, raw_to):
+    dfrom = parse_dt(raw_from)
+    dto = parse_dt(raw_to)
+    start_month, today = current_month_bounds()
+
+    if not raw_from and not raw_to:
+        dfrom, dto = start_month, today
+    else:
+        if not dfrom and dto:
+            dfrom = dto.replace(day=1)
+        elif not dfrom:
+            dfrom = start_month
+
+        if not dto and dfrom:
+            if dfrom.year == today.year and dfrom.month == today.month:
+                dto = today
+            else:
+                last_day = calendar.monthrange(dfrom.year, dfrom.month)[1]
+                dto = dfrom.replace(day=last_day)
+
+    return dfrom, dto
 
 
 def base_queryset(request):
@@ -33,12 +66,13 @@ def base_queryset(request):
         qs = qs.filter(requester=u)
 
     # filtros de fecha (rango en created_at)
-    dfrom = parse_dt(request.query_params.get("from"))
-    dto = parse_dt(request.query_params.get("to"))
+    raw_from = request.query_params.get("from")
+    raw_to = request.query_params.get("to")
+    dfrom, dto = resolve_range(raw_from, raw_to)
     if dfrom:
-        qs = qs.filter(created_at__date__gte=dfrom.date())
+        qs = qs.filter(created_at__date__gte=dfrom)
     if dto:
-        qs = qs.filter(created_at__date__lte=dto.date())
+        qs = qs.filter(created_at__date__lte=dto)
     return qs
 
 

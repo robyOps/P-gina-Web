@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import timedelta
 from typing import Dict
 
 from django.conf import settings
@@ -193,6 +194,85 @@ def run_sla_check(*, warn_ratio: float = 0.8, dry_run: bool = False) -> Dict[str
             warned += 1
 
     return {"warnings": warned, "breaches": breached}
+
+
+def send_daily_expiring_ticket_summary(*, within_hours: int = 24, dry_run: bool = False) -> Dict[str, int]:
+    """Envía un resumen diario de tickets cuyo SLA vencerá pronto."""
+
+    now = timezone.now()
+    window_end = now + timedelta(hours=within_hours)
+
+    qs = Ticket.objects.select_related("priority", "assigned_to", "requester").filter(
+        status__in=[Ticket.OPEN, Ticket.IN_PROGRESS]
+    )
+
+    expiring = []
+    for ticket in qs:
+        due = ticket.due_at
+        if due and now <= due <= window_end:
+            expiring.append((ticket, due))
+
+    expiring.sort(key=lambda item: item[1])
+
+    role_users = _active_users_from(
+        User.objects.filter(is_active=True, groups__name__in=[ROLE_TECH, ROLE_ADMIN]).distinct()
+    )
+
+    summary = {"tickets": len(expiring), "recipients": len(role_users)}
+
+    if not expiring or not role_users:
+        return summary
+
+    if dry_run:
+        return summary
+
+    subject = "[Helpdesk] Tickets por vencer"
+    link = reverse("reports_dashboard")
+
+    lines = [
+        "Hola,",
+        "",
+        f"Estos {('ticket' if len(expiring) == 1 else 'tickets')} vencerán en las próximas {within_hours} horas:",
+        "",
+    ]
+
+    for ticket, due in expiring:
+        due_local = timezone.localtime(due)
+        assigned = getattr(ticket.assigned_to, "username", "Sin asignar") or "Sin asignar"
+        lines.append(
+            f"- {ticket.code} · {ticket.title} (vence {due_local.strftime('%d/%m %H:%M')} · asignado a {assigned})"
+        )
+
+    lines.extend(
+        [
+            "",
+            "Puedes revisar el detalle completo en el panel de reportes:",
+            link,
+        ]
+    )
+
+    body = "\n".join(lines)
+
+    emails = [getattr(user, "email", None) for user in role_users]
+    email_list = [email for email in emails if email]
+    if email_list:
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=email_list,
+            fail_silently=True,
+        )
+
+    notif_message = (
+        f"{len(expiring)} ticket{' está' if len(expiring) == 1 else 's están'} por vencer en las próximas {within_hours} horas."
+    )
+    notifications = [
+        Notification(user=user, message=notif_message, url=link) for user in role_users
+    ]
+    Notification.objects.bulk_create(notifications)
+
+    return summary
 
 
 def apply_auto_assign(ticket: Ticket, actor=None) -> bool:
