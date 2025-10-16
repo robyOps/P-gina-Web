@@ -5,6 +5,7 @@ import csv
 import calendar
 
 from django.db.models import Count, Avg, DurationField, ExpressionWrapper, F
+from django.db.models.functions import ExtractHour, ExtractWeekDay, TruncHour
 from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -84,6 +85,28 @@ def base_queryset(request):
             qs = qs.filter(cluster_id=int(cluster))
         else:
             cluster = ""
+
+    category = (
+        request.query_params.get("category_id")
+        or request.query_params.get("category")
+        or ""
+    ).strip()
+    if category:
+        if category.isdigit():
+            qs = qs.filter(category_id=int(category))
+        else:
+            qs = qs.filter(category__name__iexact=category)
+
+    area = (
+        request.query_params.get("area_id")
+        or request.query_params.get("area")
+        or ""
+    ).strip()
+    if area:
+        if area.isdigit():
+            qs = qs.filter(area_id=int(area))
+        else:
+            qs = qs.filter(area__name__iexact=area)
     return qs
 
 
@@ -203,5 +226,78 @@ class ReportExportView(APIView):
             ])
 
         return response
+
+
+class ReportHeatmapView(APIView):
+    """Entrega una matriz día x hora para alimentar el mapa de calor."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    WEEKDAY_LABELS = [
+        "Lunes",
+        "Martes",
+        "Miércoles",
+        "Jueves",
+        "Viernes",
+        "Sábado",
+        "Domingo",
+    ]
+
+    def get(self, request):
+        qs = base_queryset(request)
+        tz = timezone.get_current_timezone()
+
+        aggregated = (
+            qs.annotate(local_created=TruncHour("created_at", tzinfo=tz))
+            .annotate(
+                weekday=ExtractWeekDay("local_created"),
+                hour=ExtractHour("local_created"),
+            )
+            .values("weekday", "hour")
+            .annotate(count=Count("id"))
+            .order_by("weekday", "hour")
+        )
+
+        hours = list(range(24))
+        weekdays = list(self.WEEKDAY_LABELS)
+        matrix = [[0 for _ in hours] for _ in weekdays]
+        totals_by_weekday = [0 for _ in weekdays]
+        totals_by_hour = [0 for _ in hours]
+        max_value = 0
+
+        for row in aggregated:
+            weekday_raw = row.get("weekday")
+            hour = row.get("hour")
+            count = int(row.get("count") or 0)
+
+            if weekday_raw is None or hour is None:
+                continue
+
+            weekday_index = (weekday_raw + 5) % 7  # django: 1=domingo → 6
+            if weekday_index < 0 or weekday_index >= len(weekdays):
+                continue
+            if hour < 0 or hour >= len(hours):
+                continue
+
+            matrix[weekday_index][hour] = count
+            totals_by_weekday[weekday_index] += count
+            totals_by_hour[hour] += count
+            if count > max_value:
+                max_value = count
+
+        total = sum(totals_by_weekday)
+
+        return Response(
+            {
+                "hours": hours,
+                "weekdays": weekdays,
+                "matrix": matrix,
+                "totals": {
+                    "by_weekday": totals_by_weekday,
+                    "by_hour": totals_by_hour,
+                    "overall": total,
+                },
+                "max_value": max_value,
+            }
+        )
 
 

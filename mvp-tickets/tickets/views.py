@@ -1232,6 +1232,12 @@ def reports_dashboard(request):
         .distinct()
     )
     techs = User.objects.filter(id__in=tech_ids).order_by("username")
+    areas = Area.objects.order_by("name")
+    heatmap_area_selected = (
+        request.GET.get("heatmap_area")
+        or request.GET.get("area")
+        or ""
+    ).strip()
 
     return TemplateResponse(
         request,
@@ -1254,6 +1260,8 @@ def reports_dashboard(request):
             "techs": techs,
             "tech_selected": tech_selected,
             "report_type": report_type,
+            "areas": areas,
+            "heatmap_area_selected": heatmap_area_selected,
         },
     )
 
