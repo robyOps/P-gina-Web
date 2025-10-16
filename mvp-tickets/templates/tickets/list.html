@@ -57,7 +57,7 @@
       <div class="flex flex-wrap items-center gap-1.5">
         <button
           type="button"
-          class="btn inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 sm:text-sm"
+          class="btn inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm transition sm:text-sm {% if has_active_filters %}border-indigo-300 bg-indigo-50 text-indigo-700 hover:border-indigo-400 hover:bg-indigo-100{% else %}border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:text-indigo-600{% endif %}"
           data-filter-toggle
           aria-expanded="false"
           aria-controls="filters-panel"
@@ -66,6 +66,9 @@
         >
           <i class="bi bi-funnel"></i>
           <span data-filter-label>Mostrar filtros</span>
+          {% if has_active_filters %}
+          <span class="ml-1 inline-flex h-2 w-2 items-center justify-center rounded-full bg-rose-500"></span>
+          {% endif %}
         </button>
         {% if inbox_links %}
           <nav aria-label="Bandejas" class="flex flex-wrap items-center gap-1.5">
@@ -86,7 +89,6 @@
       id="filters-panel"
       class="hidden rounded-2xl border border-slate-200 bg-white p-2.5 shadow-sm sm:p-3"
       data-filter-panel
-      {% if filters.q or filters.status or filters.category or filters.priority or filters.area or filters.alerts or filters.hide_closed == '1' %}data-open="true"{% endif %}
     >
       <div class="flex flex-wrap items-center justify-between gap-1.5">
         <h2 class="text-sm font-semibold text-slate-900">Filtros</h2>
@@ -158,17 +160,17 @@
 
     <div class="space-y-4">
       <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-col gap-2 border-b border-slate-100 px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex flex-col gap-2 bg-gradient-to-r from-indigo-600 via-sky-500 to-cyan-500 px-5 py-4 text-white lg:flex-row lg:items-center lg:justify-between">
           <div class="flex flex-col gap-2 lg:flex-row lg:items-center">
             <div class="space-y-0.5">
-              <h2 class="text-lg font-semibold text-slate-900">Listado de tickets</h2>
-              <p class="text-xs text-slate-500">Ordena por columna para ver lo más urgente primero.</p>
+              <h2 class="text-lg font-semibold text-white">Listado de tickets</h2>
+              <p class="text-xs text-indigo-100">Ordena por columna para ver lo más urgente primero.</p>
             </div>
           </div>
         </div>
         <div class="overflow-x-auto lg:overflow-visible">
           <table class="w-full table-auto divide-y divide-slate-100 text-xs sm:text-sm">
-            <thead class="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-600 sm:text-xs">
+            <thead class="bg-indigo-50 text-[10px] uppercase tracking-wider text-indigo-700 sm:text-xs">
               <tr>
                 <th scope="col" class="px-2 py-2 text-left sm:w-14 sm:px-2 sm:py-2">
                   <div class="flex items-center gap-1">
@@ -224,7 +226,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-3 py-2 text-left sm:px-4 sm:py-2.5">
+                <th scope="col" class="px-2.5 py-2 text-left sm:w-20 sm:px-3 sm:py-2.5">
                   <div class="flex items-center gap-1">
                     <span>Prioridad</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -242,7 +244,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-2.5 py-2 text-left sm:w-24 sm:px-3 sm:py-2">
+                <th scope="col" class="px-2.5 py-2 text-left sm:min-w-[9rem] sm:px-3 sm:py-2">
                   <div class="flex items-center gap-1">
                     <span>Creado</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -293,7 +295,7 @@
                 </td>
                 <td class="px-2.5 py-2 text-slate-600 sm:px-3 sm:py-2.5">{{ t.category.name }}</td>
                 <td class="px-2.5 py-2 text-slate-600 sm:px-3 sm:py-2.5">{% if t.area %}{{ t.area.name }}{% else %}<span class="text-slate-400">Sin área</span>{% endif %}</td>
-                <td class="px-2.5 py-2 text-slate-600 sm:px-3 sm:py-2.5">{{ t.priority.name }}</td>
+                <td class="px-2.5 py-2 text-slate-600 sm:w-20 sm:px-3 sm:py-2.5">{{ t.priority.name }}</td>
                 <td class="px-2.5 py-2 text-slate-600 sm:w-28 sm:px-2.5 sm:py-2">
                   {% if t.assigned_to %}
                     <span class="block truncate max-w-[6rem] sm:max-w-[7rem]" title="{{ t.assigned_to.username }}">{{ t.assigned_to.username }}</span>
@@ -301,13 +303,10 @@
                     <span class="text-slate-400">Sin asignar</span>
                   {% endif %}
                 </td>
-                <td class="px-2.5 py-2 text-[11px] text-slate-500 whitespace-nowrap sm:px-3 sm:py-2" title="{{ t.created_at|date:'d/M/Y H:i' }}">
-                  <div class="flex items-center gap-1.5 text-slate-600">
-                    <i class="bi bi-calendar-event"></i>
-                    <div class="leading-tight">
-                      <span class="block font-semibold">{{ t.created_at|date:"d/M/Y" }}</span>
-                      <span class="text-slate-400">{{ t.created_at|time:"H:i" }}</span>
-                    </div>
+                <td class="px-2.5 py-2 text-[11px] text-slate-500 whitespace-nowrap sm:min-w-[9rem] sm:px-3 sm:py-2" title="{{ t.created_at|date:'d/M/Y H:i' }}">
+                  <div class="leading-tight text-slate-600">
+                    <span class="block font-semibold text-slate-700">{{ t.created_at|date:"d/M/Y" }}</span>
+                    <span class="text-slate-400">{{ t.created_at|time:"H:i" }}</span>
                   </div>
                 </td>
                 <td class="px-2.5 py-2 space-y-1 sm:px-3 sm:py-2.5">
