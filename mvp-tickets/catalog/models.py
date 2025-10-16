@@ -43,7 +43,7 @@ class Subcategory(models.Model):
 
     def save(self, *args, **kwargs):
         if self.name:
-            self.name = self.name.strip()
+            self.name = self.name.strip().upper()
         super().save(*args, **kwargs)
 
 class Priority(models.Model):

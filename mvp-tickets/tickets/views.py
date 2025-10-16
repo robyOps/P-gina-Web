@@ -342,7 +342,7 @@ def faq_list(request):
         user.has_perm(f"tickets.{code}")
         for code in ("add_faq", "change_faq", "delete_faq")
     )
-    faqs = FAQ.objects.select_related("category").all()
+    faqs = FAQ.objects.select_related("category", "subcategory").all()
 
     search_query = (request.GET.get("q") or "").strip()
     selected_categories_raw = [value.strip() for value in request.GET.getlist("category") if value.strip()]
@@ -353,10 +353,24 @@ def faq_list(request):
         except ValueError:
             continue
 
+    selected_subcategories_raw = [
+        value.strip()
+        for value in request.GET.getlist("subcategory")
+        if value.strip()
+    ]
+    selected_subcategories: list[int] = []
+    for value in selected_subcategories_raw:
+        try:
+            selected_subcategories.append(int(value))
+        except ValueError:
+            continue
+
     if search_query:
         faqs = faqs.filter(Q(question__icontains=search_query) | Q(answer__icontains=search_query))
     if selected_categories:
         faqs = faqs.filter(category_id__in=selected_categories)
+    if selected_subcategories:
+        faqs = faqs.filter(subcategory_id__in=selected_subcategories)
 
     form = FAQForm()
     if request.method == "POST":
@@ -376,9 +390,13 @@ def faq_list(request):
         "form": form,
         "can_manage": can_manage,
         "categories": Category.objects.order_by("name"),
+        "subcategories": Subcategory.objects.select_related("category").filter(
+            is_active=True, category__is_active=True
+        ).order_by("category__name", "name"),
         "filters": {
             "q": search_query,
             "categories": [str(pk) for pk in selected_categories],
+            "subcategories": [str(pk) for pk in selected_subcategories],
         },
     }
     return render(request, "tickets/faq.html", ctx)
@@ -479,7 +497,6 @@ def tickets_home(request):
     # Filtros
     status = (request.GET.get("status") or "").strip()
     category = (request.GET.get("category") or "").strip()
-    subcategory = (request.GET.get("subcategory") or "").strip()
     priority = (request.GET.get("priority") or "").strip()
     area = (request.GET.get("area") or "").strip()
     date_from_raw = (request.GET.get("date_from") or "").strip()
@@ -497,11 +514,6 @@ def tickets_home(request):
         qs = qs.filter(status=status)
     if category:
         qs = qs.filter(category_id=category)
-    if subcategory:
-        if subcategory.isdigit():
-            qs = qs.filter(subcategory_id=subcategory)
-        else:
-            qs = qs.filter(subcategory__name__iexact=subcategory)
     if priority:
         if priority.isdigit():
             qs = qs.filter(priority_id=priority)
@@ -544,7 +556,6 @@ def tickets_home(request):
         "title",
         "status",
         "category__name",
-        "subcategory__name",
         "priority__name",
         "area__name",
         "assigned_to__username",
@@ -576,7 +587,6 @@ def tickets_home(request):
             bool(q),
             bool(status),
             bool(category),
-            bool(subcategory),
             bool(priority),
             bool(area),
             bool(date_from_raw),
@@ -604,17 +614,6 @@ def tickets_home(request):
     priorities = list(Priority.objects.order_by("name"))
     areas = list(Area.objects.order_by("name"))
     categories = list(Category.objects.filter(is_active=True).order_by("name"))
-    subcategories = (
-        Subcategory.objects.filter(is_active=True, category__is_active=True)
-        .values("id", "name", "category_id")
-        .order_by("category__name", "name")
-    )
-    subcategory_map: dict[int, list[dict[str, object]]] = {}
-    for row in subcategories:
-        subcategory_map.setdefault(row["category_id"], []).append(
-            {"id": row["id"], "name": row["name"]}
-        )
-
     # Para preservar filtros en paginación (opcional, usado en template)
     qdict = request.GET.copy()
     qdict.pop("page", None)
@@ -650,7 +649,6 @@ def tickets_home(request):
             "q": q,
             "status": status,
             "category": category,
-            "subcategory": subcategory,
             "priority": priority,
             "area": area,
             "date_from": date_from_raw,
@@ -665,7 +663,6 @@ def tickets_home(request):
         "priorities": priorities,
         "areas": areas,
         "categories": categories,
-        "subcategory_map": subcategory_map,
         "current_inbox": inbox,
         "inbox_links": inbox_links,
         "has_active_filters": has_active_filters,

@@ -122,11 +122,9 @@ class Ticket(models.Model):
 
     def clean(self):
         errors = {}
-        if self.subcategory_id:
-            if self.category_id and self.subcategory.category_id != self.category_id:
+        if self.subcategory_id and self.category_id:
+            if self.subcategory.category_id != self.category_id:
                 errors["subcategory"] = "La subcategoría seleccionada no pertenece a la categoría."  # noqa: E501
-        elif self.category_id:
-            errors["subcategory"] = "Debes seleccionar una subcategoría."
 
         if errors:
             raise ValidationError(errors)
@@ -439,6 +437,14 @@ class FAQ(models.Model):
         blank=True,
         related_name="faqs",
         help_text="Clasificación opcional para agrupar respuestas y facilitar la búsqueda.",
+    )
+    subcategory = models.ForeignKey(
+        Subcategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="faqs",
+        help_text="Subclasificación opcional para afinar la segmentación de la respuesta.",
     )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

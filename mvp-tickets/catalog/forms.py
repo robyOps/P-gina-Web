@@ -61,6 +61,12 @@ class SubcategoryForm(forms.ModelForm):
             ),
         }
 
+    def clean_name(self):
+        name = (self.cleaned_data.get("name") or "").strip()
+        if not name:
+            return name
+        return name.upper()
+
     def clean(self):
         cleaned = super().clean()
         category = cleaned.get("category")

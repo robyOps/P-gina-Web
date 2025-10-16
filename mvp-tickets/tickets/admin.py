@@ -24,9 +24,9 @@ class EventLogAdmin(admin.ModelAdmin):
 
 @admin.register(FAQ)
 class FAQAdmin(admin.ModelAdmin):
-    list_display = ("question", "category", "created_by", "updated_by", "updated_at")
+    list_display = ("question", "category", "subcategory", "created_by", "updated_by", "updated_at")
     search_fields = ("question", "answer")
-    list_filter = ("category",)
+    list_filter = ("category", "subcategory")
     readonly_fields = ("created_at", "updated_at")
 
 
