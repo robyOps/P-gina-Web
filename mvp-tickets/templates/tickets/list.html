@@ -107,7 +107,7 @@
               {% endfor %}
             </select>
           </div>
-          <div class="space-y-1">
+          <div class="flex flex-col gap-1">
             <label class="text-xs font-semibold uppercase text-slate-500" for="area">Área</label>
             <select id="area" name="area" class="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
               <option value="" {% if not filters.area %}selected{% endif %}>(Todas)</option>
@@ -116,9 +116,9 @@
               {% endfor %}
             </select>
           </div>
-          <div class="space-y-1">
+          <div class="flex flex-col gap-1 sm:self-end">
             <label class="text-xs font-semibold uppercase text-slate-500" for="pagina">Por página</label>
-            <input id="pagina" name="page_size" value="{{ page_size }}" class="w-20 rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+            <input id="pagina" name="page_size" value="{{ page_size }}" class="w-24 max-w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
@@ -131,7 +131,7 @@
             <input type="checkbox" name="hide_closed" value="1" class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" {% if filters.hide_closed == '1' %}checked{% endif %}>
             Ocultar resueltos y cerrados
           </label>
-          <button class="btn ml-auto inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1 text-[11px] font-semibold text-white shadow hover:bg-indigo-700 sm:text-xs" type="submit">
+          <button class="btn ml-auto inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-4 py-1.5 text-xs font-semibold text-white shadow hover:bg-indigo-700 sm:text-sm" type="submit">
             <i class="bi bi-funnel"></i> Aplicar
           </button>
         </div>
@@ -144,13 +144,13 @@
     <div class="space-y-4">
       <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="flex flex-col gap-2 border-b border-slate-100 px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
-          <div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex flex-col gap-2 lg:flex-row lg:items-center">
             <div class="space-y-0.5">
               <h2 class="text-lg font-semibold text-slate-900">Listado de tickets</h2>
               <p class="text-xs text-slate-500">Ordena por columna para ver lo más urgente primero.</p>
             </div>
             {% if inbox_links %}
-              <nav aria-label="Bandejas" class="flex flex-wrap items-center justify-end gap-2">
+              <nav aria-label="Bandejas" class="flex w-full flex-wrap items-center gap-2 lg:ml-auto lg:w-auto lg:justify-end">
                 {% for option in inbox_links %}
                   <a href="{{ option.url }}"
                      class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3.5 py-1.5 text-sm font-semibold transition {% if current_inbox == option.value %}bg-indigo-600 text-white shadow{% else %}bg-white text-slate-600 hover:border-indigo-200 hover:text-indigo-600{% endif %}">
@@ -166,60 +166,87 @@
           <table class="min-w-full divide-y divide-slate-100 text-sm">
             <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-600">
               <tr>
-                <th scope="col" class="px-4 py-2.5 text-left">Código
-                  <span class="ml-1 inline-flex overflow-hidden rounded-full border border-slate-200 align-middle">
-                    <a href="?sort=code{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
-                    <a href="?sort=-code{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
-                  </span>
+                <th scope="col" class="px-4 py-2.5 text-left">
+                  <div class="flex items-center gap-1">
+                    <span>Código</span>
+                    <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
+                      <a href="?sort=code{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
+                      <a href="?sort=-code{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
+                    </span>
+                  </div>
                 </th>
-                <th scope="col" class="min-w-[18rem] px-4 py-2 text-left">Título
-                  <span class="ml-1 inline-flex overflow-hidden rounded-full border border-slate-200 align-middle">
-                    <a href="?sort=title{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
-                    <a href="?sort=-title{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
-                  </span>
+                <th scope="col" class="min-w-[18rem] px-4 py-2 text-left">
+                  <div class="flex items-center gap-1">
+                    <span>Título</span>
+                    <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
+                      <a href="?sort=title{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
+                      <a href="?sort=-title{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
+                    </span>
+                  </div>
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-left">Estado
-                  <span class="ml-1 inline-flex overflow-hidden rounded-full border border-slate-200 align-middle">
-                    <a href="?sort=status{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
-                    <a href="?sort=-status{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
-                  </span>
+                <th scope="col" class="px-4 py-2.5 text-left">
+                  <div class="flex items-center gap-1">
+                    <span>Estado</span>
+                    <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
+                      <a href="?sort=status{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
+                      <a href="?sort=-status{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
+                    </span>
+                  </div>
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-left">Tipo
-                  <span class="ml-1 inline-flex overflow-hidden rounded-full border border-slate-200 align-middle">
-                    <a href="?sort=kind{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
-                    <a href="?sort=-kind{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
-                  </span>
+                <th scope="col" class="px-4 py-2.5 text-left">
+                  <div class="flex items-center gap-1">
+                    <span>Tipo</span>
+                    <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
+                      <a href="?sort=kind{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
+                      <a href="?sort=-kind{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
+                    </span>
+                  </div>
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-left">Categoría
-                  <span class="ml-1 inline-flex overflow-hidden rounded-full border border-slate-200 align-middle">
-                    <a href="?sort=category__name{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
-                    <a href="?sort=-category__name{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
-                  </span>
+                <th scope="col" class="px-4 py-2.5 text-left">
+                  <div class="flex items-center gap-1">
+                    <span>Categoría</span>
+                    <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
+                      <a href="?sort=category__name{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
+                      <a href="?sort=-category__name{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
+                    </span>
+                  </div>
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-left">Área
-                  <span class="ml-1 inline-flex overflow-hidden rounded-full border border-slate-200 align-middle">
-                    <a href="?sort=area__name{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
-                    <a href="?sort=-area__name{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
-                  </span>
+                <th scope="col" class="px-4 py-2.5 text-left">
+                  <div class="flex items-center gap-1">
+                    <span>Área</span>
+                    <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
+                      <a href="?sort=area__name{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
+                      <a href="?sort=-area__name{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
+                    </span>
+                  </div>
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-left">Prioridad
-                  <span class="ml-1 inline-flex overflow-hidden rounded-full border border-slate-200 align-middle">
-                    <a href="?sort=priority__name{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
-                    <a href="?sort=-priority__name{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
-                  </span>
+                <th scope="col" class="px-4 py-2.5 text-left">
+                  <div class="flex items-center gap-1">
+                    <span>Prioridad</span>
+                    <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
+                      <a href="?sort=priority__name{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
+                      <a href="?sort=-priority__name{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
+                    </span>
+                  </div>
                 </th>
-                <th scope="col" class="px-4 py-2.5 text-left">Asignado
-                  <span class="ml-1 inline-flex overflow-hidden rounded-full border border-slate-200 align-middle">
-                    <a href="?sort=assigned_to__username{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
-                    <a href="?sort=-assigned_to__username{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
-                  </span>
+                <th scope="col" class="px-4 py-2.5 text-left">
+                  <div class="flex items-center gap-1">
+                    <span>Asignado</span>
+                    <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
+                      <a href="?sort=assigned_to__username{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
+                      <a href="?sort=-assigned_to__username{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
+                    </span>
+                  </div>
                 </th>
                 <th scope="col" class="px-4 py-2.5 text-left">SLA</th>
-                <th scope="col" class="w-24 px-3 py-2 text-left whitespace-nowrap">Creado
-                  <span class="ml-1 inline-flex overflow-hidden rounded-full border border-slate-200 align-middle">
-                    <a href="?sort=created_at{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
-                    <a href="?sort=-created_at{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
-                  </span>
+                <th scope="col" class="w-24 px-3 py-2 text-left">
+                  <div class="flex items-center gap-1">
+                    <span>Creado</span>
+                    <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
+                      <a href="?sort=created_at{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center border-r border-slate-200 bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-up-short"></i></a>
+                      <a href="?sort=-created_at{{ qs_no_sort }}" class="inline-flex h-6 w-7 items-center justify-center bg-white text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-500"><i class="bi bi-arrow-down-short"></i></a>
+                    </span>
+                  </div>
                 </th>
               </tr>
             </thead>
@@ -272,7 +299,12 @@
                     <span class="inline-flex items-center gap-2 rounded-full bg-rose-600 px-3 py-1 text-xs font-semibold text-white"><i class="bi bi-lightning"></i> Crítico</span>
                   {% endif %}
                 </td>
-                <td class="w-24 px-3 py-2 text-sm text-slate-500 whitespace-nowrap">{{ t.created_at }}</td>
+                <td class="w-24 px-3 py-2 text-sm text-slate-500">
+                  <div class="leading-tight">
+                    <span>{{ t.created_at|date:"d/M/Y" }}</span>
+                    <span class="block text-slate-400">{{ t.created_at|time:"H:i" }}</span>
+                  </div>
+                </td>
               </tr>
               {% empty %}
               <tr>

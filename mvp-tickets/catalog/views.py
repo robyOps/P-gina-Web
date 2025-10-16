@@ -2,6 +2,7 @@
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 
@@ -29,10 +30,16 @@ def _handle_simple_form(
     if request.method == "POST":
         form = form_class(request.POST, instance=instance)
         if form.is_valid():
-            form.save()
-            messages.success(request, success_message)
-            return redirect(redirect_url)
-        messages.error(request, "Revisa los campos.")
+            try:
+                form.save()
+            except IntegrityError:
+                form.add_error(None, "Ya existe un registro con esos datos.")
+                messages.error(request, "Ese registro ya existe. Intenta con otro nombre.")
+            else:
+                messages.success(request, success_message)
+                return redirect(redirect_url)
+        else:
+            messages.error(request, "Revisa los campos.")
     else:
         form = form_class(instance=instance)
 
@@ -66,6 +73,9 @@ def category_create(request):
         template_name="catalog/category_form.html",
         redirect_url="categories_list",
         success_message="Categoría creada.",
+        extra_context={
+            "existing_names": list(Category.objects.order_by("name").values_list("name", flat=True))
+        },
     )
 
 
@@ -82,6 +92,11 @@ def category_edit(request, pk):
         redirect_url="categories_list",
         success_message="Categoría actualizada.",
         instance=obj,
+        extra_context={
+            "existing_names": list(
+                Category.objects.exclude(pk=obj.pk).order_by("name").values_list("name", flat=True)
+            )
+        },
     )
 
 
