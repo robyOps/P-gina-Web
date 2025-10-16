@@ -17,6 +17,7 @@ from tickets.utils import (
     aggregate_area_by_subcategory,
     build_area_subcategory_heatmap,
 )
+from tickets.timezones import get_local_timezone
 from accounts.roles import is_admin, is_tech
 from django.utils import timezone
 
@@ -249,7 +250,7 @@ class ReportHeatmapView(APIView):
 
     def get(self, request):
         qs = base_queryset(request)
-        tz = timezone.get_current_timezone()
+        tz = get_local_timezone()
 
         aggregated = (
             qs.annotate(local_created=TruncHour("created_at", tzinfo=tz))
