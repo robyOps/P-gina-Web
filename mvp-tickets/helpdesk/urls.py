@@ -24,6 +24,7 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import HttpResponseNotFound  # PATH-FIREWALL: importar respuesta 404
 
 from tickets import views as ticket_views
 from catalog import views as catalog_views
@@ -91,6 +92,8 @@ urlpatterns = [
     path("catalog/areas/<int:pk>/edit/", catalog_views.area_edit, name="area_edit"),
 
     # --- API bajo /api/ ---
+    # PATH-FIREWALL: bloquear "/api" exacto y mantener API normal
+    path("api", lambda request, *args, **kwargs: HttpResponseNotFound()),
     path("api/", include("helpdesk.api_urls")),
     path('api-auth/', include('rest_framework.urls')),
 
