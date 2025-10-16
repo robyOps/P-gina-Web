@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Iterable
-from datetime import timedelta
-from typing import Dict, List, Tuple
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Dict, Iterable as IterableType, List, Tuple
 from decimal import Decimal
 import re
+import time
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -29,6 +31,18 @@ from .models import (
 )
 
 User = get_user_model()
+
+
+@dataclass(slots=True)
+class TicketAlertSnapshot:
+    """Representa el estado de alerta SLA de un ticket."""
+
+    ticket: Ticket
+    severity: str
+    due_at: datetime
+    remaining_hours: float
+    elapsed_hours: float
+    threshold_hours: float
 
 
 # Parámetros por defecto para sugerencias de etiquetas
@@ -497,6 +511,57 @@ def recompute_ticket_label_suggestions(
     }
 
 
+def bulk_recompute_ticket_label_suggestions(
+    *,
+    queryset: IterableType[Ticket] | None = None,
+    threshold: float | None = None,
+    chunk_size: int = 200,
+) -> Dict[str, float | int]:
+    """Recalcula sugerencias en lote registrando métricas básicas."""
+
+    if chunk_size <= 0:
+        chunk_size = 200
+
+    qs = queryset or Ticket.objects.all()
+    if hasattr(qs, "order_by"):
+        qs = qs.order_by("id")
+
+    detected = qs.count() if hasattr(qs, "count") else 0
+    started_at = timezone.now()
+    start = time.perf_counter()
+
+    processed = created = updated = removed = 0
+
+    iterator = qs.iterator(chunk_size=chunk_size) if hasattr(qs, "iterator") else qs
+
+    for ticket in iterator:
+        processed += 1
+        result = recompute_ticket_label_suggestions(ticket, threshold=threshold)
+        created += int(result.get("created", 0))
+        updated += int(result.get("updated", 0))
+        removed += int(result.get("removed", 0))
+
+    duration = round(time.perf_counter() - start, 4)
+
+    finished_at = timezone.now()
+
+    return {
+        "tickets_detected": detected,
+        "tickets_processed": processed,
+        "suggestions_created": created,
+        "suggestions_updated": updated,
+        "suggestions_removed": removed,
+        "threshold": (
+            get_label_suggestion_threshold()
+            if threshold is None
+            else max(0.0, min(float(threshold), 1.0))
+        ),
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "duration_seconds": duration,
+    }
+
+
 def accept_ticket_label_suggestion(
     suggestion: TicketLabelSuggestion,
     *,
@@ -525,3 +590,55 @@ def accept_ticket_label_suggestion(
     )
 
     return label
+
+
+def collect_ticket_alerts(
+    queryset: IterableType[Ticket] | None = None,
+    *,
+    warn_ratio: float = 0.8,
+    now: datetime | None = None,
+) -> List[TicketAlertSnapshot]:
+    """Devuelve alertas SLA activas para el conjunto de tickets dado."""
+
+    qs = queryset or Ticket.objects.all()
+    warn_ratio = max(0.0, min(float(warn_ratio or 0.0), 1.0))
+    now = now or timezone.now()
+
+    snapshots: List[TicketAlertSnapshot] = []
+
+    iterator = qs.iterator(chunk_size=200) if hasattr(qs, "iterator") else qs
+
+    for ticket in iterator:
+        sla_hours = ticket.sla_hours_value
+        threshold_hours = sla_hours * warn_ratio
+        due_at = ticket.due_at
+        elapsed_hours = max(0.0, (now - ticket.created_at).total_seconds() / 3600.0)
+
+        severity: str | None = None
+
+        if ticket.resolved_at:
+            if ticket.resolved_at > due_at:
+                severity = "breach"
+        else:
+            if now >= due_at:
+                severity = "breach"
+            elif elapsed_hours >= threshold_hours:
+                severity = "warning"
+
+        if not severity:
+            continue
+
+        remaining_hours = (due_at - now).total_seconds() / 3600.0
+
+        snapshots.append(
+            TicketAlertSnapshot(
+                ticket=ticket,
+                severity=severity,
+                due_at=due_at,
+                remaining_hours=remaining_hours,
+                elapsed_hours=elapsed_hours,
+                threshold_hours=threshold_hours,
+            )
+        )
+
+    return snapshots

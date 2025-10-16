@@ -1,6 +1,12 @@
+import logging
+import time
+
 from django.core.management.base import BaseCommand, CommandError
 
 from tickets.clustering import train_ticket_clusters
+
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -19,11 +25,31 @@ class Command(BaseCommand):
         if clusters <= 0:
             raise CommandError("--clusters debe ser un entero mayor a cero")
 
+        start = time.perf_counter()
         summary = train_ticket_clusters(num_clusters=clusters)
+        duration = round(time.perf_counter() - start, 4)
 
         if summary.total_tickets == 0:
+            logger.info(
+                "Clusterización ejecutada sin tickets",
+                extra={
+                    "requested_clusters": clusters,
+                    "duration_seconds": duration,
+                },
+            )
             self.stdout.write(self.style.WARNING("No hay tickets para agrupar."))
             return
+
+        logger.info(
+            "Clusterización completada",
+            extra={
+                "requested_clusters": summary.requested_clusters,
+                "effective_clusters": summary.effective_clusters,
+                "total_tickets": summary.total_tickets,
+                "assignments": summary.assignments,
+                "duration_seconds": duration,
+            },
+        )
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -34,5 +60,6 @@ class Command(BaseCommand):
                 )
             )
         )
+        self.stdout.write(f"  - Duración (s): {duration}")
         for cluster_id, amount in sorted(summary.assignments.items()):
             self.stdout.write(f"  - Cluster #{cluster_id}: {amount} tickets")

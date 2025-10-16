@@ -9,6 +9,8 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action  # define endpoints como /assign, /transition, etc.
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser  # subir archivos (multipart/form-data)
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.views import APIView
 
 # Modelos (incluye AuditLog para trazabilidad)
 from .models import (
@@ -39,9 +41,12 @@ from .services import (
     recompute_ticket_label_suggestions,
     accept_ticket_label_suggestion,
     get_label_suggestion_threshold,
+    bulk_recompute_ticket_label_suggestions,
+    collect_ticket_alerts,
 )
 from .clustering import train_ticket_clusters
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +55,26 @@ User = get_user_model()
 
 # Helpers de roles
 from accounts.roles import is_admin, is_tech, ROLE_ADMIN, ROLE_TECH
+
+
+def filter_tickets_for_user(qs, user):
+    if is_admin(user):
+        return qs
+    if is_tech(user):
+        return qs.filter(assigned_to=user)
+    return qs.filter(requester=user)
+
+
+class TicketSuggestionPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
+class TicketAlertPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
 
 
 # ------------------------- VIEWSET PRINCIPAL -------------------------
@@ -66,6 +91,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     serializer_class = TicketSerializer                     # serializer por defecto
     permission_classes = [permissions.IsAuthenticated]      # exige JWT/usuario logeado
+    suggestion_pagination_class = TicketSuggestionPagination
 
     # Query base (con relaciones) y orden (últimos creados primero)
     queryset = (
@@ -91,6 +117,11 @@ class TicketViewSet(viewsets.ModelViewSet):
         if is_tech(u):
             return qs.filter(assigned_to=u)
         return qs.filter(requester=u)
+
+    def get_suggestion_paginator(self):
+        if not hasattr(self, "_suggestion_paginator"):
+            self._suggestion_paginator = self.suggestion_pagination_class()
+        return self._suggestion_paginator
 
     # --------- Crear ticket ---------
     def perform_create(self, serializer):
@@ -208,26 +239,38 @@ class TicketViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Solo técnicos o administradores pueden gestionar etiquetas."}, status=status.HTTP_403_FORBIDDEN)
         return None
 
-    @action(detail=True, methods=["get"], url_path="label-suggestions")
-    def label_suggestions(self, request, pk=None):
+    def _suggestions_queryset(self, ticket):
+        return ticket.label_suggestions.order_by("-score", "label")
+
+    @action(detail=True, methods=["get"], url_path="suggestions")
+    def list_suggestions(self, request, pk=None):
         ticket = self.get_object()
         forbidden = self._require_label_access(request, ticket)
         if forbidden:
             return forbidden
 
-        suggestions = TicketLabelSuggestion.objects.filter(ticket=ticket).order_by("-score", "label")
+        suggestions = self._suggestions_queryset(ticket)
+
+        status_filter = (request.query_params.get("status") or "").lower()
+        if status_filter == "pending":
+            suggestions = suggestions.filter(is_accepted=False)
+        elif status_filter == "accepted":
+            suggestions = suggestions.filter(is_accepted=True)
+
+        paginator = self.get_suggestion_paginator()
+        page = paginator.paginate_queryset(suggestions, request, view=self)
+        serializer = TicketLabelSuggestionSerializer(page, many=True)
+
         labels = TicketLabel.objects.filter(ticket=ticket).order_by("name")
+        response = paginator.get_paginated_response(serializer.data)
+        response.data["meta"] = {
+            "threshold": get_label_suggestion_threshold(),
+            "labels": TicketLabelSerializer(labels, many=True).data,
+        }
+        return response
 
-        return Response(
-            {
-                "threshold": get_label_suggestion_threshold(),
-                "suggestions": TicketLabelSuggestionSerializer(suggestions, many=True).data,
-                "labels": TicketLabelSerializer(labels, many=True).data,
-            }
-        )
-
-    @action(detail=True, methods=["post"], url_path="label-suggestions/recalculate")
-    def recalculate_label_suggestions(self, request, pk=None):
+    @action(detail=True, methods=["post"], url_path="recompute-suggestions")
+    def recompute_suggestions(self, request, pk=None):
         ticket = self.get_object()
         forbidden = self._require_label_access(request, ticket)
         if forbidden:
@@ -242,18 +285,22 @@ class TicketViewSet(viewsets.ModelViewSet):
                 return Response({"detail": "threshold debe ser numérico."}, status=status.HTTP_400_BAD_REQUEST)
 
         result = recompute_ticket_label_suggestions(ticket, threshold=parsed_threshold)
-        return Response({"message": "Sugerencias recalculadas", **result})
+        logger.info(
+            "Recomputo de sugerencias por API",
+            extra={"ticket_id": ticket.id, "actor_id": request.user.id, "metrics": result},
+        )
+        return Response({"detail": "Sugerencias recalculadas", "metrics": result})
 
-    @action(detail=True, methods=["post"], url_path="label-suggestions/accept")
-    def accept_label_suggestion(self, request, pk=None):
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=r"suggestions/(?P<suggestion_id>[^/.]+)/accept",
+    )
+    def accept_suggestion(self, request, pk=None, suggestion_id=None):
         ticket = self.get_object()
         forbidden = self._require_label_access(request, ticket)
         if forbidden:
             return forbidden
-
-        suggestion_id = request.data.get("suggestion_id")
-        if not suggestion_id:
-            return Response({"detail": "suggestion_id requerido."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             suggestion = TicketLabelSuggestion.objects.get(id=suggestion_id, ticket=ticket)
@@ -262,17 +309,20 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         if suggestion.is_accepted:
             serializer = TicketLabelSuggestionSerializer(suggestion)
-            return Response({"message": "La sugerencia ya estaba aceptada.", "suggestion": serializer.data})
+            return Response({"detail": "La sugerencia ya estaba aceptada.", "suggestion": serializer.data})
 
-        accept_ticket_label_suggestion(suggestion, actor=request.user)
+        label = accept_ticket_label_suggestion(suggestion, actor=request.user)
         suggestion.refresh_from_db()
-        labels = TicketLabel.objects.filter(ticket=ticket).order_by("name")
+        logger.info(
+            "Sugerencia aceptada",
+            extra={"ticket_id": ticket.id, "suggestion_id": suggestion.id, "actor_id": request.user.id},
+        )
 
         return Response(
             {
-                "message": "Etiqueta confirmada.",
+                "detail": "Etiqueta confirmada.",
                 "suggestion": TicketLabelSuggestionSerializer(suggestion).data,
-                "labels": TicketLabelSerializer(labels, many=True).data,
+                "label": TicketLabelSerializer(label).data,
             },
             status=status.HTTP_200_OK,
         )
@@ -480,3 +530,257 @@ class TicketViewSet(viewsets.ModelViewSet):
         return Response(list(logs), status=200)
 
 
+
+
+class TicketSuggestionBulkRecomputeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if not is_admin(request.user):
+            return Response(
+                {"detail": "Solo administradores pueden recalcular en lote."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        raw_ticket_ids = request.data.get("ticket_ids") or []
+        if isinstance(raw_ticket_ids, (int, str)):
+            raw_ticket_ids = [raw_ticket_ids]
+
+        try:
+            ticket_ids = [int(value) for value in raw_ticket_ids]
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "ticket_ids debe ser una lista de enteros."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        threshold = request.data.get("threshold")
+        parsed_threshold = None
+        if threshold is not None:
+            try:
+                parsed_threshold = float(threshold)
+            except (TypeError, ValueError):
+                return Response(
+                    {"detail": "threshold debe ser numérico."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if not (0 <= parsed_threshold <= 1):
+                return Response(
+                    {"detail": "threshold debe estar entre 0 y 1."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        only_open = bool(request.data.get("only_open", False))
+
+        limit_raw = request.data.get("limit")
+        if limit_raw is not None:
+            try:
+                limit = int(limit_raw)
+            except (TypeError, ValueError):
+                return Response(
+                    {"detail": "limit debe ser entero."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if limit <= 0:
+                return Response(
+                    {"detail": "limit debe ser mayor a cero."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            limit = None
+
+        chunk_raw = request.data.get("chunk_size")
+        if chunk_raw is not None:
+            try:
+                chunk_size = int(chunk_raw)
+            except (TypeError, ValueError):
+                return Response(
+                    {"detail": "chunk_size debe ser entero."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            chunk_size = 200
+
+        qs = Ticket.objects.select_related("priority", "area", "category").order_by("id")
+        if only_open:
+            qs = qs.filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
+        if ticket_ids:
+            qs = qs.filter(id__in=set(ticket_ids))
+        if limit is not None:
+            qs = qs[:limit]
+
+        metrics = bulk_recompute_ticket_label_suggestions(
+            queryset=qs,
+            threshold=parsed_threshold,
+            chunk_size=chunk_size,
+        )
+
+        logger.info(
+            "Recomputo masivo de sugerencias",
+            extra={"actor_id": request.user.id, "metrics": metrics},
+        )
+
+        return Response(
+            {
+                "detail": "Recomputo completado.",
+                "metrics": metrics,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class TicketClusterRetrainView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if not is_admin(request.user):
+            return Response(
+                {"detail": "Solo administradores pueden reentrenar clústeres."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        raw_clusters = request.data.get("clusters", 5)
+        try:
+            clusters = int(raw_clusters)
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "clusters debe ser un entero mayor a cero."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if clusters <= 0:
+            return Response(
+                {"detail": "clusters debe ser un entero mayor a cero."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            start = time.perf_counter()
+            summary = train_ticket_clusters(num_clusters=clusters)
+            duration = round(time.perf_counter() - start, 4)
+        except RuntimeError as exc:
+            logger.exception(
+                "Error reentrenando clústeres", extra={"actor_id": request.user.id}
+            )
+            return Response(
+                {"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        metrics = {
+            "total_tickets": summary.total_tickets,
+            "requested_clusters": summary.requested_clusters,
+            "effective_clusters": summary.effective_clusters,
+            "assignments": summary.assignments,
+            "duration_seconds": duration,
+        }
+
+        logger.info(
+            "Reentrenamiento de clústeres vía API",
+            extra={"actor_id": request.user.id, "metrics": metrics},
+        )
+
+        return Response(
+            {
+                "detail": "Clusterización completada.",
+                "metrics": metrics,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class TicketAlertListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = TicketAlertPagination
+
+    def get(self, request):
+        raw_warn_ratio = request.query_params.get("warn_ratio")
+        try:
+            warn_ratio = float(raw_warn_ratio) if raw_warn_ratio is not None else 0.8
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "warn_ratio debe ser numérico."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if warn_ratio <= 0 or warn_ratio > 1:
+            return Response(
+                {"detail": "warn_ratio debe estar en el rango (0, 1]."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        severity_filter = (request.query_params.get("severity") or "").lower()
+
+        base_qs = Ticket.objects.select_related(
+            "priority", "assigned_to", "requester"
+        ).filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
+        base_qs = filter_tickets_for_user(base_qs, request.user)
+
+        snapshots = collect_ticket_alerts(base_qs, warn_ratio=warn_ratio)
+
+        results = []
+        for snapshot in snapshots:
+            severity = snapshot.severity
+            if severity_filter and severity != severity_filter:
+                continue
+
+            ticket = snapshot.ticket
+            results.append(
+                {
+                    "ticket": {
+                        "id": ticket.id,
+                        "code": ticket.code,
+                        "title": ticket.title,
+                        "status": ticket.status,
+                        "priority": {
+                            "id": ticket.priority_id,
+                            "name": getattr(ticket.priority, "name", None),
+                        },
+                        "assigned_to": (
+                            {
+                                "id": ticket.assigned_to_id,
+                                "username": getattr(ticket.assigned_to, "username", None),
+                            }
+                            if ticket.assigned_to_id
+                            else None
+                        ),
+                    },
+                    "sla": {
+                        "severity": severity,
+                        "due_at": snapshot.due_at,
+                        "remaining_hours": round(snapshot.remaining_hours, 2),
+                        "elapsed_hours": round(snapshot.elapsed_hours, 2),
+                        "threshold_hours": round(snapshot.threshold_hours, 2),
+                    },
+                }
+            )
+
+        ordering = request.query_params.get("ordering", "due_at")
+        reverse = ordering.startswith("-")
+        key = ordering.lstrip("-")
+
+        if key == "remaining_hours":
+            results.sort(
+                key=lambda item: item["sla"]["remaining_hours"], reverse=reverse
+            )
+        else:
+            results.sort(key=lambda item: item["sla"]["due_at"], reverse=reverse)
+
+        warnings_count = sum(
+            1 for item in results if item["sla"]["severity"] == "warning"
+        )
+        breaches_count = sum(
+            1 for item in results if item["sla"]["severity"] == "breach"
+        )
+
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(results, request, view=self)
+        response = paginator.get_paginated_response(page)
+        response.data["summary"] = {
+            "warn_ratio": warn_ratio,
+            "warnings": warnings_count,
+            "breaches": breaches_count,
+        }
+
+        return response
