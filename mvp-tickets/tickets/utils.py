@@ -11,6 +11,8 @@ from django.db.models import Count, QuerySet
 from django.db.models.functions import ExtractHour, ExtractWeekDay, TruncHour
 from django.utils import timezone
 
+from .timezones import get_local_timezone
+
 from .models import Ticket
 from .services import TicketAlertSnapshot, collect_ticket_alerts
 
@@ -171,7 +173,7 @@ def build_ticket_heatmap(
     """Produce a week-day/hour matrix with ticket counts."""
 
     since = since or timezone.now() - timedelta(days=13)
-    tz = timezone.get_current_timezone()
+    tz = get_local_timezone()
 
     filtered = queryset.filter(created_at__gte=since)
     aggregated = (

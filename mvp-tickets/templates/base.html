@@ -108,6 +108,85 @@
       box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.25);
     }
   </style>
+  <script>
+    (function () {
+      const historyApi = window.history;
+      if (historyApi && typeof historyApi.scrollRestoration === 'string') {
+        historyApi.scrollRestoration = 'manual';
+      }
+
+      const storageKey = `scroll-position:${window.location.pathname}${window.location.search}`;
+      let restored = false;
+
+      const parseOffset = (value) => {
+        const parsed = parseInt(value, 10);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+
+      const restoreScroll = () => {
+        if (restored) {
+          return;
+        }
+        restored = true;
+        try {
+          const raw = sessionStorage.getItem(storageKey);
+          if (raw !== null) {
+            const offset = parseOffset(raw);
+            if (offset !== null) {
+              window.scrollTo(0, offset);
+            }
+            sessionStorage.removeItem(storageKey);
+          }
+        } catch (error) {
+          /* ignore storage issues */
+        }
+      };
+
+      restoreScroll();
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', restoreScroll, { once: true });
+      }
+
+      window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+          restored = false;
+          restoreScroll();
+        }
+      });
+
+      const saveScroll = () => {
+        try {
+          const offset = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+          sessionStorage.setItem(storageKey, String(Math.max(0, Math.round(offset))));
+        } catch (error) {
+          /* ignore storage issues */
+        }
+      };
+
+      window.addEventListener('beforeunload', saveScroll, { capture: true });
+      document.addEventListener('submit', saveScroll, { capture: true });
+
+      document.addEventListener(
+        'click',
+        (event) => {
+          const target = event.target instanceof Element ? event.target.closest('[data-preserve-scroll]') : null;
+          if (target) {
+            saveScroll();
+          }
+          const reset = event.target instanceof Element ? event.target.closest('[data-reset-scroll]') : null;
+          if (reset) {
+            try {
+              sessionStorage.removeItem(storageKey);
+            } catch (error) {
+              /* ignore storage issues */
+            }
+          }
+        },
+        { capture: true }
+      );
+    })();
+  </script>
   {% block head_extra %}{% endblock %}
 </head>
 <body class="bg-gray-50 text-gray-900">
