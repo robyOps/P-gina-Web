@@ -1,41 +1,42 @@
 """
-===============================================================================
-Propósito:
-    Centralizar la configuración de Django para el proyecto ``helpdesk`` y
-    definir valores por defecto seguros para desarrollo.
-API pública:
-    Variables de configuración importables por las apps (``INSTALLED_APPS``,
-    ``REST_FRAMEWORK``, ``SIMPLE_JWT``, rutas de login, etc.).
-Flujo de datos:
-    Variables de entorno → constantes Python → componentes de Django y DRF
-    que consumen estos ajustes durante el arranque.
-Dependencias:
-    ``django``, ``djangorestframework``, ``django-filter``,
-    ``rest_framework_simplejwt``, ``corsheaders`` y utilidades estándar de
-    Python.
-Decisiones:
-    Se habilita ``DEBUG`` y ``CORS_ALLOW_ALL_ORIGINS`` para entornos locales,
-    se mantiene SQLite como base de datos de arranque y se fuerza un umbral
-    mínimo para sugerencias de etiquetas.
-TODOs:
-    TODO:PREGUNTA Definir dominios permitidos y política de tokens para
-    entornos productivos.
-===============================================================================
+- Propósito del módulo: centralizar la configuración del proyecto ``helpdesk``
+  para que Django y DRF se inicialicen con valores seguros durante el
+  desarrollo.
+- API pública: constantes como ``INSTALLED_APPS``, ``MIDDLEWARE``,
+  ``REST_FRAMEWORK`` y ``SIMPLE_JWT`` que son importadas por el runtime de
+  Django y por utilidades internas.
+- Flujo de datos: variables de entorno → casting en Python → consumo por
+  componentes de Django (servidor HTTP, ORM, plantillas) y servicios externos
+  como DRF o SimpleJWT.
+- Dependencias: módulos estándar ``os`` y ``pathlib`` más paquetes Django,
+  Django REST Framework, SimpleJWT, corsheaders y django-filter.
+- Decisiones clave y trade-offs: se deja ``DEBUG`` activado y CORS abierto para
+  acelerar iteraciones locales, se usa SQLite como persistencia por defecto y
+  se obliga a contraseñas complejas mediante un validador propio.
+- Riesgos, supuestos, límites: configuración pensada para ambiente local;
+  requiere sobreescritura en producción de ``SECRET_KEY``, dominios, CORS y
+  base de datos. TODO:PREGUNTA Definir dominios permitidos y política de tokens
+  para entornos productivos.
+- Puntos de extensión: variables alimentadas por ``os.environ`` y listas como
+  ``INSTALLED_APPS`` o ``MIDDLEWARE`` permiten ser extendidas en settings
+  específicos por ambiente.
 """
 
 from pathlib import Path
 from datetime import timedelta
 import os
 
-# Rutas base
+# Rutas base: punto de referencia para construir paths relativos a todo el proyecto.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ⚠️ En prod cambia esto y usa variables de entorno
+# ⚠️ Clave secreta; debe reemplazarse vía variable de entorno en producción para proteger sesiones y CSRF.
 SECRET_KEY = "dev-insecure-change-me"
+# Indicador de depuración que habilita mensajes detallados y renderers extra; se asume entorno local.
 DEBUG = True
+# Lista de hostnames autorizados; vacía para permitir localhost únicamente.
 ALLOWED_HOSTS: list[str] = []
 
-# Apps
+# Apps: orden define prioridades de carga y personalizaciones de cada módulo Django.
 INSTALLED_APPS = [
     "django.contrib.admin",            # lo ocultaremos en prod
     "django.contrib.auth",
@@ -72,8 +73,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# Raíz de URL que Django usa para resolver rutas y vistas.
 ROOT_URLCONF = "helpdesk.urls"
 
+# Configuración de plantillas: carga archivos de ``templates`` y app directories.
 TEMPLATES = [{
     "BACKEND": "django.template.backends.django.DjangoTemplates",
     "DIRS": [BASE_DIR / "templates"],   # ✅ así, con /
@@ -86,6 +89,7 @@ TEMPLATES = [{
     ]},
 }]
 
+# Punto de entrada WSGI requerido por servidores tradicionales (gunicorn, uwsgi).
 WSGI_APPLICATION = "helpdesk.wsgi.application"
 
 # DB (dev con SQLite; luego cambiamos a Postgres)
@@ -108,7 +112,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "accounts.validators.ComplexPasswordValidator"},
 ]
 
-# Idioma y zona
+# Idioma y zona para formateo y traducciones automáticas.
 LANGUAGE_CODE = "es-cl"
 TIME_ZONE = "America/Santiago"
 USE_I18N = True
@@ -120,7 +124,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# DRF: solo JSON, JWT y filtros
+# DRF: solo JSON, JWT y filtros; controla autenticación y permisos globales de la API.
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -137,7 +141,7 @@ REST_FRAMEWORK = {
 }
 
 
-# SimpleJWT (tokens)
+# SimpleJWT (tokens) controla expiraciones para sesiones basadas en tokens firmados.
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -146,6 +150,7 @@ SIMPLE_JWT = {
 # CORS (en prod, restringe dominios)
 CORS_ALLOW_ALL_ORIGINS = True
 
+# Field automático para claves primarias si los modelos no lo definen.
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Email (DEV)
@@ -153,7 +158,7 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"  # imprime emai
 DEFAULT_FROM_EMAIL = "mvp@localhost"
 
 
-# Etiquetas sugeridas
+# Etiquetas sugeridas: evita sugerencias ruidosas al filtrar por umbral configurable.
 _DEFAULT_LABEL_THRESHOLD = "0.35"
 try:
     TICKET_LABEL_SUGGESTION_THRESHOLD = float(
@@ -163,6 +168,7 @@ except ValueError:
     TICKET_LABEL_SUGGESTION_THRESHOLD = float(_DEFAULT_LABEL_THRESHOLD)
 
 
+# URLs de autenticación utilizadas por ``LoginRequiredMixin`` y helpers de Django.
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"
