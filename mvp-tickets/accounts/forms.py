@@ -1,4 +1,25 @@
-# accounts/forms.py
+"""
+===============================================================================
+Propósito:
+    Formularios de administración para crear/editar usuarios y roles.
+API pública:
+    ``UserCreateForm``, ``UserEditForm`` y ``RoleForm`` consumidos por vistas en
+    ``accounts.views``.
+Flujo de datos:
+    Datos HTML → validaciones de formulario → instancias de modelos → guardado
+    mediante ``ModelForm``.
+Dependencias:
+    ``django.contrib.auth`` para modelos de usuario/grupo y permisos definidos en
+    ``accounts.permissions``.
+Decisiones:
+    Se reutiliza `ModelMultipleChoiceField` con etiquetas personalizadas para
+    mejorar la usabilidad de selección de permisos.
+TODOs:
+    TODO:PREGUNTA Determinar reglas adicionales de complejidad de contraseña que
+    deban aplicarse en formularios.
+===============================================================================
+"""
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
@@ -7,7 +28,10 @@ from .permissions import PERMISSION_LABELS, group_permissions
 
 User = get_user_model()
 
+
 class UserCreateForm(forms.ModelForm):
+    """Formulario para alta de usuarios con validación de contraseñas coincidentes."""
+
     password1 = forms.CharField(label="Contraseña", widget=forms.PasswordInput, required=True)
     password2 = forms.CharField(label="Repite la contraseña", widget=forms.PasswordInput, required=True)
     groups = forms.ModelMultipleChoiceField(
@@ -23,6 +47,8 @@ class UserCreateForm(forms.ModelForm):
         fields = ["username", "email", "first_name", "last_name", "is_active", "groups"]
 
     def clean(self):
+        """Valida que las contraseñas ingresadas coincidan antes de guardar."""
+
         cleaned = super().clean()
         p1 = cleaned.get("password1")
         p2 = cleaned.get("password2")
@@ -32,6 +58,8 @@ class UserCreateForm(forms.ModelForm):
 
 
 class UserEditForm(forms.ModelForm):
+    """Formulario de edición que permite cambiar contraseña de forma opcional."""
+
     # Opcional: si rellenas, cambia la contraseña
     new_password1 = forms.CharField(label="Nueva contraseña", widget=forms.PasswordInput, required=False)
     new_password2 = forms.CharField(label="Repite la nueva contraseña", widget=forms.PasswordInput, required=False)
@@ -48,6 +76,8 @@ class UserEditForm(forms.ModelForm):
         fields = ["username", "email", "first_name", "last_name", "is_active", "groups"]
 
     def clean(self):
+        """Verifica que las contraseñas nuevas coincidan solo si fueron provistas."""
+
         cleaned = super().clean()
         p1 = cleaned.get("new_password1")
         p2 = cleaned.get("new_password2")
@@ -57,6 +87,8 @@ class UserEditForm(forms.ModelForm):
 
 
 class RoleForm(forms.ModelForm):
+    """Formulario para crear/editar roles controlando visualmente los permisos."""
+
     permissions = forms.ModelMultipleChoiceField(
         label="Permisos",
         queryset=Permission.objects.filter(
@@ -76,6 +108,8 @@ class RoleForm(forms.ModelForm):
         labels = {"name": "Nombre"}
 
     def __init__(self, *args, **kwargs):
+        """Configura etiquetas amigables y agrupa permisos para la plantilla."""
+
         super().__init__(*args, **kwargs)
 
         def label_from_instance(obj):
@@ -83,5 +117,3 @@ class RoleForm(forms.ModelForm):
 
         self.fields["permissions"].label_from_instance = label_from_instance
         self.permission_groups = group_permissions(self.fields["permissions"].queryset)
-
-

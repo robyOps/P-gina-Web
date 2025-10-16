@@ -1,5 +1,23 @@
-# accounts/management/commands/init_rbac.py
-"""Comando utilitario para inicializar los roles base del sistema."""
+"""
+===============================================================================
+Propósito:
+    Comando de administración para crear/actualizar grupos principales con sus
+    permisos base (solicitante, técnico, administrador).
+API pública:
+    Comando ``init_rbac`` ejecutable vía ``python manage.py init_rbac``.
+Flujo de datos:
+    Consulta permisos → agrupa por rol → asigna a instancias de ``Group`` →
+    guarda configuración en la base.
+Dependencias:
+    Modelos de ``tickets`` y ``catalog`` para recuperar permisos declarados,
+    además de helpers en ``accounts.roles``.
+Decisiones:
+    Se recalcula el set completo cada vez para mantener idempotencia.
+TODOs:
+    TODO:PREGUNTA Confirmar si deben asignarse permisos de reportes avanzados a
+    técnicos por defecto.
+===============================================================================
+"""
 
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import Group, Permission
@@ -22,11 +40,10 @@ class Command(BaseCommand):
         """Entrypoint del comando ``init_rbac``."""
 
         def std_perms(model):
-            """
-            Devuelve los permisos CRUD estándar (add/change/view/delete) para un modelo.
+            """Devuelve los permisos CRUD estándar para el modelo entregado.
 
-            Mantener esta lógica centralizada evita olvidarnos de registrar alguno
-            al incorporar nuevos catálogos.
+            Mantener esta lógica centralizada evita omisiones al agregar nuevos
+            modelos de catálogo o entidades relacionadas.
             """
 
             content_type = ContentType.objects.get_for_model(model)

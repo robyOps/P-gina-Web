@@ -1,4 +1,24 @@
-# helpdesk/urls.py
+"""
+===============================================================================
+Propósito:
+    Definir la tabla de ruteo principal del proyecto, exponiendo vistas HTML,
+    APIs REST y accesos administrativos.
+API pública:
+    ``urlpatterns`` consumido por Django para resolver rutas web y API.
+Flujo de datos:
+    Solicitudes entrantes → coincidencia con ``path`` → vistas en ``tickets``
+    o ``catalog`` → respuestas HTML/JSON.
+Dependencias:
+    ``django.urls``, vistas de ``tickets`` y ``catalog``, y los módulos de
+    autenticación de Django.
+Decisiones:
+    Se duplican rutas de auto-asignación (``auto-assign`` y ``rules``) para
+    mantener retrocompatibilidad con URLs antiguas.
+TODOs:
+    TODO:PREGUNTA Confirmar si ambas rutas de auto-asignación deben convivir
+    o si se puede consolidar en una sola convención.
+===============================================================================
+"""
 from django.urls import path, include
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
