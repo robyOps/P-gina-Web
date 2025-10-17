@@ -75,7 +75,11 @@ class Subcategory(models.Model):
         """Normaliza el nombre previo a guardar para evitar duplicados."""
 
         if self.name:
-            self.name = self.name.strip().upper()
+            # Conservamos la capitalización original para fines de presentación,
+            # únicamente saneando espacios en blanco. La restricción ``Lower``
+            # definida en ``Meta.constraints`` ya garantiza unicidad sin
+            # necesidad de forzar mayúsculas.
+            self.name = self.name.strip()
         super().save(*args, **kwargs)
 
 
