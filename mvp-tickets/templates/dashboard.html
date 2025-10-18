@@ -81,7 +81,7 @@
     position: relative;
     display: block;
     max-width: 100%;
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: hidden;
     padding-bottom: 0.5rem;
   }
@@ -89,7 +89,7 @@
     display: grid;
     gap: 0.35rem;
     min-width: 100%;
-    width: max-content;
+    width: 100%;
   }
   .heatmap-cell {
     border-radius: 0.75rem;
@@ -153,6 +153,14 @@
       margin-right: -0.5rem;
       padding-left: 0.5rem;
       padding-right: 0.5rem;
+    }
+  }
+  @media (max-width: 1535px) {
+    .dashboard-heatmap__grid {
+      overflow-x: auto;
+    }
+    .dashboard-heatmap__grid-inner {
+      width: max-content;
     }
   }
 </style>

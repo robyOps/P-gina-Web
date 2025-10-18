@@ -393,7 +393,7 @@
   <header class="bg-gradient-to-r from-indigo-600 to-blue-500 text-white shadow">
     <div class="mx-auto w-full max-w-screen-2xl px-4 py-3 sm:px-6 lg:px-8">
       <div class="flex flex-wrap items-center gap-4 md:gap-6">
-        <div class="order-1 flex flex-1 items-center gap-3 md:gap-5">
+        <div class="order-1 flex flex-1 items-center gap-3 md:flex-none md:gap-5">
           {% if request.user.is_authenticated %}
           <details class="relative md:hidden" data-mobile-nav>
             <summary class="primary-nav__toggle" aria-label="Abrir menú">
@@ -423,7 +423,7 @@
         </nav>
         {% endwith %}
         {% endif %}
-        <div class="order-2 flex w-full flex-col items-stretch gap-3 text-sm text-white/90 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 md:order-3 md:w-auto md:flex-nowrap md:gap-6">
+        <div class="order-2 flex w-full flex-col items-stretch gap-3 text-sm text-white/90 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 md:order-3 md:w-auto md:flex-nowrap md:gap-6 md:ml-auto">
           {% if request.user.is_authenticated %}
             {% can_access_admin_panel as show_admin_panel %}
             {% if show_admin_panel %}
