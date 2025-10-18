@@ -1,0 +1,37 @@
+{% comment %}
+  Navegación principal reutilizable. Espera las siguientes variables de contexto opcionales:
+  - link_base_class: clases comunes para cada enlace
+  - link_active_class: clases adicionales cuando la ruta está activa
+  - link_inactive_class: clases adicionales para enlaces inactivos
+  - nav_data_attribute: atributo extra que se inyectará en cada enlace (por ejemplo para JS)
+{% endcomment %}
+{% with current_path=current_path|default:request.path %}
+  {% if perms.tickets.view_ticket %}
+    <a href="{% url 'tickets_home' %}"
+       class="{{ link_base_class }} {% if current_path|slice:':8' == '/tickets' %}{{ link_active_class }}{% else %}{{ link_inactive_class }}{% endif %}"
+       aria-current="{% if current_path|slice:':8' == '/tickets' %}page{% endif %}" {{ nav_data_attribute|default:''|safe }}>
+      Tickets
+    </a>
+  {% endif %}
+  {% if perms.tickets.view_ticket or perms.tickets.view_reports %}
+    <a href="{% url 'dashboard' %}"
+       class="{{ link_base_class }} {% if current_path == '/' %}{{ link_active_class }}{% else %}{{ link_inactive_class }}{% endif %}"
+       aria-current="{% if current_path == '/' %}page{% endif %}" {{ nav_data_attribute|default:''|safe }}>
+      Dashboard
+    </a>
+  {% endif %}
+  {% if perms.tickets.view_reports %}
+    <a href="{% url 'reports_dashboard' %}"
+       class="{{ link_base_class }} {% if current_path|slice:':8' == '/reports' %}{{ link_active_class }}{% else %}{{ link_inactive_class }}{% endif %}"
+       aria-current="{% if current_path|slice:':8' == '/reports' %}page{% endif %}" {{ nav_data_attribute|default:''|safe }}>
+      Reportes
+    </a>
+  {% endif %}
+  {% if perms.tickets.view_faq %}
+    <a href="{% url 'faq_list' %}"
+       class="{{ link_base_class }} {% if current_path|slice:':5' == '/faq/' %}{{ link_active_class }}{% else %}{{ link_inactive_class }}{% endif %}"
+       aria-current="{% if current_path|slice:':5' == '/faq/' %}page{% endif %}" {{ nav_data_attribute|default:''|safe }}>
+      Preguntas frecuentes
+    </a>
+  {% endif %}
+{% endwith %}
