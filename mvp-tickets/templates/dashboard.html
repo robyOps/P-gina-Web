@@ -78,15 +78,18 @@
   }
   .dashboard-heatmap__grid {
     --heatmap-hours: 24;
-    display: grid;
-    gap: 0.35rem;
-    overflow: hidden;
+    position: relative;
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.5rem;
   }
   .dashboard-heatmap__grid-inner {
     display: grid;
     gap: 0.35rem;
     min-width: 100%;
-    overflow: hidden;
+    width: max-content;
   }
   .heatmap-cell {
     border-radius: 0.75rem;
@@ -135,6 +138,22 @@
     height: 0.75rem;
     border-radius: 9999px;
     background: linear-gradient(90deg, #bbf7d0 0%, #bef264 30%, #fde68a 55%, #fb923c 78%, #ef4444 100%);
+  }
+  @media (max-width: 640px) {
+    .heatmap-cell {
+      padding: 0.35rem;
+      font-size: 0.65rem;
+      line-height: 1rem;
+    }
+    .heatmap-row-header {
+      padding-left: 0.5rem;
+    }
+    .dashboard-heatmap__grid {
+      margin-left: -0.5rem;
+      margin-right: -0.5rem;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
   }
 </style>
 {% endblock %}
@@ -573,9 +592,12 @@
         const matrix = Array.isArray(data?.matrix) ? data.matrix : [];
         const maxValue = Number(data?.max_value || 0);
 
+        const isCompact = window.matchMedia('(max-width: 640px)').matches;
+        const firstColumn = isCompact ? '4.25rem' : '5rem';
+        const hourColumn = isCompact ? 'minmax(2.35rem, 1fr)' : 'minmax(0, 1fr)';
         const columnTemplate = hours.length
-          ? `minmax(5rem, 0.9fr) repeat(${hours.length}, minmax(0, 1fr))`
-          : 'minmax(5rem, 1fr)';
+          ? `minmax(${firstColumn}, ${isCompact ? '1.1fr' : '0.9fr'}) repeat(${hours.length}, ${hourColumn})`
+          : `minmax(${firstColumn}, 1fr)`;
         heatmapGrid.style.gridTemplateColumns = columnTemplate;
 
         heatmapGrid.innerHTML = '';
