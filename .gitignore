@@ -3,6 +3,7 @@
 # Cachés de Python
 __pycache__/
 *.py[cod]
+.venv/
 
 # Base de datos local
 *.sqlite3
