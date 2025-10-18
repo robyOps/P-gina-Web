@@ -348,27 +348,27 @@
         </section>
 
         <section class="grid gap-5 xl:grid-cols-[1.1fr_0.95fr]">
-          <article class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <article class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 class="text-2xl font-semibold text-slate-900">Top subcategorías del mes</h2>
                 <p class="text-sm text-slate-600">Clasificación detallada de tickets que concentra la mayor actividad en el período actual.</p>
               </div>
-              <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600"><i class="bi bi-calendar3"></i> Mes en curso</span>
+              <span class="inline-flex items-center gap-2 self-start rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600 sm:self-auto"><i class="bi bi-calendar3"></i> Mes en curso</span>
             </div>
             {% if top_subcategories %}
             <ol class="mt-4 space-y-3" role="list">
               {% for item in top_subcategories %}
               <li class="space-y-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 shadow-inner">
-                <div class="flex items-center justify-between text-sm font-semibold text-slate-700">
-                  <div class="flex items-center gap-3">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-emerald-600 shadow">{{ forloop.counter }}</span>
-                    <div class="flex flex-col">
-                      <span class="text-base text-slate-900">{{ item.subcategory }}</span>
+                <div class="flex flex-col gap-3 text-sm font-semibold text-slate-700 sm:flex-row sm:items-center sm:justify-between">
+                  <div class="flex w-full items-center gap-3 sm:w-auto sm:min-w-0">
+                    <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white text-emerald-600 shadow">{{ forloop.counter }}</span>
+                    <div class="flex min-w-0 flex-col">
+                      <span class="text-base text-slate-900 break-words">{{ item.subcategory }}</span>
                       <span class="text-[11px] uppercase tracking-[0.25em] text-emerald-600">{{ item.category }}</span>
                     </div>
                   </div>
-                  <span class="text-sm text-emerald-600">{{ item.total }} tickets</span>
+                  <span class="text-sm text-emerald-600 self-start sm:self-auto sm:text-right">{{ item.total }} tickets</span>
                 </div>
                 <div class="relative h-2.5 w-full overflow-hidden rounded-full bg-white/70">
                   <div class="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400 to-sky-400" style="width: {{ item.percentage }}%;"></div>
@@ -387,30 +387,32 @@
             <div class="mt-6 space-y-3">
               <h3 class="text-base font-semibold text-slate-900">Áreas con más incidencias por subcategoría</h3>
               {% if area_by_subcategory %}
-              <div class="overflow-hidden rounded-2xl border border-emerald-100">
-                <table class="min-w-full divide-y divide-emerald-100 text-sm">
-                  <thead class="bg-emerald-50 text-xs uppercase tracking-[0.25em] text-emerald-700">
-                    <tr>
-                      <th scope="col" class="px-3 py-2 text-left">Área</th>
-                      <th scope="col" class="px-3 py-2 text-left">Subcategoría</th>
-                      <th scope="col" class="px-3 py-2 text-right">Tickets</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-emerald-50 bg-white">
-                    {% for row in area_by_subcategory %}
-                    <tr>
-                      <td class="px-3 py-2 text-slate-700">{{ row.area }}</td>
-                      <td class="px-3 py-2 text-slate-500">
-                        <div class="flex flex-col">
-                          <span class="font-semibold text-slate-700">{{ row.subcategory }}</span>
-                          <span class="text-[11px] uppercase tracking-[0.2em] text-emerald-500">{{ row.category }}</span>
-                        </div>
-                      </td>
-                      <td class="px-3 py-2 text-right font-semibold text-emerald-600">{{ row.total }}</td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+              <div class="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+                <div class="overflow-hidden rounded-2xl border border-emerald-100">
+                  <table class="min-w-full divide-y divide-emerald-100 text-sm">
+                    <thead class="bg-emerald-50 text-xs uppercase tracking-[0.25em] text-emerald-700">
+                      <tr>
+                        <th scope="col" class="px-3 py-2 text-left">Área</th>
+                        <th scope="col" class="px-3 py-2 text-left">Subcategoría</th>
+                        <th scope="col" class="px-3 py-2 text-right">Tickets</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-emerald-50 bg-white">
+                      {% for row in area_by_subcategory %}
+                      <tr>
+                        <td class="px-3 py-2 text-slate-700">{{ row.area }}</td>
+                        <td class="px-3 py-2 text-slate-500">
+                          <div class="flex flex-col">
+                            <span class="font-semibold text-slate-700">{{ row.subcategory }}</span>
+                            <span class="text-[11px] uppercase tracking-[0.2em] text-emerald-500">{{ row.category }}</span>
+                          </div>
+                        </td>
+                        <td class="px-3 py-2 text-right font-semibold text-emerald-600">{{ row.total }}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
               </div>
               {% else %}
               <p class="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/40 px-4 py-3 text-sm text-emerald-600">Aún no hay cruces Área × Subcategoría con volumen suficiente para destacar.</p>
@@ -418,30 +420,30 @@
             </div>
           </article>
 
-          <article class="rounded-3xl border border-rose-100 bg-white p-6 shadow-sm">
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <article class="rounded-3xl border border-rose-100 bg-white p-5 shadow-sm sm:p-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 class="text-2xl font-semibold text-slate-900">Alertas recientes</h2>
                 <p class="text-sm text-slate-600">Tickets que requieren atención por riesgo o incumplimiento de SLA.</p>
               </div>
-              <span class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-rose-500"><i class="bi bi-exclamation-octagon"></i> {{ alerts_panel.summary.breaches }} incumplidos · {{ alerts_panel.summary.warnings }} en riesgo</span>
+              <span class="inline-flex items-center gap-2 self-start rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-rose-500 sm:self-auto"><i class="bi bi-exclamation-octagon"></i> {{ alerts_panel.summary.breaches }} incumplidos · {{ alerts_panel.summary.warnings }} en riesgo</span>
             </div>
             {% if alerts_panel.items %}
             <ul class="mt-4 space-y-3" role="list">
               {% for alert in alerts_panel.items %}
               <li class="space-y-2 rounded-2xl border border-rose-100 bg-rose-50/60 p-4 shadow-inner">
-                <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <div class="flex items-center gap-2">
+                <div class="flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                  <div class="flex flex-wrap items-center gap-2 sm:min-w-0">
                     <a href="{% url 'ticket_detail' alert.id %}" class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 font-semibold text-rose-600 shadow" aria-label="Abrir ticket {{ alert.code }}">
                       <i class="bi bi-hash"></i> {{ alert.code }}
                     </a>
-                    <span class="text-sm font-semibold text-slate-800">{{ alert.title }}</span>
+                    <span class="text-sm font-semibold text-slate-800 break-words">{{ alert.title }}</span>
                   </div>
-                  <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold {% if alert.severity == 'breach' %}bg-rose-500 text-white{% else %}bg-amber-100 text-amber-700{% endif %}">
+                  <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold self-start {% if alert.severity == 'breach' %}bg-rose-500 text-white{% else %}bg-amber-100 text-amber-700{% endif %} sm:self-auto">
                     {% if alert.severity == 'breach' %}<i class="bi bi-x-octagon"></i> Vencido{% else %}<i class="bi bi-hourglass-split"></i> En riesgo{% endif %}
                   </span>
                 </div>
-                <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                <div class="flex flex-col gap-2 text-xs text-slate-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
                   <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1"><i class="bi bi-calendar-event"></i>Vence {{ alert.due_at|localtime|date:"d/m" }} a las {{ alert.due_at|localtime|time:"H:i" }}</span>
                   <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1"><i class="bi bi-clock-history"></i>{{ alert.remaining_hours|floatformat:1 }}h restantes</span>
                   {% if alert.assigned_to %}
