@@ -155,6 +155,39 @@
       padding-right: 0.5rem;
     }
   }
+  @media (max-width: 320px) {
+    .dashboard-top-subcategories__badge,
+    .dashboard-alerts__badge {
+      display: flex;
+      width: 100%;
+      justify-content: center;
+      text-align: center;
+      flex-wrap: wrap;
+      line-height: 1.2;
+      letter-spacing: 0.15em;
+      white-space: normal;
+      gap: 0.4rem;
+      padding: 0.5rem 0.75rem;
+    }
+    .dashboard-top-subcategories__item-header,
+    .dashboard-alerts__item-header {
+      align-items: flex-start;
+      gap: 0.85rem;
+    }
+    .dashboard-top-subcategories__item-count,
+    .dashboard-alerts__item-status {
+      display: block;
+      width: 100%;
+      text-align: left;
+    }
+    .dashboard-alerts__item-status {
+      display: flex;
+      justify-content: flex-start;
+    }
+    .dashboard-alerts__meta {
+      align-items: flex-start;
+    }
+  }
   @media (max-width: 1535px) {
     .dashboard-heatmap__grid {
       overflow-x: auto;
@@ -362,13 +395,13 @@
                 <h2 class="text-2xl font-semibold text-slate-900">Top subcategorías del mes</h2>
                 <p class="text-sm text-slate-600">Clasificación detallada de tickets que concentra la mayor actividad en el período actual.</p>
               </div>
-              <span class="inline-flex items-center gap-2 self-start rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600 sm:self-auto"><i class="bi bi-calendar3"></i> Mes en curso</span>
+              <span class="dashboard-top-subcategories__badge inline-flex items-center gap-2 self-start rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600 sm:self-auto"><i class="bi bi-calendar3"></i> Mes en curso</span>
             </div>
             {% if top_subcategories %}
             <ol class="mt-4 space-y-3" role="list">
               {% for item in top_subcategories %}
               <li class="space-y-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 shadow-inner">
-                <div class="flex flex-col gap-3 text-sm font-semibold text-slate-700 sm:flex-row sm:items-center sm:justify-between">
+                <div class="dashboard-top-subcategories__item-header flex flex-col gap-3 text-sm font-semibold text-slate-700 sm:flex-row sm:items-center sm:justify-between">
                   <div class="flex w-full items-center gap-3 sm:w-auto sm:min-w-0">
                     <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white text-emerald-600 shadow">{{ forloop.counter }}</span>
                     <div class="flex min-w-0 flex-col">
@@ -376,7 +409,7 @@
                       <span class="text-[11px] uppercase tracking-[0.25em] text-emerald-600">{{ item.category }}</span>
                     </div>
                   </div>
-                  <span class="text-sm text-emerald-600 self-start sm:self-auto sm:text-right">{{ item.total }} tickets</span>
+                  <span class="dashboard-top-subcategories__item-count text-sm text-emerald-600 self-start sm:self-auto sm:text-right">{{ item.total }} tickets</span>
                 </div>
                 <div class="relative h-2.5 w-full overflow-hidden rounded-full bg-white/70">
                   <div class="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400 to-sky-400" style="width: {{ item.percentage }}%;"></div>
@@ -434,24 +467,24 @@
                 <h2 class="text-2xl font-semibold text-slate-900">Alertas recientes</h2>
                 <p class="text-sm text-slate-600">Tickets que requieren atención por riesgo o incumplimiento de SLA.</p>
               </div>
-              <span class="inline-flex items-center gap-2 self-start rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-rose-500 sm:self-auto"><i class="bi bi-exclamation-octagon"></i> {{ alerts_panel.summary.breaches }} incumplidos · {{ alerts_panel.summary.warnings }} en riesgo</span>
+              <span class="dashboard-alerts__badge inline-flex items-center gap-2 self-start rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-rose-500 sm:self-auto"><i class="bi bi-exclamation-octagon"></i> {{ alerts_panel.summary.breaches }} incumplidos · {{ alerts_panel.summary.warnings }} en riesgo</span>
             </div>
             {% if alerts_panel.items %}
             <ul class="mt-4 space-y-3" role="list">
               {% for alert in alerts_panel.items %}
               <li class="space-y-2 rounded-2xl border border-rose-100 bg-rose-50/60 p-4 shadow-inner">
-                <div class="flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div class="dashboard-alerts__item-header flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                   <div class="flex flex-wrap items-center gap-2 sm:min-w-0">
                     <a href="{% url 'ticket_detail' alert.id %}" class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 font-semibold text-rose-600 shadow" aria-label="Abrir ticket {{ alert.code }}">
                       <i class="bi bi-hash"></i> {{ alert.code }}
                     </a>
                     <span class="text-sm font-semibold text-slate-800 break-words">{{ alert.title }}</span>
                   </div>
-                  <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold self-start {% if alert.severity == 'breach' %}bg-rose-500 text-white{% else %}bg-amber-100 text-amber-700{% endif %} sm:self-auto">
+                  <span class="dashboard-alerts__item-status inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold self-start {% if alert.severity == 'breach' %}bg-rose-500 text-white{% else %}bg-amber-100 text-amber-700{% endif %} sm:self-auto">
                     {% if alert.severity == 'breach' %}<i class="bi bi-x-octagon"></i> Vencido{% else %}<i class="bi bi-hourglass-split"></i> En riesgo{% endif %}
                   </span>
                 </div>
-                <div class="flex flex-col gap-2 text-xs text-slate-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                <div class="dashboard-alerts__meta flex flex-col gap-2 text-xs text-slate-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
                   <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1"><i class="bi bi-calendar-event"></i>Vence {{ alert.due_at|localtime|date:"d/m" }} a las {{ alert.due_at|localtime|time:"H:i" }}</span>
                   <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1"><i class="bi bi-clock-history"></i>{{ alert.remaining_hours|floatformat:1 }}h restantes</span>
                   {% if alert.assigned_to %}
