@@ -1,6 +1,20 @@
-# tickets/models.py
+"""
+Propósito:
+    Definir la capa de persistencia del dominio de tickets, comentarios y adjuntos.
+API pública:
+    Modelos ``Ticket`` y relacionados utilizados por la API y el panel de administración.
+Flujo de datos:
+    Formularios/API → modelos (BD relacional) y ficheros en ``/media`` para adjuntos.
+Permisos:
+    Las ``ForeignKey`` a ``AUTH_USER_MODEL`` permiten validar ownership y auditoría.
+Decisiones de diseño:
+    Se conserva ``cluster_id`` como campo obsoleto para evitar una migración que
+    bloquee despliegues; la UI y la API ya no lo consumen.
+Riesgos:
+    Cambios en catálogos externos requieren validación adicional para mantener
+    integridad referencial y consistencia entre métricas y reportes.
+"""
 
-# ------------------------- IMPORTS -------------------------
 from django.db import models                     # tipos de campo y utilidades de modelos
 from django.conf import settings                 # para referenciar al modelo de usuario activo (AUTH_USER_MODEL)
 from catalog.models import Category, Priority, Area, Subcategory  # catálogos externos (llaves foráneas)
@@ -50,6 +64,7 @@ class Ticket(models.Model):
         help_text="Clasificación funcional del ticket (incidente o solicitud)",
     )
 
+    # Campo sensible: requester garantiza trazabilidad legal; se retiene con FK a usuario.
     # Quién solicitó (usuario autenticado) -> si se borra el usuario, se borran sus tickets (CASCADE)
     requester = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tickets"
@@ -69,10 +84,10 @@ class Ticket(models.Model):
     # Área (opcional). PROTECT para no borrar áreas en uso
     area = models.ForeignKey(Area, on_delete=models.PROTECT, null=True, blank=True)
 
-    # Agrupación automática por similitud textual (se calcula vía job/API)
+    # deprecated: retained to avoid DB migration. No consumido por UI/API actual.
     cluster_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
 
-    # Estado del ticket con choices y default
+    # Campo sensible: status controla SLA y visibilidad en reportes.
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=OPEN)
 
     # Técnico asignado (opcional). Si el técnico se borra, dejamos NULL (SET_NULL)
@@ -208,6 +223,9 @@ class TicketComment(models.Model):
 
 
 # ------------------------- ADJUNTOS -------------------------
+# Diferencia de almacenamiento: metadatos y relaciones permanecen en la BD;
+# el binario se aloja en /media/attachments/YYYY/MM/ para mantener el repositorio
+# ligero y permitir rotación/backup independiente del motor relacional.
 class TicketAttachment(models.Model):
     # Ticket al que se adjunta
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE)

@@ -1,24 +1,18 @@
 """
-===============================================================================
 Propósito:
-    Exponer los endpoints REST del proyecto agrupando routers y vistas
-    especializadas bajo el prefijo ``/api/``.
+    Centralizar el enrutamiento de la API REST bajo ``/api/``.
 API pública:
-    ``urlpatterns`` y ``router`` utilizados por Django REST Framework para
-    montar viewsets y vistas basadas en clase.
+    ``router`` y ``urlpatterns`` que Django importa desde ``urls.py``.
 Flujo de datos:
-    Solicitudes HTTP → ``DefaultRouter``/``path`` → viewsets o vistas →
-    serializadores → respuestas JSON.
-Dependencias:
-    ``rest_framework``, ``rest_framework_simplejwt`` y vistas propias de
-    ``accounts``, ``catalog``, ``tickets`` y ``reports``.
-Decisiones:
-    Se combinan rutas del router con rutas manuales para exponer operaciones
-    masivas y reportes sin duplicar lógica.
-TODOs:
-    TODO:PREGUNTA Validar si las rutas de reportes deberían versionarse o
-    exponerse bajo un prefijo separado para contratos más estables.
-===============================================================================
+    HTTP → ``DefaultRouter``/``path`` → viewsets/vistas → serializadores → JSON/archivos.
+Permisos:
+    Delegados a las vistas; este módulo solo conecta rutas existentes sin ampliar alcance.
+Decisiones de diseño:
+    Se exponen rutas adicionales para recomputar sugerencias y reportes pero se
+    retira la ruta de re-entrenamiento de clústeres al quedar obsoleta.
+Riesgos:
+    Cualquier ruta añadida aquí debe documentarse para mantener coherencia con la
+    navegación y la documentación pública.
 """
 
 from django.urls import path, include
@@ -29,7 +23,6 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from tickets.api import (
     TicketViewSet,
     TicketSuggestionBulkRecomputeView,
-    TicketClusterRetrainView,
     TicketAlertListView,
     TicketFilterOptionsView,
     SubcategoryBackfillView,
@@ -60,11 +53,6 @@ urlpatterns = [
         "tickets/recompute-suggestions/",
         TicketSuggestionBulkRecomputeView.as_view(),
         name="tickets_recompute_suggestions",
-    ),
-    path(
-        "tickets/retrain-clusters/",
-        TicketClusterRetrainView.as_view(),
-        name="tickets_retrain_clusters",
     ),
     path(
         "tickets/alerts/",

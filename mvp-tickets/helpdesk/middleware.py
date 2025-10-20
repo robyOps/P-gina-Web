@@ -1,4 +1,20 @@
-"""Custom middleware used to harden request handling."""
+"""
+Propósito:
+    Endurecer la capa HTTP detectando rutas y entradas maliciosas antes de que
+    alcancen las vistas de Django.
+API pública:
+    ``PathFirewall`` e ``InputValidationMiddleware`` agregados en ``settings.MIDDLEWARE``.
+Flujo de datos:
+    Solicitud cruda → validaciones de ruta/entrada → request limpio → vistas.
+Permisos:
+    No altera permisos; únicamente decide si rechaza la petición con 400.
+Decisiones de diseño:
+    Se aplica un firewall de path simple y un filtro de patrones XSS sin alterar
+    los datos originales para minimizar falsos positivos.
+Riesgos:
+    Patrones insuficientes podrían dejar pasar payloads nuevos; ajustarlos requiere
+    revisar logs antes de endurecer reglas para no bloquear usuarios legítimos.
+"""
 
 from __future__ import annotations
 

@@ -6,7 +6,6 @@ from django.utils import timezone
 
 from catalog.models import Category, Priority, Subcategory
 
-from tickets.clustering import train_ticket_clusters
 from tickets.models import Ticket, TicketLabelSuggestion, TicketLabel
 from tickets.services import accept_ticket_label_suggestion
 from tickets.utils import (
@@ -57,18 +56,6 @@ class DashboardAnalyticsTests(TestCase):
         self.assertTrue(
             TicketLabel.objects.filter(ticket=ticket, name="VPN").exists()
         )
-
-    def test_train_ticket_clusters_assigns_cluster_ids(self):
-        self._create_ticket(title="Error en correo", description="Mail rebota")
-        self._create_ticket(title="VPN caída", description="Sin acceso")
-        self._create_ticket(title="Problema impresora", description="No imprime")
-
-        summary = train_ticket_clusters(num_clusters=2)
-
-        refreshed = Ticket.objects.all()
-        self.assertEqual(summary.total_tickets, refreshed.count())
-        self.assertLessEqual(summary.effective_clusters, 2)
-        self.assertTrue(all(ticket.cluster_id for ticket in refreshed))
 
     def test_build_ticket_heatmap_counts_by_hour(self):
         now = timezone.now()

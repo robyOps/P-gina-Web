@@ -1,6 +1,24 @@
-# tickets/api.py
+"""
+Propósito:
+    Implementar la API REST del módulo de tickets, incluyendo CRUD, comentarios,
+    adjuntos, alertas y métricas operativas.
+API pública:
+    ``TicketViewSet`` y las vistas auxiliares ``TicketSuggestionBulkRecomputeView``,
+    ``TicketAlertListView`` y ``SubcategoryBackfillView``.
+Flujo de datos:
+    HTTP → ViewSet/Vistas → Serializadores/Servicios → Modelos → Respuesta JSON.
+Permisos:
+    Controlados mediante ``AuthenticatedSafeMethodsOnlyForRequesters`` y
+    ``PrivilegedOnlyPermission`` para limitar operaciones a solicitantes, técnicos
+    y administradores según corresponda.
+Decisiones de diseño:
+    Se eliminó la re-entrenación de clústeres porque ya no existe consumo en la UI,
+    reduciendo mantenimiento y carga batch sin afectar funcionalidades activas.
+Riesgos:
+    Cambios en reglas de negocio (auto-asignación, transiciones) deben reflejarse
+    tanto aquí como en servicios compartidos para mantener auditoría coherente.
+"""
 
-# ------------------------- IMPORTS -------------------------
 from django.utils import timezone  # para sellos de tiempo (resolved_at / closed_at)
 from django.utils.dateparse import parse_date
 from django.contrib.auth import get_user_model  # para obtener el modelo de usuario (custom o por defecto)
@@ -54,9 +72,7 @@ from .services import (
 )
 from .utils import sanitize_text
 from .backfill import run_subcategory_backfill
-from .clustering import train_ticket_clusters
 import logging
-import time
 
 logger = logging.getLogger(__name__)
 
@@ -116,8 +132,7 @@ class TicketViewSet(viewsets.ModelViewSet):
     )
 
     # Filtros por query string (?status=&category=&priority=&area=)
-    # Se omite ``cluster_id`` para mantener el listado público alineado con la UI
-    # (ya no se expone como criterio en la vista principal) y reducir ruido.
+    # ``cluster_id`` quedó obsoleto; no se expone en la API ni en la UI.
     filterset_fields = ["status", "category", "subcategory", "priority", "area"]
 
     # --------- Visibilidad por rol ---------
@@ -243,46 +258,6 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         return Response({"message": "Asignado", "from": prev.id if prev else None, "to": to_user.id}, status=200)
 
-    @action(detail=False, methods=["post"], url_path="retrain-clusters")
-    def retrain_clusters(self, request):
-        if not (is_admin(request.user) or is_tech(request.user)):
-            return Response(
-                {"detail": "Solo técnicos o administradores pueden reentrenar clústeres."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        raw_clusters = request.data.get("clusters") or request.data.get("num_clusters")
-        if raw_clusters is None:
-            return Response(
-                {"detail": "Debe indicar la cantidad de clústeres en 'clusters'."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            clusters = int(raw_clusters)
-        except (TypeError, ValueError):
-            return Response(
-                {"detail": "El parámetro 'clusters' debe ser un entero mayor a cero."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if clusters <= 0:
-            return Response(
-                {"detail": "El parámetro 'clusters' debe ser un entero mayor a cero."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        summary = train_ticket_clusters(num_clusters=clusters)
-
-        return Response(
-            {
-                "message": "Clusterización completada",
-                "total_tickets": summary.total_tickets,
-                "requested_clusters": summary.requested_clusters,
-                "effective_clusters": summary.effective_clusters,
-                "assignments": summary.assignments,
-            }
-        )
 
     # ---------- Etiquetas sugeridas ----------
     def _require_label_access(self, request, ticket):
@@ -675,67 +650,6 @@ class TicketSuggestionBulkRecomputeView(APIView):
         return Response(
             {
                 "detail": "Recomputo completado.",
-                "metrics": metrics,
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class TicketClusterRetrainView(APIView):
-    permission_classes = [PrivilegedOnlyPermission]
-
-    def post(self, request):
-        if not is_admin(request.user):
-            return Response(
-                {"detail": "Solo administradores pueden reentrenar clústeres."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        raw_clusters = request.data.get("clusters", 5)
-        try:
-            clusters = int(raw_clusters)
-        except (TypeError, ValueError):
-            return Response(
-                {"detail": "clusters debe ser un entero mayor a cero."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if clusters <= 0:
-            return Response(
-                {"detail": "clusters debe ser un entero mayor a cero."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            start = time.perf_counter()
-            summary = train_ticket_clusters(num_clusters=clusters)
-            duration = round(time.perf_counter() - start, 4)
-        except RuntimeError as exc:
-            logger.exception(
-                "Error reentrenando clústeres", extra={"actor_id": request.user.id}
-            )
-            return Response(
-                {"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
-            )
-        except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-
-        metrics = {
-            "total_tickets": summary.total_tickets,
-            "requested_clusters": summary.requested_clusters,
-            "effective_clusters": summary.effective_clusters,
-            "assignments": summary.assignments,
-            "duration_seconds": duration,
-        }
-
-        logger.info(
-            "Reentrenamiento de clústeres vía API",
-            extra={"actor_id": request.user.id, "metrics": metrics},
-        )
-
-        return Response(
-            {
-                "detail": "Clusterización completada.",
                 "metrics": metrics,
             },
             status=status.HTTP_200_OK,

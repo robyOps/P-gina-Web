@@ -1,7 +1,27 @@
 # reports/api.py
 from collections import Counter
+"""
+Propósito:
+    Servir los reportes de tickets (KPIs, listados, heatmaps y exportes).
+API pública:
+    Vistas ``ReportSummaryView``, ``ReportExportView`` y derivadas utilizadas por la UI.
+Flujo de datos:
+    HTTP → filtros → ``base_queryset`` → agregaciones utilitarias → JSON/PDF/XLSX.
+Permisos:
+    ``AuthenticatedSafeMethodsOnlyForRequesters`` restringe acceso según rol; los
+    cálculos respetan la visibilidad del usuario.
+Decisiones de diseño:
+    Las métricas se calculan desde un único queryset para cumplir el invariante
+    KPI = Listados = Reportes. Los heatmaps se delegan a ``tickets.utils`` para
+    compartir lógica con dashboards.
+Riesgos:
+    Cambios en catálogos o filtros pueden romper la coherencia de KPIs si no se
+    actualiza simultáneamente ``base_queryset`` y los agregados derivados.
+"""
+
 import csv
 import calendar
+from collections import Counter
 from datetime import datetime, time, timedelta
 
 from django.db.models import Count, Avg, DurationField, ExpressionWrapper, F
@@ -80,17 +100,6 @@ def base_queryset(request):
     if dto:
         qs = qs.filter(created_at__date__lte=dto)
 
-    cluster = (
-        request.query_params.get("cluster_id")
-        or request.query_params.get("cluster")
-        or ""
-    ).strip()
-    if cluster:
-        if cluster.isdigit():
-            qs = qs.filter(cluster_id=int(cluster))
-        else:
-            cluster = ""
-
     category = (
         request.query_params.get("category_id")
         or request.query_params.get("category")
@@ -116,10 +125,13 @@ def base_queryset(request):
 
 
 class ReportSummaryView(APIView):
+    """Devuelve indicadores clave (KPI) alineados con listados y exportes."""
     permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
 
     def get(self, request):
         qs = base_queryset(request)
+        # Invariante clave: todas las vistas de reporte parten del mismo queryset
+        # filtrado para garantizar KPI = Listados = Reportes.
         report_type = request.query_params.get("type")
         if report_type == "urgencia":
             qs = qs.filter(priority__name__icontains="urgencia")
@@ -142,14 +154,6 @@ class ReportSummaryView(APIView):
             for name, c in qs.values_list("priority__name").annotate(c=Count("id"))
         ]
 
-        by_cluster = [
-            {
-                "cluster": cluster_id if cluster_id is not None else "Sin cluster",
-                "count": c,
-            }
-            for cluster_id, c in qs.values_list("cluster_id").annotate(c=Count("id"))
-        ]
-
         # por técnico asignado
         ass = qs.exclude(assigned_to__isnull=True)
         by_tech = [
@@ -170,13 +174,17 @@ class ReportSummaryView(APIView):
             },
             "by_category": by_category,
             "by_priority": by_priority,
-            "by_cluster": by_cluster,
             "by_tech": by_tech,
             "avg_resolve_hours": avg_resolve_hours,
         })
 
 
 class ReportExportView(APIView):
+    """Genera CSV compatible con Excel manteniendo el mismo set de KPIs.
+
+    El dataset se deriva del mismo queryset para garantizar la coherencia con
+    indicadores y listados en pantalla.
+    """
     permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
 
     def get(self, request):
@@ -209,7 +217,7 @@ class ReportExportView(APIView):
         # Encabezados
         writer.writerow([
             "id","code","title","status","requester","assigned_to",
-            "category","priority","area","cluster_id","created_at","resolved_at","closed_at"
+            "category","priority","area","created_at","resolved_at","closed_at"
         ])
 
         # Filas
@@ -224,7 +232,6 @@ class ReportExportView(APIView):
                 getattr(t.category, "name", ""),
                 getattr(t.priority, "key", ""),
                 getattr(t.area, "name", "") if t.area_id else "",
-                t.cluster_id or "",
                 t.created_at.isoformat(timespec="seconds"),
                 t.resolved_at.isoformat(timespec="seconds") if t.resolved_at else "",
                 t.closed_at.isoformat(timespec="seconds") if t.closed_at else "",
@@ -234,7 +241,12 @@ class ReportExportView(APIView):
 
 
 class ReportHeatmapView(APIView):
-    """Entrega una matriz día x hora para alimentar el mapa de calor."""
+    """Entrega una matriz día x hora para alimentar el mapa de calor.
+
+    Delegamos el cálculo en ``build_ticket_heatmap`` para consolidar la lógica que
+    agrupa por zona horaria local y genera totales normalizados usados en el
+    dashboard.
+    """
 
     permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
 
@@ -287,7 +299,11 @@ class ReportTopSubcategoriesView(APIView):
 
 
 class ReportAreaBySubcategoryView(APIView):
-    """Devuelve el cruce Área × Subcategoría ordenado por incidencias."""
+    """Devuelve el cruce Área × Subcategoría ordenado por incidencias.
+
+    Usa ``aggregate_area_by_subcategory`` para calcular la intersección con la misma
+    ventana temporal, alimentando tablas y gráficos comparativos.
+    """
 
     permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
 
@@ -317,7 +333,11 @@ class ReportAreaBySubcategoryView(APIView):
 
 
 class ReportAreaSubcategoryHeatmapView(APIView):
-    """Construye un heatmap Área × Subcategoría."""
+    """Construye un heatmap Área × Subcategoría.
+
+    ``build_area_subcategory_heatmap`` consolida la matriz y el listado de celdas
+    para que la UI pueda renderizar tanto heatmap como tabla cruzada.
+    """
 
     permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
 

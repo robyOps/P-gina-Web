@@ -14,3 +14,7 @@ mvp-tickets/media/
 
 # Archivos estáticos generados
 mvp-tickets/staticfiles/
+
+# Artefactos generados durante las verificaciones manuales
+artifacts/*.pdf
+artifacts/*.xlsx
