@@ -1,3 +1,23 @@
+"""
+Propósito:
+    Serializar la entidad Ticket y componentes relacionados para exponerlos vía API.
+API pública:
+    ``TicketSerializer`` y los serializers análogos para comentarios, adjuntos,
+    asignaciones y etiquetas.
+Flujo de datos:
+    Modelos de Django → serializadores → JSON de respuesta / validación → modelos.
+Permisos:
+    La lógica de permisos vive en ``tickets.api``; aquí solo se respetan campos de
+    solo lectura para evitar elevación de privilegios involuntaria.
+Decisiones de diseño:
+    Se ocultan campos sensibles como ``requester`` detrás de ``HiddenField`` para
+    que la API siempre use al usuario autenticado. Se retira ``cluster_id`` porque
+    quedó obsoleto y ya no participa en la UI/reportes.
+Riesgos:
+    Cambios en los catálogos externos (categoría, prioridad, área) pueden invalidar
+    la validación cruzada; se valida explícitamente para evitar inconsistencias.
+"""
+
 from rest_framework import serializers
 from catalog.models import Category, Priority
 
@@ -15,14 +35,13 @@ class TicketSerializer(serializers.ModelSerializer):
     requester = serializers.HiddenField(default=serializers.CurrentUserDefault())
     code = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
-    cluster_id = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Ticket
         fields = [
             "id", "code", "title", "description",
             "category", "subcategory", "priority", "area", "kind",
-            "status", "assigned_to", "cluster_id",
+            "status", "assigned_to",
             "created_at", "updated_at", "resolved_at", "closed_at",
             "requester",
         ]
@@ -32,7 +51,6 @@ class TicketSerializer(serializers.ModelSerializer):
             "updated_at",
             "resolved_at",
             "closed_at",
-            "cluster_id",
         ]
 
     def validate_title(self, value: str) -> str:

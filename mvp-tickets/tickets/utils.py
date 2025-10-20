@@ -1,4 +1,20 @@
-"""Utilities focused on data hygiene and analytics helpers."""
+"""
+Propósito:
+    Agrupar utilidades de sanitización y generación de métricas usadas en dashboards.
+API pública:
+    Funciones como ``sanitize_text``, ``aggregate_top_subcategories`` y los
+    constructores de heatmaps.
+Flujo de datos:
+    QuerySets de ``Ticket`` → agregaciones/estructuras listas para la API.
+Permisos:
+    No aplica; se asume que la vista ya filtró el queryset según el rol.
+Decisiones de diseño:
+    Se evita usar ORM crudo; las agregaciones se realizan con ``annotate`` para
+    mantener compatibilidad con múltiples motores de BD.
+Riesgos:
+    Cambios en nombres de campos pueden romper los heatmaps; actualizar pruebas en
+    ``tickets/tests/test_analytics.py`` al modificar lógicas aquí.
+"""
 
 from __future__ import annotations
 
@@ -108,7 +124,16 @@ def build_area_subcategory_heatmap(
     *,
     since: timezone.datetime | None = None,
 ) -> dict[str, object]:
-    """Return a matrix-like payload for area × subcategory counts."""
+    """Construye el payload del heatmap Área × Subcategoría.
+
+    Parámetros:
+        queryset: queryset previamente filtrado según rol/período.
+        since: fecha mínima (aware) para limitar la ventana temporal.
+
+    Retorna:
+        Diccionario con llaves ``areas``, ``subcategories``, ``matrix`` y ``cells``
+        listo para serializar en JSON.
+    """
 
     since = since or timezone.now() - timedelta(days=30)
     filtered = queryset.filter(created_at__gte=since, subcategory__isnull=False, area__isnull=False)
@@ -170,7 +195,17 @@ def build_ticket_heatmap(
     since: timezone.datetime | None = None,
     auto_range: bool = True,
 ) -> HeatmapPayload:
-    """Produce a week-day/hour matrix with ticket counts."""
+    """Genera la matriz Semana × Hora para el heatmap principal.
+
+    Parámetros:
+        queryset: tickets ya filtrados por permisos/fecha.
+        since: fecha mínima; si es ``None`` y ``auto_range`` es ``True`` se toma
+            un rango de 14 días.
+        auto_range: controla si se aplica el rango dinámico por defecto.
+
+    Retorna:
+        ``HeatmapPayload`` con totales por hora y día además de la matriz normalizada.
+    """
 
     if auto_range and since is None:
         since = timezone.now() - timedelta(days=13)
