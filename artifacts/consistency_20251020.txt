@@ -1,5 +1,0 @@
-Métrica | KPI | Listado | Reporte
-------- | --- | ------- | -------
-Tickets totales visibles | 1 | 1 | 1
-Tickets abiertos | 1 | 1 | 1
-Subcategoría VPN | 1 | 1 | 1

@@ -57,8 +57,6 @@ from .models import (
     Notification,
     Priority,
     Area,
-    TicketLabel,
-    TicketLabelSuggestion,
 )
 
 
@@ -67,8 +65,6 @@ from .services import (
     run_sla_check,
     apply_auto_assign,
     tickets_to_workbook,
-    get_label_suggestion_threshold,
-    accept_ticket_label_suggestion,
 )
 from .utils import (
     aggregate_top_subcategories,
@@ -616,7 +612,7 @@ def tickets_home(request):
             .count(),
         }
 
-    # Para el combo de estados (clave y etiqueta en español)
+    # Para el combo de estados (clave y nombre en español)
     statuses = Ticket.STATUS_CHOICES
     priorities = list(Priority.objects.order_by("name"))
     areas = list(Area.objects.order_by("name"))
@@ -811,7 +807,6 @@ def ticket_detail(request, pk):
     is_admin_u = is_admin(u)
     is_tech_u = is_tech(u)
     can_assign = is_admin_u or is_tech_u
-    can_manage_labels = is_admin_u or is_tech_u
     allowed_codes = allowed_transitions_for(t, u)
     status_map = dict(Ticket.STATUS_CHOICES)
     allowed = [(code, status_map.get(code, code)) for code in allowed_codes]
@@ -834,11 +829,6 @@ def ticket_detail(request, pk):
         can_quick_edit = True
         quick_edit_form = TicketQuickUpdateForm(instance=t, user=request.user)
 
-    suggestions = list(
-        t.label_suggestions.select_related("accepted_by").order_by("-score", "label")
-    )
-    confirmed_labels = list(t.labels.select_related("created_by").order_by("name"))
-
     ctx = {
         "t": t,
         "can_assign": can_assign,
@@ -850,10 +840,6 @@ def ticket_detail(request, pk):
         "can_upload_files": can_upload_attachments(t, u),
         "can_quick_edit": can_quick_edit,
         "quick_edit_form": quick_edit_form,
-        "label_suggestions": suggestions,
-        "confirmed_labels": confirmed_labels,
-        "can_manage_labels": can_manage_labels,
-        "label_suggestion_threshold": get_label_suggestion_threshold(),
     }
     subcategories = (
         Subcategory.objects.filter(is_active=True, category__is_active=True)
@@ -1042,31 +1028,6 @@ def ticket_assign(request, pk):
 
 @login_required
 @require_http_methods(["POST"])
-def accept_label_suggestion(request, pk, suggestion_id):
-    """Acepta una sugerencia automática de etiqueta."""
-
-    t = get_object_or_404(Ticket, pk=pk)
-    u = request.user
-
-    if not (is_admin(u) or is_tech(u)):
-        return forbidden_response(request, "Solo técnicos o administradores pueden confirmar etiquetas.")
-
-    try:
-        suggestion = t.label_suggestions.get(pk=suggestion_id)
-    except TicketLabelSuggestion.DoesNotExist:
-        return forbidden_response(request, "La sugerencia indicada no existe.")
-
-    if suggestion.is_accepted:
-        messages.info(request, "Esta sugerencia ya estaba aceptada.")
-        return redirect("ticket_detail", pk=t.pk)
-
-    accept_ticket_label_suggestion(suggestion, actor=u)
-    messages.success(request, f"Etiqueta '{suggestion.label}' confirmada.")
-    return redirect("ticket_detail", pk=t.pk)
-
-
-@login_required
-@require_http_methods(["POST"])
 def ticket_quick_update(request, pk):
     """Actualizar título, prioridad y clasificación del ticket desde la ficha."""
 
@@ -1106,7 +1067,7 @@ def ticket_quick_update(request, pk):
     form.save()
     t.refresh_from_db(fields=["title", "priority", "category", "area", "kind"])
 
-    label_map = {
+    field_titles = {
         "title": "Título",
         "priority": "Prioridad",
         "category": "Categoría",
@@ -1128,17 +1089,17 @@ def ticket_quick_update(request, pk):
     }
 
     changes = []
-    labels_for_message: list[str] = []
+    titles_for_message: list[str] = []
     for field in form.changed_data:
         changes.append(
             {
                 "field": field,
-                "label": label_map.get(field, field),
+                "field_caption": field_titles.get(field, field),
                 "from": _format_value(previous.get(field)),
                 "to": _format_value(updated.get(field)),
             }
         )
-        labels_for_message.append(label_map.get(field, field))
+        titles_for_message.append(field_titles.get(field, field))
 
     AuditLog.objects.create(
         ticket=t,
@@ -1155,11 +1116,11 @@ def ticket_quick_update(request, pk):
             return cleaned[0]
         return ", ".join(cleaned[:-1]) + " y " + cleaned[-1]
 
-    change_summary = _human_join(labels_for_message)
+    change_summary = _human_join(titles_for_message)
     messages.success(request, f"Ticket actualizado: {change_summary}.")
 
     link = reverse("ticket_detail", args=[t.pk])
-    verb = "actualizó" if len(labels_for_message) == 1 else "actualizaron"
+    verb = "actualizó" if len(titles_for_message) == 1 else "actualizaron"
     notify_message = f"Ticket {t.code}: se {verb} {change_summary}."
     if t.requester_id and t.requester_id != u.id:
         create_notification(t.requester, notify_message, link)
@@ -1427,10 +1388,6 @@ def ticket_pdf(request, pk):
                 "ticketattachment_set",
                 queryset=TicketAttachment.objects.order_by("uploaded_at"),
             ),
-            Prefetch(
-                "labels",
-                queryset=TicketLabel.objects.select_related("created_by").order_by("name"),
-            ),
         ),
         pk=pk,
     )
@@ -1445,7 +1402,6 @@ def ticket_pdf(request, pk):
     template = get_template("tickets/ticket_pdf.html")
     public_comments = [c for c in t.ticketcomment_set.all() if not c.is_internal]
     attachments = list(t.ticketattachment_set.all())
-    labels = list(t.labels.all())
     html = template.render(
         {
             "t": t,
@@ -1453,7 +1409,6 @@ def ticket_pdf(request, pk):
             "generated_at": timezone.now(),
             "public_comments": public_comments,
             "attachments": attachments,
-            "labels": labels,
         }
     )
     result = BytesIO()

@@ -6,8 +6,7 @@ from django.utils import timezone
 
 from catalog.models import Category, Priority, Subcategory
 
-from tickets.models import Ticket, TicketLabelSuggestion, TicketLabel
-from tickets.services import accept_ticket_label_suggestion
+from tickets.models import Ticket
 from tickets.utils import (
     aggregate_top_subcategories,
     build_ticket_heatmap,
@@ -40,22 +39,6 @@ class DashboardAnalyticsTests(TestCase):
         }
         defaults.update(kwargs)
         return Ticket.objects.create(**defaults)
-
-    def test_accept_ticket_label_suggestion_creates_label(self):
-        ticket = self._create_ticket()
-        suggestion = TicketLabelSuggestion.objects.create(
-            ticket=ticket,
-            label="VPN",
-            score=0.82,
-        )
-
-        accept_ticket_label_suggestion(suggestion, actor=self.tech)
-        suggestion.refresh_from_db()
-
-        self.assertTrue(suggestion.is_accepted)
-        self.assertTrue(
-            TicketLabel.objects.filter(ticket=ticket, name="VPN").exists()
-        )
 
     def test_build_ticket_heatmap_counts_by_hour(self):
         now = timezone.now()

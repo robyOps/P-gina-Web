@@ -1,22 +1,18 @@
 """
 Propósito:
-    Implementar la API REST del módulo de tickets, incluyendo CRUD, comentarios,
-    adjuntos, alertas y métricas operativas.
-API pública:
-    ``TicketViewSet`` y las vistas auxiliares ``TicketSuggestionBulkRecomputeView``,
-    ``TicketAlertListView`` y ``SubcategoryBackfillView``.
-Flujo de datos:
-    HTTP → ViewSet/Vistas → Serializadores/Servicios → Modelos → Respuesta JSON.
+    Implementar la API REST del módulo de tickets (CRUD, comentarios, adjuntos, alertas).
+Qué expone:
+    ``TicketViewSet`` más vistas auxiliares ``TicketAlertListView`` y ``SubcategoryBackfillView``.
 Permisos:
-    Controlados mediante ``AuthenticatedSafeMethodsOnlyForRequesters`` y
-    ``PrivilegedOnlyPermission`` para limitar operaciones a solicitantes, técnicos
-    y administradores según corresponda.
-Decisiones de diseño:
-    Se eliminó la re-entrenación de clústeres porque ya no existe consumo en la UI,
-    reduciendo mantenimiento y carga batch sin afectar funcionalidades activas.
+    Se aplican ``AuthenticatedSafeMethodsOnlyForRequesters`` y ``PrivilegedOnlyPermission``
+    para limitar operaciones según rol (solicitante, técnico, administrador).
+Flujo de datos:
+    HTTP → vistas → serializadores/servicios → modelos → respuesta JSON.
+Decisiones:
+    Se retiraron agrupaciones semánticas heredadas del contrato público conservando compatibilidad interna.
 Riesgos:
-    Cambios en reglas de negocio (auto-asignación, transiciones) deben reflejarse
-    tanto aquí como en servicios compartidos para mantener auditoría coherente.
+    Cualquier cambio en auto-asignación o reglas de transición debe replicarse en servicios
+    compartidos para mantener el AuditLog y los reportes sincronizados.
 """
 
 from django.utils import timezone  # para sellos de tiempo (resolved_at / closed_at)
@@ -43,8 +39,6 @@ from .models import (
     TicketAttachment,    # adjuntos
     TicketAssignment,    # historial de asignaciones
     AuditLog,            # historial/auditoría de acciones
-    TicketLabel,
-    TicketLabelSuggestion,
 )
 
 from catalog.models import Category, Subcategory, Area
@@ -55,8 +49,6 @@ from .serializers import (
     TicketCommentSerializer,
     TicketAttachmentSerializer,
     TicketAssignmentSerializer,  # útil para exponer historial de asignaciones
-    TicketLabelSerializer,
-    TicketLabelSuggestionSerializer,
 )
 
 # Validación de archivos subidos
@@ -64,10 +56,6 @@ from .validators import validate_upload, UploadValidationError
 
 from .services import (
     apply_auto_assign,
-    recompute_ticket_label_suggestions,
-    accept_ticket_label_suggestion,
-    get_label_suggestion_threshold,
-    bulk_recompute_ticket_label_suggestions,
     collect_ticket_alerts,
 )
 from .utils import sanitize_text
@@ -90,13 +78,6 @@ def filter_tickets_for_user(qs, user):
         return qs.filter(assigned_to=user)
     return qs.filter(requester=user)
 
-
-class TicketSuggestionPagination(PageNumberPagination):
-    page_size = 20
-    page_size_query_param = "page_size"
-    max_page_size = 100
-
-
 class TicketAlertPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = "page_size"
@@ -117,8 +98,6 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     serializer_class = TicketSerializer                     # serializer por defecto
     permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]      # exige JWT/usuario logeado
-    suggestion_pagination_class = TicketSuggestionPagination
-
     # Query base (con relaciones) y orden (últimos creados primero)
     queryset = (
         Ticket.objects.select_related(
@@ -132,7 +111,6 @@ class TicketViewSet(viewsets.ModelViewSet):
     )
 
     # Filtros por query string (?status=&category=&priority=&area=)
-    # ``cluster_id`` quedó obsoleto; no se expone en la API ni en la UI.
     filterset_fields = ["status", "category", "subcategory", "priority", "area"]
 
     # --------- Visibilidad por rol ---------
@@ -183,11 +161,6 @@ class TicketViewSet(viewsets.ModelViewSet):
             qs = qs.filter(created_at__date__lte=date_to)
 
         return qs
-
-    def get_suggestion_paginator(self):
-        if not hasattr(self, "_suggestion_paginator"):
-            self._suggestion_paginator = self.suggestion_pagination_class()
-        return self._suggestion_paginator
 
     # --------- Crear ticket ---------
     def perform_create(self, serializer):
@@ -259,100 +232,6 @@ class TicketViewSet(viewsets.ModelViewSet):
         return Response({"message": "Asignado", "from": prev.id if prev else None, "to": to_user.id}, status=200)
 
 
-    # ---------- Etiquetas sugeridas ----------
-    def _require_label_access(self, request, ticket):
-        if not (is_admin(request.user) or is_tech(request.user)):
-            return Response({"detail": "Solo técnicos o administradores pueden gestionar etiquetas."}, status=status.HTTP_403_FORBIDDEN)
-        return None
-
-    def _suggestions_queryset(self, ticket):
-        return ticket.label_suggestions.order_by("-score", "label")
-
-    @action(detail=True, methods=["get"], url_path="suggestions")
-    def list_suggestions(self, request, pk=None):
-        ticket = self.get_object()
-        forbidden = self._require_label_access(request, ticket)
-        if forbidden:
-            return forbidden
-
-        suggestions = self._suggestions_queryset(ticket)
-
-        status_filter = (request.query_params.get("status") or "").lower()
-        if status_filter == "pending":
-            suggestions = suggestions.filter(is_accepted=False)
-        elif status_filter == "accepted":
-            suggestions = suggestions.filter(is_accepted=True)
-
-        paginator = self.get_suggestion_paginator()
-        page = paginator.paginate_queryset(suggestions, request, view=self)
-        serializer = TicketLabelSuggestionSerializer(page, many=True)
-
-        labels = TicketLabel.objects.filter(ticket=ticket).order_by("name")
-        response = paginator.get_paginated_response(serializer.data)
-        response.data["meta"] = {
-            "threshold": get_label_suggestion_threshold(),
-            "labels": TicketLabelSerializer(labels, many=True).data,
-        }
-        return response
-
-    @action(detail=True, methods=["post"], url_path="recompute-suggestions")
-    def recompute_suggestions(self, request, pk=None):
-        ticket = self.get_object()
-        forbidden = self._require_label_access(request, ticket)
-        if forbidden:
-            return forbidden
-
-        threshold = request.data.get("threshold")
-        parsed_threshold = None
-        if threshold is not None:
-            try:
-                parsed_threshold = float(threshold)
-            except (TypeError, ValueError):
-                return Response({"detail": "threshold debe ser numérico."}, status=status.HTTP_400_BAD_REQUEST)
-
-        result = recompute_ticket_label_suggestions(ticket, threshold=parsed_threshold)
-        logger.info(
-            "Recomputo de sugerencias por API",
-            extra={"ticket_id": ticket.id, "actor_id": request.user.id, "metrics": result},
-        )
-        return Response({"detail": "Sugerencias recalculadas", "metrics": result})
-
-    @action(
-        detail=True,
-        methods=["post"],
-        url_path=r"suggestions/(?P<suggestion_id>[^/.]+)/accept",
-    )
-    def accept_suggestion(self, request, pk=None, suggestion_id=None):
-        ticket = self.get_object()
-        forbidden = self._require_label_access(request, ticket)
-        if forbidden:
-            return forbidden
-
-        try:
-            suggestion = TicketLabelSuggestion.objects.get(id=suggestion_id, ticket=ticket)
-        except TicketLabelSuggestion.DoesNotExist:
-            return Response({"detail": "Sugerencia no encontrada."}, status=status.HTTP_404_NOT_FOUND)
-
-        if suggestion.is_accepted:
-            serializer = TicketLabelSuggestionSerializer(suggestion)
-            return Response({"detail": "La sugerencia ya estaba aceptada.", "suggestion": serializer.data})
-
-        label = accept_ticket_label_suggestion(suggestion, actor=request.user)
-        suggestion.refresh_from_db()
-        logger.info(
-            "Sugerencia aceptada",
-            extra={"ticket_id": ticket.id, "suggestion_id": suggestion.id, "actor_id": request.user.id},
-        )
-
-        return Response(
-            {
-                "detail": "Etiqueta confirmada.",
-                "suggestion": TicketLabelSuggestionSerializer(suggestion).data,
-                "label": TicketLabelSerializer(label).data,
-            },
-            status=status.HTTP_200_OK,
-        )
-
     # ---------- H5: Transiciones ----------
     @action(detail=True, methods=["post"])
     def transition(self, request, pk=None):
@@ -410,9 +289,9 @@ class TicketViewSet(viewsets.ModelViewSet):
             ticket=ticket, actor=u, action="STATUS",
             meta={
                 "from": previous_status,
-                "from_label": status_map.get(previous_status),
+                "from_status_name": status_map.get(previous_status),
                 "to": next_status,
-                "to_label": status_map.get(next_status),
+                "to_status_name": status_map.get(next_status),
                 "with_comment": bool(comment_clean),
                 "internal": bool(is_internal),
                 "comment_id": getattr(comment_obj, "id", None),
@@ -555,106 +434,6 @@ class TicketViewSet(viewsets.ModelViewSet):
             "created_at",       # cuándo
         ).order_by("-created_at")
         return Response(list(logs), status=200)
-
-
-
-
-class TicketSuggestionBulkRecomputeView(APIView):
-    permission_classes = [PrivilegedOnlyPermission]
-
-    def post(self, request):
-        if not is_admin(request.user):
-            return Response(
-                {"detail": "Solo administradores pueden recalcular en lote."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        raw_ticket_ids = request.data.get("ticket_ids") or []
-        if isinstance(raw_ticket_ids, (int, str)):
-            raw_ticket_ids = [raw_ticket_ids]
-
-        try:
-            ticket_ids = [int(value) for value in raw_ticket_ids]
-        except (TypeError, ValueError):
-            return Response(
-                {"detail": "ticket_ids debe ser una lista de enteros."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        threshold = request.data.get("threshold")
-        parsed_threshold = None
-        if threshold is not None:
-            try:
-                parsed_threshold = float(threshold)
-            except (TypeError, ValueError):
-                return Response(
-                    {"detail": "threshold debe ser numérico."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            if not (0 <= parsed_threshold <= 1):
-                return Response(
-                    {"detail": "threshold debe estar entre 0 y 1."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-        only_open = bool(request.data.get("only_open", False))
-
-        limit_raw = request.data.get("limit")
-        if limit_raw is not None:
-            try:
-                limit = int(limit_raw)
-            except (TypeError, ValueError):
-                return Response(
-                    {"detail": "limit debe ser entero."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            if limit <= 0:
-                return Response(
-                    {"detail": "limit debe ser mayor a cero."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-        else:
-            limit = None
-
-        chunk_raw = request.data.get("chunk_size")
-        if chunk_raw is not None:
-            try:
-                chunk_size = int(chunk_raw)
-            except (TypeError, ValueError):
-                return Response(
-                    {"detail": "chunk_size debe ser entero."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-        else:
-            chunk_size = 200
-
-        qs = Ticket.objects.select_related("priority", "area", "category", "subcategory").order_by("id")
-        if only_open:
-            qs = qs.filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
-        if ticket_ids:
-            qs = qs.filter(id__in=set(ticket_ids))
-        if limit is not None:
-            qs = qs[:limit]
-
-        metrics = bulk_recompute_ticket_label_suggestions(
-            queryset=qs,
-            threshold=parsed_threshold,
-            chunk_size=chunk_size,
-        )
-
-        logger.info(
-            "Recomputo masivo de sugerencias",
-            extra={"actor_id": request.user.id, "metrics": metrics},
-        )
-
-        return Response(
-            {
-                "detail": "Recomputo completado.",
-                "metrics": metrics,
-            },
-            status=status.HTTP_200_OK,
-        )
-
 
 class TicketAlertListView(APIView):
     permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]

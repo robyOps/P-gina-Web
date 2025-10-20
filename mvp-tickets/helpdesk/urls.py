@@ -52,12 +52,6 @@ urlpatterns = [
     path("tickets/<int:pk>/pdf/", ticket_views.ticket_pdf, name="ticket_pdf"),
     # Asignación manual del ticket ``pk`` a un agente o cola.
     path("tickets/<int:pk>/assign/", ticket_views.ticket_assign, name="ticket_assign"),
-    # Acepta sugerencia concreta ``suggestion_id`` para el ticket ``pk``.
-    path(
-        "tickets/<int:pk>/labels/<int:suggestion_id>/accept/",
-        ticket_views.accept_label_suggestion,
-        name="ticket_accept_suggestion",
-    ),
     # Actualización rápida de campos permitidos en ticket ``pk``.
     path("tickets/<int:pk>/update/", ticket_views.ticket_quick_update, name="ticket_quick_update"),
     # Transición de estado del ticket ``pk`` siguiendo el flujo definido.
