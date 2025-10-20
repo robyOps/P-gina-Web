@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
-from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Dict, Iterable as IterableType, List, Tuple
-from decimal import Decimal
-import re
-import time
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -26,8 +22,6 @@ from .models import (
     Notification,
     Ticket,
     TicketAssignment,
-    TicketLabel,
-    TicketLabelSuggestion,
 )
 
 User = get_user_model()
@@ -44,39 +38,6 @@ class TicketAlertSnapshot:
     elapsed_hours: float
     threshold_hours: float
 
-
-# Parámetros por defecto para sugerencias de etiquetas
-DEFAULT_LABEL_SUGGESTION_THRESHOLD = 0.35
-
-# Palabras clave y etiquetas asociadas
-KEYWORD_LABELS = {
-    "error": "Error",
-    "bug": "Bug",
-    "fallo": "Error",
-    "caido": "Caída de servicio",
-    "caída": "Caída de servicio",
-    "lento": "Rendimiento",
-    "demora": "Rendimiento",
-    "factura": "Facturación",
-    "facturación": "Facturación",
-    "pago": "Pagos",
-    "pagos": "Pagos",
-    "correo": "Correo",
-    "email": "Correo",
-    "mail": "Correo",
-    "vpn": "VPN",
-    "acceso": "Acceso",
-    "login": "Acceso",
-    "contraseña": "Credenciales",
-    "password": "Credenciales",
-    "clave": "Credenciales",
-    "bloqueado": "Bloqueo de usuario",
-    "bloqueada": "Bloqueo de usuario",
-    "actualización": "Actualización",
-    "actualizar": "Actualización",
-    "instalación": "Instalación",
-    "instalar": "Instalación",
-}
 
 
 # ---------------------------------------------------------------------------
@@ -410,188 +371,6 @@ def tickets_to_workbook(qs) -> Workbook:
         )
 
     return wb
-
-
-# ---------------------------------------------------------------------------
-# Etiquetas sugeridas
-# ---------------------------------------------------------------------------
-
-def _tokenize(text: str) -> List[str]:
-    pattern = re.compile(r"[\wáéíóúñüÁÉÍÓÚÑÜ]+", re.UNICODE)
-    return [chunk.lower() for chunk in pattern.findall(text or "")]
-
-
-def get_label_suggestion_threshold() -> float:
-    """Obtiene el umbral configurado para sugerencias (fallback al default)."""
-
-    value = getattr(settings, "TICKET_LABEL_SUGGESTION_THRESHOLD", DEFAULT_LABEL_SUGGESTION_THRESHOLD)
-    try:
-        return max(0.0, min(float(value), 1.0))
-    except (TypeError, ValueError):
-        return DEFAULT_LABEL_SUGGESTION_THRESHOLD
-
-
-def generate_label_candidates(ticket: Ticket) -> List[Tuple[str, float]]:
-    """Calcula candidatos de etiquetas en base a título y descripción."""
-
-    text = f"{ticket.title}\n{ticket.description}"
-    tokens = _tokenize(text)
-    if not tokens:
-        return []
-
-    counts: Counter[str] = Counter()
-    for token in tokens:
-        label = KEYWORD_LABELS.get(token)
-        if label:
-            counts[label] += 1
-
-    # Bonus según categoría/área conocida
-    if ticket.category_id:
-        counts[f"Categoría: {ticket.category.name}"] += 1.5
-    if ticket.area_id:
-        counts[f"Área: {ticket.area.name}"] += 1.2
-
-    total_tokens = len(tokens)
-    suggestions: List[Tuple[str, float]] = []
-    for label, weight in counts.items():
-        raw_score = (weight / total_tokens) * 3
-        clamped = max(0.05, min(raw_score, 1.0))
-        # Redondeamos a dos decimales para guardar en DecimalField
-        score = round(clamped + 0.1, 2)
-        suggestions.append((label, float(score)))
-
-    suggestions.sort(key=lambda item: item[1], reverse=True)
-    return suggestions
-
-
-def recompute_ticket_label_suggestions(
-    ticket: Ticket,
-    *,
-    threshold: float | None = None,
-) -> Dict[str, int | float]:
-    """Recalcula sugerencias para un ticket respetando el umbral indicado."""
-
-    threshold_value = get_label_suggestion_threshold() if threshold is None else max(0.0, min(float(threshold), 1.0))
-
-    candidates = generate_label_candidates(ticket)
-    seen: set[str] = set()
-    created = updated = removed = 0
-
-    existing: Dict[str, TicketLabelSuggestion] = {
-        suggestion.label.lower(): suggestion
-        for suggestion in ticket.label_suggestions.all()
-    }
-
-    for label, score in candidates:
-        if score < threshold_value:
-            continue
-        key = label.lower()
-        seen.add(key)
-        suggestion = existing.get(key)
-        decimal_score = Decimal(f"{score:.2f}")
-        if suggestion:
-            if suggestion.score != decimal_score:
-                suggestion.score = decimal_score
-                suggestion.save(update_fields=["score", "updated_at"])
-                updated += 1
-            continue
-        TicketLabelSuggestion.objects.create(ticket=ticket, label=label, score=decimal_score)
-        created += 1
-
-    for suggestion in ticket.label_suggestions.filter(is_accepted=False):
-        if suggestion.label.lower() not in seen:
-            suggestion.delete()
-            removed += 1
-
-    total = ticket.label_suggestions.count()
-    return {
-        "created": created,
-        "updated": updated,
-        "removed": removed,
-        "total": total,
-        "threshold": threshold_value,
-    }
-
-
-def bulk_recompute_ticket_label_suggestions(
-    *,
-    queryset: IterableType[Ticket] | None = None,
-    threshold: float | None = None,
-    chunk_size: int = 200,
-) -> Dict[str, float | int]:
-    """Recalcula sugerencias en lote registrando métricas básicas."""
-
-    if chunk_size <= 0:
-        chunk_size = 200
-
-    qs = queryset or Ticket.objects.all()
-    if hasattr(qs, "order_by"):
-        qs = qs.order_by("id")
-
-    detected = qs.count() if hasattr(qs, "count") else 0
-    started_at = timezone.now()
-    start = time.perf_counter()
-
-    processed = created = updated = removed = 0
-
-    iterator = qs.iterator(chunk_size=chunk_size) if hasattr(qs, "iterator") else qs
-
-    for ticket in iterator:
-        processed += 1
-        result = recompute_ticket_label_suggestions(ticket, threshold=threshold)
-        created += int(result.get("created", 0))
-        updated += int(result.get("updated", 0))
-        removed += int(result.get("removed", 0))
-
-    duration = round(time.perf_counter() - start, 4)
-
-    finished_at = timezone.now()
-
-    return {
-        "tickets_detected": detected,
-        "tickets_processed": processed,
-        "suggestions_created": created,
-        "suggestions_updated": updated,
-        "suggestions_removed": removed,
-        "threshold": (
-            get_label_suggestion_threshold()
-            if threshold is None
-            else max(0.0, min(float(threshold), 1.0))
-        ),
-        "started_at": started_at,
-        "finished_at": finished_at,
-        "duration_seconds": duration,
-    }
-
-
-def accept_ticket_label_suggestion(
-    suggestion: TicketLabelSuggestion,
-    *,
-    actor,
-) -> TicketLabel:
-    """Acepta una sugerencia y crea la etiqueta confirmada."""
-
-    suggestion.mark_accepted(user=actor)
-    label, _ = TicketLabel.objects.get_or_create(
-        ticket=suggestion.ticket,
-        name=suggestion.label,
-        defaults={"created_by": actor},
-    )
-    if label.created_by is None and actor:
-        label.created_by = actor
-        label.save(update_fields=["created_by"])
-
-    AuditLog.objects.create(
-        ticket=suggestion.ticket,
-        actor=actor,
-        action="UPDATE",
-        meta={
-            "labels": [label.name],
-            "source": "label_suggestion",
-        },
-    )
-
-    return label
 
 
 def collect_ticket_alerts(

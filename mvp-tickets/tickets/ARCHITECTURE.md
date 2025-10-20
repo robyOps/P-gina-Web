@@ -9,8 +9,7 @@ App núcleo que maneja creación, seguimiento, asignación y análisis de ticket
 - `views.py`: vistas server-rendered para panel y detalle.
 - `services.py`: lógica de negocio desacoplada de vistas.
 - `utils.py`, `validators.py`, `timezones.py`: utilidades complementarias.
-- `management/commands/*`: tareas programadas (SLA, notificaciones, clustering).
-- `clustering.py`: helpers de ML ligero.
+- `management/commands/*`: tareas programadas (SLA, notificaciones).
 - `tests/`: pruebas del API y analítica.
 
 ## Contratos

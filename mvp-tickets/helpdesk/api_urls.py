@@ -1,18 +1,16 @@
 """
 Propósito:
-    Centralizar el enrutamiento de la API REST bajo ``/api/``.
-API pública:
-    ``router`` y ``urlpatterns`` que Django importa desde ``urls.py``.
-Flujo de datos:
-    HTTP → ``DefaultRouter``/``path`` → viewsets/vistas → serializadores → JSON/archivos.
+    Registrar rutas REST públicas bajo ``/api/`` enlazándolas con las vistas correspondientes.
+Qué expone:
+    Un ``DefaultRouter`` para catálogos y tickets más rutas adicionales para filtros, alertas y reportes.
 Permisos:
-    Delegados a las vistas; este módulo solo conecta rutas existentes sin ampliar alcance.
-Decisiones de diseño:
-    Se exponen rutas adicionales para recomputar sugerencias y reportes pero se
-    retira la ruta de re-entrenamiento de clústeres al quedar obsoleta.
+    Delegados completamente en las vistas; aquí solo se conectan endpoints ya protegidos.
+Flujo de datos:
+    HTTP → ``DefaultRouter``/``path`` → vistas → serializadores → JSON o archivos descargables.
+Decisiones:
+    Se retiraron rutas de clústeres y marcadores semánticos al quedar sin uso; solo permanecen filtros, alertas y reportes vigentes.
 Riesgos:
-    Cualquier ruta añadida aquí debe documentarse para mantener coherencia con la
-    navegación y la documentación pública.
+    Toda ruta nueva debe registrarse también en la documentación para mantener trazabilidad con los clientes.
 """
 
 from django.urls import path, include
@@ -22,7 +20,6 @@ from accounts.api import MeView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from tickets.api import (
     TicketViewSet,
-    TicketSuggestionBulkRecomputeView,
     TicketAlertListView,
     TicketFilterOptionsView,
     SubcategoryBackfillView,
@@ -49,11 +46,6 @@ urlpatterns = [
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("auth/me/", MeView.as_view(), name="auth_me"),
     path("", include(router.urls)),
-    path(
-        "tickets/recompute-suggestions/",
-        TicketSuggestionBulkRecomputeView.as_view(),
-        name="tickets_recompute_suggestions",
-    ),
     path(
         "tickets/alerts/",
         TicketAlertListView.as_view(),

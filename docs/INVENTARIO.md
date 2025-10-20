@@ -93,14 +93,11 @@
 | tickets/api.py | Python | 888 | 32488 | Alta |
 | tickets/apps.py | Python | 11 | 470 | Baja |
 | tickets/backfill.py | Python | 149 | 4343 | Media |
-| tickets/clustering.py | Python | 204 | 5104 | Alta |
 | tickets/forms.py | Python | 362 | 15116 | Alta |
 | tickets/management/__init__.py | Python | 0 | 0 | Baja |
 | tickets/management/commands/__init__.py | Python | 0 | 0 | Baja |
 | tickets/management/commands/check_sla.py | Python | 32 | 1377 | Baja |
 | tickets/management/commands/evaluate_ticket_alerts.py | Python | 46 | 1579 | Baja |
-| tickets/management/commands/recompute_label_suggestions.py | Python | 116 | 3811 | Media |
-| tickets/management/commands/retrain_ticket_clusters.py | Python | 65 | 2226 | Baja |
 | tickets/management/commands/send_due_notifications.py | Python | 35 | 1191 | Baja |
 | tickets/migrations/0001_initial.py | Python | 63 | 3657 | Baja |
 | tickets/migrations/0002_ticketassignment.py | Python | 27 | 1217 | Baja |
@@ -119,7 +116,6 @@
 | tickets/migrations/0015_alter_auditlog_action.py | Python | 28 | 796 | Baja |
 | tickets/migrations/0016_update_ticket_permissions.py | Python | 24 | 759 | Baja |
 | tickets/migrations/0017_ticketlabel_ticketlabelsuggestion.py | Python | 96 | 3418 | Media |
-| tickets/migrations/0018_ticket_cluster_id.py | Python | 17 | 430 | Baja |
 | tickets/migrations/0019_ticket_indexes.py | Python | 19 | 518 | Baja |
 | tickets/migrations/0020_ticket_subcategory.py | Python | 26 | 658 | Baja |
 | tickets/migrations/0021_faq_subcategory.py | Python | 25 | 710 | Baja |

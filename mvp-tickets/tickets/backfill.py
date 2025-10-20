@@ -42,25 +42,6 @@ class SubcategoryBackfillReport:
         return round((self.completed / self.total) * 100, 2)
 
 
-def _build_label_index(subcategories: Iterable[Subcategory]) -> dict[str, Subcategory]:
-    index: dict[str, Subcategory] = {}
-    for subcategory in subcategories:
-        key = _normalize(subcategory.name)
-        if key:
-            index[key] = subcategory
-    return index
-
-
-def _match_by_labels(ticket: Ticket, label_index: dict[str, Subcategory]) -> Subcategory | None:
-    labels = ticket.labels.all().values_list("name", flat=True)
-    for label in labels:
-        normalized = _normalize(label)
-        candidate = label_index.get(normalized)
-        if candidate and candidate.category_id == ticket.category_id:
-            return candidate
-    return None
-
-
 def _match_by_text(ticket: Ticket, subcategories: Iterable[Subcategory]) -> Subcategory | None:
     searchable = _normalize(f"{ticket.title} {ticket.description}")
     if not searchable:
@@ -93,7 +74,6 @@ def run_subcategory_backfill(*, queryset: QuerySet[Ticket] | None = None, dry_ru
         )
 
     subcategories = list(Subcategory.objects.filter(is_active=True).select_related("category"))
-    label_index = _build_label_index(subcategories)
 
     deterministic = 0
     heuristic = 0
@@ -101,20 +81,11 @@ def run_subcategory_backfill(*, queryset: QuerySet[Ticket] | None = None, dry_ru
 
     with transaction.atomic():
         for ticket in pending:
-            chosen: Subcategory | None = _match_by_labels(ticket, label_index)
-            reason = "labels" if chosen else ""
-
-            if not chosen:
-                chosen = _match_by_text(ticket, subcategories)
-                reason = "text" if chosen else ""
-
+            chosen = _match_by_text(ticket, subcategories)
             if not chosen:
                 continue
 
-            if reason == "labels":
-                deterministic += 1
-            elif reason == "text":
-                heuristic += 1
+            heuristic += 1
 
             if not dry_run:
                 Ticket.objects.filter(pk=ticket.pk).update(subcategory=chosen)

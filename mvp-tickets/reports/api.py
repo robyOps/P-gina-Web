@@ -1,26 +1,21 @@
-# reports/api.py
-from collections import Counter
 """
 Propósito:
-    Servir los reportes de tickets (KPIs, listados, heatmaps y exportes).
-API pública:
-    Vistas ``ReportSummaryView``, ``ReportExportView`` y derivadas utilizadas por la UI.
-Flujo de datos:
-    HTTP → filtros → ``base_queryset`` → agregaciones utilitarias → JSON/PDF/XLSX.
+    Servir KPIs, listados, cruces Área×Subcategoría, heatmaps y exportes de tickets.
+Qué expone:
+    Vistas ``ReportSummaryView``, ``ReportExportView`` y relacionadas que alimentan dashboards y descargas.
 Permisos:
-    ``AuthenticatedSafeMethodsOnlyForRequesters`` restringe acceso según rol; los
-    cálculos respetan la visibilidad del usuario.
-Decisiones de diseño:
-    Las métricas se calculan desde un único queryset para cumplir el invariante
-    KPI = Listados = Reportes. Los heatmaps se delegan a ``tickets.utils`` para
-    compartir lógica con dashboards.
+    Protegidos mediante ``AuthenticatedSafeMethodsOnlyForRequesters`` respetando visibilidad por rol.
+Flujo de datos:
+    HTTP → filtros → ``base_queryset`` → agregaciones utilitarias → JSON, PDF o XLSX.
+Decisiones:
+    Todas las métricas parten del mismo queryset para garantizar el invariante KPI = Listados = Reportes; los cruces
+    Área×Subcategoría y heatmaps reutilizan helpers de ``tickets.utils``.
 Riesgos:
-    Cambios en catálogos o filtros pueden romper la coherencia de KPIs si no se
-    actualiza simultáneamente ``base_queryset`` y los agregados derivados.
+    Cambios en catálogos o filtros deben replicarse en ``base_queryset`` y agregados para evitar desalinear KPIs.
 """
 
-import csv
 import calendar
+import csv
 from collections import Counter
 from datetime import datetime, time, timedelta
 

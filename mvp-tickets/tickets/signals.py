@@ -7,7 +7,6 @@ from django.db import transaction
 
 from django.contrib.auth import get_user_model
 from .models import Ticket, TicketComment, TicketAssignment, AuditLog, EventLog
-from .services import recompute_ticket_label_suggestions
 
 User = get_user_model()
 
@@ -70,8 +69,7 @@ def on_ticket_created_or_updated(sender, instance: Ticket, created, **kwargs):
                 fail_silently=True,
             )
 
-    # Ejecuta después del commit de DB (evita enviar si falla la transacción)
-    transaction.on_commit(lambda: recompute_ticket_label_suggestions(instance))
+    # Las sugerencias automáticas se deshabilitaron; no se dispara recomputo adicional.
     if created:
         transaction.on_commit(_notify_created)
         return
@@ -95,9 +93,9 @@ def on_ticket_created_or_updated(sender, instance: Ticket, created, **kwargs):
         action="STATUS",
         meta={
             "from": old,
-            "from_label": status_map.get(old),
+            "from_status_name": status_map.get(old),
             "to": instance.status,
-            "to_label": status_map.get(instance.status),
+            "to_status_name": status_map.get(instance.status),
             "with_comment": False,
             "internal": False,
             "comment_id": None,
@@ -216,17 +214,17 @@ def on_audit_log(sender, instance: AuditLog, created, **kwargs):
         if changes:
             parts = []
             for item in changes:
-                label = item.get("label") or item.get("field")
+                field_caption = item.get("field_caption") or item.get("field")
                 value_from = item.get("from") or "Sin definir"
                 value_to = item.get("to") or "Sin definir"
-                parts.append(f"{label}: {value_from} → {value_to}")
+                parts.append(f"{field_caption}: {value_from} → {value_to}")
             message = "Actualización de ticket · " + "; ".join(parts)
     elif instance.action == "STATUS":
-        from_label = meta.get("from_label") or status_map.get(meta.get("from"))
-        to_label = meta.get("to_label") or status_map.get(meta.get("to"))
-        from_label = from_label or "Sin estado"
-        to_label = to_label or "Sin estado"
-        message = f"Estado: {from_label} → {to_label}."
+        from_name = meta.get("from_status_name") or status_map.get(meta.get("from"))
+        to_name = meta.get("to_status_name") or status_map.get(meta.get("to"))
+        from_name = from_name or "Sin estado"
+        to_name = to_name or "Sin estado"
+        message = f"Estado: {from_name} → {to_name}."
         if meta.get("with_comment"):
             preview = (meta.get("body_preview") or "").strip()
             if preview:

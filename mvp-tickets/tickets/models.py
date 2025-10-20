@@ -1,18 +1,19 @@
 """
 Propósito:
-    Definir la capa de persistencia del dominio de tickets, comentarios y adjuntos.
-API pública:
-    Modelos ``Ticket`` y relacionados utilizados por la API y el panel de administración.
-Flujo de datos:
-    Formularios/API → modelos (BD relacional) y ficheros en ``/media`` para adjuntos.
+    Definir los modelos que guardan tickets, comentarios, adjuntos y auditoría.
+Qué expone:
+    Clases ``Ticket`` y derivadas consumidas por la API REST, panel de ayuda y reportes.
 Permisos:
-    Las ``ForeignKey`` a ``AUTH_USER_MODEL`` permiten validar ownership y auditoría.
-Decisiones de diseño:
-    Se conserva ``cluster_id`` como campo obsoleto para evitar una migración que
-    bloquee despliegues; la UI y la API ya no lo consumen.
+    Las llaves foráneas hacia ``AUTH_USER_MODEL`` habilitan auditoría y control de roles.
+Flujo de datos:
+    La base de datos almacena metadatos estructurados; los archivos viven en ``/media`` y
+    siempre se consumen mediante la aplicación para respetar permisos.
+Decisiones:
+    Se conserva el identificador semántico heredado y las tablas históricas como compatibilidad retroactiva,
+    aunque ya no participan de la UI, la API ni los reportes.
 Riesgos:
-    Cambios en catálogos externos requieren validación adicional para mantener
-    integridad referencial y consistencia entre métricas y reportes.
+    Cambios en catálogos externos o en reglas de transición deben mantenerse alineados para
+    preservar la integridad de métricas y el AuditLog.
 """
 
 from django.db import models                     # tipos de campo y utilidades de modelos
@@ -35,7 +36,7 @@ class Ticket(models.Model):
     RESOLVED = "RESOLVED"
     CLOSED = "CLOSED"
 
-    # Lista de opciones de estado (clave, etiqueta legible)
+    # Lista de opciones de estado (clave, nombre legible)
     STATUS_CHOICES = [
         (OPEN, "Abierto"),
         (IN_PROGRESS, "En Progreso"),
@@ -84,7 +85,7 @@ class Ticket(models.Model):
     # Área (opcional). PROTECT para no borrar áreas en uso
     area = models.ForeignKey(Area, on_delete=models.PROTECT, null=True, blank=True)
 
-    # deprecated: retained to avoid DB migration. No consumido por UI/API actual.
+    # DEPRECATED: campo conservado para compatibilidad; no se usa en UI/API/Reportes.
     cluster_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
 
     # Campo sensible: status controla SLA y visibilidad en reportes.
@@ -248,8 +249,9 @@ class TicketAttachment(models.Model):
 
 
 # ------------------------- ETIQUETAS -------------------------
+# DEPRECATED: etiquetas deshabilitadas; se conservan para compatibilidad histórica.
 class TicketLabel(models.Model):
-    """Etiquetas confirmadas para un ticket."""
+    """Registro histórico de etiquetas confirmadas, ya no expuesto a usuarios."""
 
     ticket = models.ForeignKey(
         Ticket,
@@ -278,7 +280,7 @@ class TicketLabel(models.Model):
 
 
 class TicketLabelSuggestion(models.Model):
-    """Propuesta de etiqueta automática con puntaje."""
+    """Propuesta automática almacenada por compatibilidad, sin uso en la plataforma."""
 
     ticket = models.ForeignKey(
         Ticket,

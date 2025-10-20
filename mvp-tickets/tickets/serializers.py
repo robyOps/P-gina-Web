@@ -1,21 +1,16 @@
 """
 Propósito:
-    Serializar la entidad Ticket y componentes relacionados para exponerlos vía API.
-API pública:
-    ``TicketSerializer`` y los serializers análogos para comentarios, adjuntos,
-    asignaciones y etiquetas.
-Flujo de datos:
-    Modelos de Django → serializadores → JSON de respuesta / validación → modelos.
+    Convertir modelos de tickets en estructuras JSON seguras para la API REST.
+Qué expone:
+    Serializadores de tickets, comentarios, adjuntos y asignaciones utilizadas por ``tickets.api``.
 Permisos:
-    La lógica de permisos vive en ``tickets.api``; aquí solo se respetan campos de
-    solo lectura para evitar elevación de privilegios involuntaria.
-Decisiones de diseño:
-    Se ocultan campos sensibles como ``requester`` detrás de ``HiddenField`` para
-    que la API siempre use al usuario autenticado. Se retira ``cluster_id`` porque
-    quedó obsoleto y ya no participa en la UI/reportes.
+    La autorización se delega a las vistas; aquí se controlan campos de solo lectura para evitar abusos.
+Flujo de datos:
+    Modelos de Django → serializadores → JSON y viceversa durante operaciones de creación/actualización.
+Decisiones:
+    Se retiraron identificadores semánticos heredados del contrato público preservando la base de datos tal cual.
 Riesgos:
-    Cambios en los catálogos externos (categoría, prioridad, área) pueden invalidar
-    la validación cruzada; se valida explícitamente para evitar inconsistencias.
+    Cambios en catálogos externos (categoría, prioridad, área) pueden romper validaciones si no se sincronizan.
 """
 
 from rest_framework import serializers
@@ -26,8 +21,6 @@ from .models import (
     TicketComment,
     TicketAttachment,
     TicketAssignment,
-    TicketLabel,
-    TicketLabelSuggestion,
 )
 from .utils import sanitize_text
 
@@ -142,37 +135,3 @@ class TicketAssignmentSerializer(serializers.ModelSerializer):
         read_only_fields = ["from_user", "created_at"]
 
 
-class TicketLabelSerializer(serializers.ModelSerializer):
-    created_by_username = serializers.CharField(source="created_by.username", read_only=True)
-
-    class Meta:
-        model = TicketLabel
-        fields = ["id", "ticket", "name", "created_by", "created_by_username", "created_at"]
-        read_only_fields = ["ticket", "created_at", "created_by", "created_by_username"]
-
-
-class TicketLabelSuggestionSerializer(serializers.ModelSerializer):
-    accepted_by_username = serializers.CharField(source="accepted_by.username", read_only=True)
-
-    class Meta:
-        model = TicketLabelSuggestion
-        fields = [
-            "id",
-            "ticket",
-            "label",
-            "score",
-            "is_accepted",
-            "accepted_by",
-            "accepted_by_username",
-            "accepted_at",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = [
-            "ticket",
-            "accepted_by",
-            "accepted_by_username",
-            "accepted_at",
-            "created_at",
-            "updated_at",
-        ]

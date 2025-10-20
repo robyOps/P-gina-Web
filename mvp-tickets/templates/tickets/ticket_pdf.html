@@ -157,13 +157,6 @@
           <td>{% if t.closed_at %}{{ t.closed_at|date:"d/m/Y H:i" }}{% else %}<span class="muted">Pendiente</span>{% endif %}</td>
         </tr>
       </table>
-      {% if labels %}
-        <ul class="chips">
-          {% for label in labels %}
-            <li>{{ label.name }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
     </div>
 
     <div class="section">

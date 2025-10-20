@@ -1,0 +1,4 @@
+fecha=2025-10-20
+kpi_total=0
+listado_total=0
+reporte_filas=0
