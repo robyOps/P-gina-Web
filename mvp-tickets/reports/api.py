@@ -17,7 +17,7 @@ Riesgos:
 import calendar
 import csv
 from collections import Counter
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone as dt_timezone
 
 from django.db.models import Count, Avg, DurationField, ExpressionWrapper, F
 from django.http import HttpResponse
@@ -47,7 +47,7 @@ def parse_dt(s):
 
 
 def current_month_bounds():
-    today = timezone.localdate()
+    today = timezone.now().date()
     return today.replace(day=1), today
 
 
@@ -71,6 +71,9 @@ def resolve_range(raw_from, raw_to):
                 last_day = calendar.monthrange(dfrom.year, dfrom.month)[1]
                 dto = dfrom.replace(day=last_day)
 
+    if dfrom and dto and dto < dfrom:
+        dto = dfrom
+
     return dfrom, dto
 
 
@@ -91,9 +94,11 @@ def base_queryset(request):
     raw_to = request.query_params.get("to")
     dfrom, dto = resolve_range(raw_from, raw_to)
     if dfrom:
-        qs = qs.filter(created_at__date__gte=dfrom)
+        start = datetime.combine(dfrom, time.min, tzinfo=dt_timezone.utc)
+        qs = qs.filter(created_at__gte=start)
     if dto:
-        qs = qs.filter(created_at__date__lte=dto)
+        end = datetime.combine(dto, time.max, tzinfo=dt_timezone.utc)
+        qs = qs.filter(created_at__lte=end)
 
     category = (
         request.query_params.get("category_id")
