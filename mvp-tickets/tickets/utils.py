@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta, time, timezone as dt_timezone
 from typing import Sequence
 
 from django.db.models import Count, QuerySet
@@ -50,6 +50,31 @@ def sanitize_text(value: str | None) -> str:
     return cleaned
 
 
+def _resolve_since(
+    since: timezone.datetime | None,
+    *,
+    default_days: int = 30,
+) -> timezone.datetime:
+    """Normaliza el parámetro ``since`` para filtros comparables por fecha."""
+
+    if since is None:
+        return timezone.now() - timedelta(days=default_days)
+
+    if timezone.is_naive(since):
+        since = timezone.make_aware(since, dt_timezone.utc)
+
+    if (
+        since.hour == 0
+        and since.minute == 0
+        and since.second == 0
+        and since.microsecond == 0
+    ):
+        utc_date = since.astimezone(dt_timezone.utc).date()
+        return datetime.combine(utc_date, time.min, tzinfo=dt_timezone.utc)
+
+    return since.astimezone(dt_timezone.utc)
+
+
 def aggregate_top_subcategories(
     queryset: QuerySet[Ticket],
     *,
@@ -61,7 +86,7 @@ def aggregate_top_subcategories(
     if limit <= 0:
         return []
 
-    since = since or timezone.now() - timedelta(days=30)
+    since = _resolve_since(since)
     filtered = queryset.filter(created_at__gte=since, subcategory__isnull=False)
 
     rows = (
@@ -99,8 +124,10 @@ def aggregate_area_by_subcategory(
 ) -> list[dict[str, object]]:
     """Return rows of area × subcategory counts ordered by volume."""
 
-    since = since or timezone.now() - timedelta(days=30)
-    filtered = queryset.filter(created_at__gte=since, subcategory__isnull=False, area__isnull=False)
+    since = _resolve_since(since)
+    filtered = queryset.filter(
+        created_at__gte=since, subcategory__isnull=False, area__isnull=False
+    )
 
     rows = (
         filtered.values("area__name", "subcategory__name", "subcategory__category__name")
@@ -135,8 +162,10 @@ def build_area_subcategory_heatmap(
         listo para serializar en JSON.
     """
 
-    since = since or timezone.now() - timedelta(days=30)
-    filtered = queryset.filter(created_at__gte=since, subcategory__isnull=False, area__isnull=False)
+    since = _resolve_since(since)
+    filtered = queryset.filter(
+        created_at__gte=since, subcategory__isnull=False, area__isnull=False
+    )
 
     rows = (
         filtered.values("area__name", "subcategory__name")
