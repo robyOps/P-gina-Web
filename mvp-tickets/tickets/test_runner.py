@@ -136,7 +136,8 @@ class TestRunRecordingRunner(DiscoverRunner):
 
     # -- Persistencia -------------------------------------------------------
     def _write_execution_log(self, result: RecordingTestResult) -> None:
-        log_path = Path(getattr(settings, "BASE_DIR", Path.cwd())) / "test_run.txt"
+        base_dir = Path(getattr(settings, "BASE_DIR", Path.cwd()))
+        log_path = base_dir.parent / "artifacts" / "test_run.txt"
         timestamp = datetime.now().astimezone()
         header = [
             f"Ejecución: {timestamp.strftime('%Y-%m-%d %H:%M:%S %Z')}",
@@ -160,7 +161,9 @@ class TestRunRecordingRunner(DiscoverRunner):
         for record in result.test_records:
             detail_suffix = f" ({record.detail})" if record.detail else ""
             lines.append(
-                f"- [{record.category}] {record.description} → {record.state_label}{detail_suffix}"
+                "- "
+                f"[{record.category}] Se realiza test de {record.description} "
+                f"→ {record.state_label}{detail_suffix}"
             )
 
         block = "\n".join(lines) + "\n\n"

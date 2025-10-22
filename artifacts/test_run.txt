@@ -1,22 +1,18 @@
-Resumen de la ejecución automatizada (2025-10-21 23:58 UTC).
-Comando: python manage.py test --keepdb
-Duración total suite: 7.367 s
+Ejecución: 2025-10-21 22:18:20 -03
+Total de pruebas: 13
+Resumen: 13 éxitos, 0 fallos, 0 errores, 0 omitidas, 0 fallos esperados, 0 éxitos inesperados
+Detalle de pruebas:
+- [Prueba de rendimiento] Se realiza test de test_aggregate_top_subcategories_completes_quickly (tickets.tests.test_analytics.DashboardAnalyticsPerformanceTests.test_aggregate_top_subcategories_completes_quickly) → Éxito
+- [Prueba de rendimiento] Se realiza test de test_build_ticket_heatmap_is_generated_under_one_second (tickets.tests.test_analytics.DashboardAnalyticsPerformanceTests.test_build_ticket_heatmap_is_generated_under_one_second) → Éxito
+- [Prueba unitaria] Se realiza test de test_aggregate_top_subcategories_respects_limit (tickets.tests.test_analytics.DashboardAnalyticsTests.test_aggregate_top_subcategories_respects_limit) → Éxito
+- [Prueba unitaria] Se realiza test de test_build_ticket_heatmap_counts_by_hour (tickets.tests.test_analytics.DashboardAnalyticsTests.test_build_ticket_heatmap_counts_by_hour) → Éxito
+- [Prueba unitaria] Se realiza test de test_build_ticket_heatmap_uses_local_timezone (tickets.tests.test_analytics.DashboardAnalyticsTests.test_build_ticket_heatmap_uses_local_timezone) → Éxito
+- [Prueba unitaria] Se realiza test de test_recent_ticket_alerts_detects_warning_and_breach (tickets.tests.test_analytics.DashboardAnalyticsTests.test_recent_ticket_alerts_detects_warning_and_breach) → Éxito
+- [Prueba integral] Se realiza test de test_requires_privileged_user (tickets.tests.test_api_subcategories.SubcategoryBackfillApiTests.test_requires_privileged_user) → Éxito
+- [Prueba integral] Se realiza test de test_returns_backfill_report_payload (tickets.tests.test_api_subcategories.SubcategoryBackfillApiTests.test_returns_backfill_report_payload) → Éxito
+- [Prueba integral] Se realiza test de test_returns_active_catalog_entries (tickets.tests.test_api_subcategories.TicketFilterOptionsApiTests.test_returns_active_catalog_entries) → Éxito
+- [Prueba integral] Se realiza test de test_area_by_subcategory_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_area_by_subcategory_endpoint) → Éxito
+- [Prueba integral] Se realiza test de test_area_subcategory_heatmap_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_area_subcategory_heatmap_endpoint) → Éxito
+- [Prueba integral] Se realiza test de test_endpoints_require_authentication (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_endpoints_require_authentication) → Éxito
+- [Prueba integral] Se realiza test de test_top_subcategories_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_top_subcategories_endpoint) → Éxito
 
-Unitarias (4): comprueban cálculos internos.
-- ✅ Conteo de tickets por hora del día — 0.669 s — 23:58:10 UTC
-- ✅ Respeto de la zona horaria local — 0.701 s — 23:58:11 UTC
-- ✅ Detección de avisos e incumplimientos del SLA por horas transcurridas — 0.689 s — 23:58:11 UTC
-- ✅ “Top” de subcategorías con un límite dado — 0.717 s — 23:58:12 UTC
-
-Integrales (7): validan pantallas/servicios completos.
-- ✅ Filtros solo muestran catálogos activos — 0.991 s — 23:58:14 UTC
-- ✅ La acción “rellenar subcategorías” exige permisos — 0.660 s — 23:58:15 UTC
-- ✅ Ese “relleno” devuelve un resumen correcto — 0.361 s — 23:58:16 UTC
-- ✅ Los reportes piden inicio de sesión — 0.335 s — 23:58:16 UTC
-- ✅ Reporte “Top subcategorías” calcula totales y porcentajes — 0.349 s — 23:58:17 UTC
-- ✅ Reporte por Área × Subcategoría suma correctamente — 0.337 s — 23:58:17 UTC
-- ✅ Heatmap por fecha arma matriz y celdas esperadas — 0.342 s — 23:58:17 UTC
-
-Rendimiento (2): comprueban tiempos de respuesta de los agregados.
-- ✅ Heatmap procesa 120 tickets dentro del presupuesto (<1.0 s) — 0.842 s — 23:58:13 UTC
-- ✅ Agregación de “Top subcategorías” termina bajo 0.75 s — 0.706 s — 23:58:14 UTC
