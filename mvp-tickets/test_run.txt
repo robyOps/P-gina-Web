@@ -1,4 +1,4 @@
-Ejecución: 2025-10-21 23:05:15 -0300
+Ejecución: 2025-10-21 23:57:11 -0300
 test_aggregate_top_subcategories_completes_quickly (tickets.tests.test_analytics.DashboardAnalyticsPerformanceTests.test_aggregate_top_subcategories_completes_quickly)
 Calcula el “Top de subcategorías” con datos de ejemplo en ≤ 1 segundo. ... ok
 - [Prueba de rendimiento] Calcula el “Top de subcategorías” con datos de ejemplo en ≤ 1 segundo. → Éxito
@@ -40,7 +40,7 @@ Lista las subcategorías más frecuentes con su porcentaje. ... ok
 - [Prueba integral] Lista las subcategorías más frecuentes con su porcentaje. → Éxito
 
 ----------------------------------------------------------------------
-Ran 13 tests in 20.670s
+Ran 13 tests in 6.026s
 
 OK
 Total de pruebas: 13
