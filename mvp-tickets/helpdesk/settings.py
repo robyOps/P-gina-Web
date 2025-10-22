@@ -140,10 +140,6 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
 }
 
-# Runner de pruebas que registra la ejecución en ``test_run.txt``.
-TEST_RUNNER = "core.test_runner.HumanRunner"
-
-
 # SimpleJWT (tokens) controla expiraciones para sesiones basadas en tokens firmados.
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
