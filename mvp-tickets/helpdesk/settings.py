@@ -140,6 +140,9 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
 }
 
+# Runner de pruebas que registra la ejecución en ``test_run.txt``.
+TEST_RUNNER = "tickets.test_runner.TestRunRecordingRunner"
+
 
 # SimpleJWT (tokens) controla expiraciones para sesiones basadas en tokens firmados.
 SIMPLE_JWT = {
