@@ -141,7 +141,7 @@ REST_FRAMEWORK = {
 }
 
 # Runner de pruebas que registra la ejecución en ``test_run.txt``.
-TEST_RUNNER = "tickets.test_runner.TestRunRecordingRunner"
+TEST_RUNNER = "core.test_runner.HumanRunner"
 
 
 # SimpleJWT (tokens) controla expiraciones para sesiones basadas en tokens firmados.

@@ -1,54 +1,47 @@
-Ejecución: 2025-10-21 22:18:20 -03
+Ejecución: 2025-10-21 23:05:15 -0300
+test_aggregate_top_subcategories_completes_quickly (tickets.tests.test_analytics.DashboardAnalyticsPerformanceTests.test_aggregate_top_subcategories_completes_quickly)
+Calcula el “Top de subcategorías” con datos de ejemplo en ≤ 1 segundo. ... ok
+- [Prueba de rendimiento] Calcula el “Top de subcategorías” con datos de ejemplo en ≤ 1 segundo. → Éxito
+test_build_ticket_heatmap_is_generated_under_one_second (tickets.tests.test_analytics.DashboardAnalyticsPerformanceTests.test_build_ticket_heatmap_is_generated_under_one_second)
+Genera el mapa de calor de tickets en ≤ 1 segundo. ... ok
+- [Prueba de rendimiento] Genera el mapa de calor de tickets en ≤ 1 segundo. → Éxito
+test_aggregate_top_subcategories_respects_limit (tickets.tests.test_analytics.DashboardAnalyticsTests.test_aggregate_top_subcategories_respects_limit)
+Devuelve solo las subcategorías más frecuentes respetando el límite recibido. ... ok
+- [Prueba unitaria] Devuelve solo las subcategorías más frecuentes respetando el límite recibido. → Éxito
+test_build_ticket_heatmap_counts_by_hour (tickets.tests.test_analytics.DashboardAnalyticsTests.test_build_ticket_heatmap_counts_by_hour)
+Cuenta los tickets por cada hora del último día y verifica que el total sea correcto. ... ok
+- [Prueba unitaria] Cuenta los tickets por cada hora del último día y verifica que el total sea correcto. → Éxito
+test_build_ticket_heatmap_uses_local_timezone (tickets.tests.test_analytics.DashboardAnalyticsTests.test_build_ticket_heatmap_uses_local_timezone)
+Coloca cada conteo en la hora correcta según la zona horaria local. ... ok
+- [Prueba unitaria] Coloca cada conteo en la hora correcta según la zona horaria local. → Éxito
+test_recent_ticket_alerts_detects_warning_and_breach (tickets.tests.test_analytics.DashboardAnalyticsTests.test_recent_ticket_alerts_detects_warning_and_breach)
+Detecta avisos e incumplimientos del SLA comparando horas transcurridas. ... ok
+- [Prueba unitaria] Detecta avisos e incumplimientos del SLA comparando horas transcurridas. → Éxito
+test_requires_privileged_user (tickets.tests.test_api_subcategories.SubcategoryBackfillApiTests.test_requires_privileged_user)
+Bloquea el ‘backfill de subcategorías’ a usuarios sin permisos. ... ok
+- [Prueba integral] Bloquea el ‘backfill de subcategorías’ a usuarios sin permisos. → Éxito
+test_returns_backfill_report_payload (tickets.tests.test_api_subcategories.SubcategoryBackfillApiTests.test_returns_backfill_report_payload)
+Devuelve el resumen del backfill: total, completados, pendientes y cobertura. ... ok
+- [Prueba integral] Devuelve el resumen del backfill: total, completados, pendientes y cobertura. → Éxito
+test_returns_active_catalog_entries (tickets.tests.test_api_subcategories.TicketFilterOptionsApiTests.test_returns_active_catalog_entries)
+Los filtros muestran solo catálogos activos y la lista de áreas disponibles. ... ok
+- [Prueba integral] Los filtros muestran solo catálogos activos y la lista de áreas disponibles. → Éxito
+test_area_by_subcategory_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_area_by_subcategory_endpoint)
+Suma tickets por Área × Subcategoría y devuelve los totales. ... ok
+- [Prueba integral] Suma tickets por Área × Subcategoría y devuelve los totales. → Éxito
+test_area_subcategory_heatmap_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_area_subcategory_heatmap_endpoint)
+Construye la matriz Área × Subcategoría desde una fecha dada. ... ok
+- [Prueba integral] Construye la matriz Área × Subcategoría desde una fecha dada. → Éxito
+test_endpoints_require_authentication (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_endpoints_require_authentication)
+Los reportes exigen inicio de sesión para acceder. ... ok
+- [Prueba integral] Los reportes exigen inicio de sesión para acceder. → Éxito
+test_top_subcategories_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_top_subcategories_endpoint)
+Lista las subcategorías más frecuentes con su porcentaje. ... ok
+- [Prueba integral] Lista las subcategorías más frecuentes con su porcentaje. → Éxito
+
+----------------------------------------------------------------------
+Ran 13 tests in 20.670s
+
+OK
 Total de pruebas: 13
 Resumen: 13 éxitos, 0 fallos, 0 errores, 0 omitidas, 0 fallos esperados, 0 éxitos inesperados
-Detalle de pruebas:
-- [Prueba de rendimiento] test_aggregate_top_subcategories_completes_quickly (tickets.tests.test_analytics.DashboardAnalyticsPerformanceTests.test_aggregate_top_subcategories_completes_quickly) → Éxito
-- [Prueba de rendimiento] test_build_ticket_heatmap_is_generated_under_one_second (tickets.tests.test_analytics.DashboardAnalyticsPerformanceTests.test_build_ticket_heatmap_is_generated_under_one_second) → Éxito
-- [Prueba unitaria] test_aggregate_top_subcategories_respects_limit (tickets.tests.test_analytics.DashboardAnalyticsTests.test_aggregate_top_subcategories_respects_limit) → Éxito
-- [Prueba unitaria] test_build_ticket_heatmap_counts_by_hour (tickets.tests.test_analytics.DashboardAnalyticsTests.test_build_ticket_heatmap_counts_by_hour) → Éxito
-- [Prueba unitaria] test_build_ticket_heatmap_uses_local_timezone (tickets.tests.test_analytics.DashboardAnalyticsTests.test_build_ticket_heatmap_uses_local_timezone) → Éxito
-- [Prueba unitaria] test_recent_ticket_alerts_detects_warning_and_breach (tickets.tests.test_analytics.DashboardAnalyticsTests.test_recent_ticket_alerts_detects_warning_and_breach) → Éxito
-- [Prueba integral] test_requires_privileged_user (tickets.tests.test_api_subcategories.SubcategoryBackfillApiTests.test_requires_privileged_user) → Éxito
-- [Prueba integral] test_returns_backfill_report_payload (tickets.tests.test_api_subcategories.SubcategoryBackfillApiTests.test_returns_backfill_report_payload) → Éxito
-- [Prueba integral] test_returns_active_catalog_entries (tickets.tests.test_api_subcategories.TicketFilterOptionsApiTests.test_returns_active_catalog_entries) → Éxito
-- [Prueba integral] test_area_by_subcategory_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_area_by_subcategory_endpoint) → Éxito
-- [Prueba integral] test_area_subcategory_heatmap_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_area_subcategory_heatmap_endpoint) → Éxito
-- [Prueba integral] test_endpoints_require_authentication (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_endpoints_require_authentication) → Éxito
-- [Prueba integral] test_top_subcategories_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_top_subcategories_endpoint) → Éxito
-
-Ejecución: 2025-10-21 22:20:35 -03
-Total de pruebas: 13
-Resumen: 13 éxitos, 0 fallos, 0 errores, 0 omitidas, 0 fallos esperados, 0 éxitos inesperados
-Detalle de pruebas:
-- [Prueba de rendimiento] test_aggregate_top_subcategories_completes_quickly (tickets.tests.test_analytics.DashboardAnalyticsPerformanceTests.test_aggregate_top_subcategories_completes_quickly) → Éxito
-- [Prueba de rendimiento] test_build_ticket_heatmap_is_generated_under_one_second (tickets.tests.test_analytics.DashboardAnalyticsPerformanceTests.test_build_ticket_heatmap_is_generated_under_one_second) → Éxito
-- [Prueba unitaria] test_aggregate_top_subcategories_respects_limit (tickets.tests.test_analytics.DashboardAnalyticsTests.test_aggregate_top_subcategories_respects_limit) → Éxito
-- [Prueba unitaria] test_build_ticket_heatmap_counts_by_hour (tickets.tests.test_analytics.DashboardAnalyticsTests.test_build_ticket_heatmap_counts_by_hour) → Éxito
-- [Prueba unitaria] test_build_ticket_heatmap_uses_local_timezone (tickets.tests.test_analytics.DashboardAnalyticsTests.test_build_ticket_heatmap_uses_local_timezone) → Éxito
-- [Prueba unitaria] test_recent_ticket_alerts_detects_warning_and_breach (tickets.tests.test_analytics.DashboardAnalyticsTests.test_recent_ticket_alerts_detects_warning_and_breach) → Éxito
-- [Prueba integral] test_requires_privileged_user (tickets.tests.test_api_subcategories.SubcategoryBackfillApiTests.test_requires_privileged_user) → Éxito
-- [Prueba integral] test_returns_backfill_report_payload (tickets.tests.test_api_subcategories.SubcategoryBackfillApiTests.test_returns_backfill_report_payload) → Éxito
-- [Prueba integral] test_returns_active_catalog_entries (tickets.tests.test_api_subcategories.TicketFilterOptionsApiTests.test_returns_active_catalog_entries) → Éxito
-- [Prueba integral] test_area_by_subcategory_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_area_by_subcategory_endpoint) → Éxito
-- [Prueba integral] test_area_subcategory_heatmap_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_area_subcategory_heatmap_endpoint) → Éxito
-- [Prueba integral] test_endpoints_require_authentication (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_endpoints_require_authentication) → Éxito
-- [Prueba integral] test_top_subcategories_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_top_subcategories_endpoint) → Éxito
-
-Ejecución: 2025-10-21 22:35:50 Hora verano Sudamérica Pacífico
-Total de pruebas: 13
-Resumen: 13 éxitos, 0 fallos, 0 errores, 0 omitidas, 0 fallos esperados, 0 éxitos inesperados
-Detalle de pruebas:
-- [Prueba de rendimiento] test_aggregate_top_subcategories_completes_quickly (tickets.tests.test_analytics.DashboardAnalyticsPerformanceTests.test_aggregate_top_subcategories_completes_quickly) → Éxito
-- [Prueba de rendimiento] test_build_ticket_heatmap_is_generated_under_one_second (tickets.tests.test_analytics.DashboardAnalyticsPerformanceTests.test_build_ticket_heatmap_is_generated_under_one_second) → Éxito
-- [Prueba unitaria] test_aggregate_top_subcategories_respects_limit (tickets.tests.test_analytics.DashboardAnalyticsTests.test_aggregate_top_subcategories_respects_limit) → Éxito
-- [Prueba unitaria] test_build_ticket_heatmap_counts_by_hour (tickets.tests.test_analytics.DashboardAnalyticsTests.test_build_ticket_heatmap_counts_by_hour) → Éxito
-- [Prueba unitaria] test_build_ticket_heatmap_uses_local_timezone (tickets.tests.test_analytics.DashboardAnalyticsTests.test_build_ticket_heatmap_uses_local_timezone) → Éxito
-- [Prueba unitaria] test_recent_ticket_alerts_detects_warning_and_breach (tickets.tests.test_analytics.DashboardAnalyticsTests.test_recent_ticket_alerts_detects_warning_and_breach) → Éxito
-- [Prueba integral] test_requires_privileged_user (tickets.tests.test_api_subcategories.SubcategoryBackfillApiTests.test_requires_privileged_user) → Éxito
-- [Prueba integral] test_returns_backfill_report_payload (tickets.tests.test_api_subcategories.SubcategoryBackfillApiTests.test_returns_backfill_report_payload) → Éxito
-- [Prueba integral] test_returns_active_catalog_entries (tickets.tests.test_api_subcategories.TicketFilterOptionsApiTests.test_returns_active_catalog_entries) → Éxito
-- [Prueba integral] test_area_by_subcategory_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_area_by_subcategory_endpoint) → Éxito
-- [Prueba integral] test_area_subcategory_heatmap_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_area_subcategory_heatmap_endpoint) → Éxito
-- [Prueba integral] test_endpoints_require_authentication (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_endpoints_require_authentication) → Éxito
-- [Prueba integral] test_top_subcategories_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_top_subcategories_endpoint) → Éxito
-
