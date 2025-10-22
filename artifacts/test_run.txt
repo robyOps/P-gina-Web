@@ -1,71 +1,22 @@
-Found 11 test(s).
-Operations to perform:
-  Synchronize unmigrated apps: corsheaders, django_filters, messages, rest_framework, staticfiles, widget_tweaks
-  Apply all migrations: accounts, admin, auth, catalog, contenttypes, sessions, tickets
-Synchronizing apps without migrations:
-  Creating tables...
-    Running deferred SQL...
-Running migrations:
-  Applying catalog.0001_initial... OK
-  Applying contenttypes.0001_initial... OK
-  Applying auth.0001_initial... OK
-  Applying tickets.0001_initial... OK
-  Applying tickets.0002_ticketassignment... OK
-  Applying tickets.0003_auditlog... OK
-  Applying tickets.0004_alter_auditlog_action... OK
-  Applying tickets.0005_autoassignrule... OK
-  Applying tickets.0006_notification... OK
-  Applying tickets.0007_policy_resource_reservation... OK
-  Applying tickets.0008_reservation_ticket_and_more... OK
-  Applying tickets.0009_eventlog... OK
-  Applying tickets.0010_delete_policy_remove_reservation_resource_and_more... OK
-  Applying tickets.0011_assign_sequential_codes... OK
-  Applying tickets.0012_ticket_kind... OK
-  Applying tickets.0013_faq... OK
-  Applying catalog.0002_rename_priority_key... OK
-  Applying tickets.0014_faq_category... OK
-  Applying tickets.0015_alter_auditlog_action... OK
-  Applying tickets.0016_update_ticket_permissions... OK
-  Applying contenttypes.0002_remove_content_type_name... OK
-  Applying auth.0002_alter_permission_name_max_length... OK
-  Applying auth.0003_alter_user_email_max_length... OK
-  Applying auth.0004_alter_user_username_opts... OK
-  Applying auth.0005_alter_user_last_login_null... OK
-  Applying auth.0006_require_contenttypes_0002... OK
-  Applying auth.0007_alter_validators_add_error_messages... OK
-  Applying auth.0008_alter_user_username_max_length... OK
-  Applying auth.0009_alter_user_last_name_max_length... OK
-  Applying auth.0010_alter_group_name_max_length... OK
-  Applying auth.0011_update_proxy_permissions... OK
-  Applying auth.0012_alter_user_first_name_max_length... OK
-  Applying accounts.0001_update_tech_permissions... OK
-  Applying accounts.0002_ensure_tech_view_all... OK
-  Applying accounts.0003_assign_report_permissions... OK
-  Applying admin.0001_initial... OK
-  Applying admin.0002_logentry_remove_auto_add... OK
-  Applying admin.0003_logentry_add_action_flag_choices... OK
-  Applying catalog.0003_subcategory... OK
-  Applying sessions.0001_initial... OK
-  Applying tickets.0017_ticketlabel_ticketlabelsuggestion... OK
-  Applying tickets.0019_ticket_indexes... OK
-  Applying tickets.0020_ticket_subcategory... OK
-  Applying tickets.0021_faq_subcategory... OK
-  Applying tickets.0022_alter_ticket_options... OK
-test_aggregate_top_subcategories_respects_limit (tickets.tests.test_analytics.DashboardAnalyticsTests.test_aggregate_top_subcategories_respects_limit) ... ok
-test_build_ticket_heatmap_counts_by_hour (tickets.tests.test_analytics.DashboardAnalyticsTests.test_build_ticket_heatmap_counts_by_hour) ... ok
-test_build_ticket_heatmap_uses_local_timezone (tickets.tests.test_analytics.DashboardAnalyticsTests.test_build_ticket_heatmap_uses_local_timezone) ... ok
-test_recent_ticket_alerts_detects_warning_and_breach (tickets.tests.test_analytics.DashboardAnalyticsTests.test_recent_ticket_alerts_detects_warning_and_breach) ... ok
-test_requires_privileged_user (tickets.tests.test_api_subcategories.SubcategoryBackfillApiTests.test_requires_privileged_user) ... ok
-test_returns_backfill_report_payload (tickets.tests.test_api_subcategories.SubcategoryBackfillApiTests.test_returns_backfill_report_payload) ... ok
-test_returns_active_catalog_entries (tickets.tests.test_api_subcategories.TicketFilterOptionsApiTests.test_returns_active_catalog_entries) ... ok
-test_area_by_subcategory_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_area_by_subcategory_endpoint) ... ok
-test_area_subcategory_heatmap_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_area_subcategory_heatmap_endpoint) ... ok
-test_endpoints_require_authentication (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_endpoints_require_authentication) ... ok
-test_top_subcategories_endpoint (tickets.tests.test_api_subcategories.TicketReportsApiTests.test_top_subcategories_endpoint) ... ok
+Resumen de la ejecución automatizada (2025-10-21 23:58 UTC).
+Comando: python manage.py test --keepdb
+Duración total suite: 7.367 s
 
-----------------------------------------------------------------------
-Ran 11 tests in 16.151s
+Unitarias (4): comprueban cálculos internos.
+- ✅ Conteo de tickets por hora del día — 0.669 s — 23:58:10 UTC
+- ✅ Respeto de la zona horaria local — 0.701 s — 23:58:11 UTC
+- ✅ Detección de avisos e incumplimientos del SLA por horas transcurridas — 0.689 s — 23:58:11 UTC
+- ✅ “Top” de subcategorías con un límite dado — 0.717 s — 23:58:12 UTC
 
-OK
-Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')... OK
-System check identified no issues (0 silenced).
+Integrales (7): validan pantallas/servicios completos.
+- ✅ Filtros solo muestran catálogos activos — 0.991 s — 23:58:14 UTC
+- ✅ La acción “rellenar subcategorías” exige permisos — 0.660 s — 23:58:15 UTC
+- ✅ Ese “relleno” devuelve un resumen correcto — 0.361 s — 23:58:16 UTC
+- ✅ Los reportes piden inicio de sesión — 0.335 s — 23:58:16 UTC
+- ✅ Reporte “Top subcategorías” calcula totales y porcentajes — 0.349 s — 23:58:17 UTC
+- ✅ Reporte por Área × Subcategoría suma correctamente — 0.337 s — 23:58:17 UTC
+- ✅ Heatmap por fecha arma matriz y celdas esperadas — 0.342 s — 23:58:17 UTC
+
+Rendimiento (2): comprueban tiempos de respuesta de los agregados.
+- ✅ Heatmap procesa 120 tickets dentro del presupuesto (<1.0 s) — 0.842 s — 23:58:13 UTC
+- ✅ Agregación de “Top subcategorías” termina bajo 0.75 s — 0.706 s — 23:58:14 UTC
