@@ -4,6 +4,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.test import tag
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -51,7 +52,9 @@ class TicketApiBase(APITestCase):
 
 
 class TicketFilterOptionsApiTests(TicketApiBase):
+    @tag("integral")
     def test_returns_active_catalog_entries(self):
+        """Los filtros muestran solo catálogos activos y la lista de áreas disponibles."""
         inactive_category = Category.objects.create(name="Deprecated", is_active=False)
         Subcategory.objects.create(category=self.category, name="Accesos", is_active=False)
         Subcategory.objects.create(category=inactive_category, name="Legacy VPN")
@@ -83,7 +86,9 @@ class SubcategoryBackfillApiTests(TicketApiBase):
         super().setUp()
         self.url = reverse("tickets_backfill_subcategories")
 
+    @tag("integral")
     def test_requires_privileged_user(self):
+        """Bloquea el ‘backfill de subcategorías’ a usuarios sin permisos."""
         user = get_user_model().objects.create_user(
             username="plain",
             email="plain@example.com",
@@ -96,7 +101,9 @@ class SubcategoryBackfillApiTests(TicketApiBase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     @patch("tickets.api.run_subcategory_backfill")
+    @tag("integral")
     def test_returns_backfill_report_payload(self, mock_run):
+        """Devuelve el resumen del backfill: total, completados, pendientes y cobertura."""
         mock_run.return_value = SubcategoryBackfillReport(
             total=5,
             completed=4,
@@ -126,13 +133,17 @@ class TicketReportsApiTests(TicketApiBase):
             name="Correo",
         )
 
+    @tag("integral")
     def test_endpoints_require_authentication(self):
+        """Los reportes exigen inicio de sesión para acceder."""
         url = reverse("reports_top_subcategories")
         client = APIClient()
         response = client.get(url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    @tag("integral")
     def test_top_subcategories_endpoint(self):
+        """Lista las subcategorías más frecuentes con su porcentaje."""
         self._create_ticket()
         self._create_ticket()
         self._create_ticket(subcategory=self.other_subcategory)
@@ -149,7 +160,9 @@ class TicketReportsApiTests(TicketApiBase):
         self.assertAlmostEqual(results[0]["percentage"], 66.67, places=2)
         self.assertEqual(results[0]["category"], "SOPORTE")
 
+    @tag("integral")
     def test_area_by_subcategory_endpoint(self):
+        """Suma tickets por Área × Subcategoría y devuelve los totales."""
         self._create_ticket()
         self._create_ticket(area=self.other_area, subcategory=self.other_subcategory)
         self._create_ticket(area=self.area, subcategory=self.other_subcategory)
@@ -166,7 +179,9 @@ class TicketReportsApiTests(TicketApiBase):
         self.assertEqual(top_row["subcategory"], "Correo")
         self.assertEqual(top_row["total"], 2)
 
+    @tag("integral")
     def test_area_subcategory_heatmap_endpoint(self):
+        """Construye la matriz Área × Subcategoría desde una fecha dada."""
         now = timezone.now()
         old = now - timedelta(days=45)
         self._create_ticket(created_at=now)
@@ -184,3 +199,12 @@ class TicketReportsApiTests(TicketApiBase):
         cells = {(cell["area"], cell["subcategory"]): cell["count"] for cell in data["cells"]}
         self.assertEqual(cells[(self.area.name, "Correo")], 1)
         self.assertEqual(cells[(self.area.name, "VPN")], 1)
+
+
+TicketFilterOptionsApiTests.test_returns_active_catalog_entries.__django_test_tags__ = {"integral"}
+SubcategoryBackfillApiTests.test_requires_privileged_user.__django_test_tags__ = {"integral"}
+SubcategoryBackfillApiTests.test_returns_backfill_report_payload.__django_test_tags__ = {"integral"}
+TicketReportsApiTests.test_endpoints_require_authentication.__django_test_tags__ = {"integral"}
+TicketReportsApiTests.test_top_subcategories_endpoint.__django_test_tags__ = {"integral"}
+TicketReportsApiTests.test_area_by_subcategory_endpoint.__django_test_tags__ = {"integral"}
+TicketReportsApiTests.test_area_subcategory_heatmap_endpoint.__django_test_tags__ = {"integral"}
