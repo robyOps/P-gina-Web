@@ -267,6 +267,36 @@ def dashboard(request):
         "closed": closed_count,
     }
 
+    total_status = sum(counts.values())
+    status_breakdown = []
+    if total_status:
+        status_breakdown = [
+            {
+                "label": "Abiertos",
+                "slug": "open",
+                "value": open_count,
+                "percentage": round(open_count / total_status * 100, 1),
+            },
+            {
+                "label": "En progreso",
+                "slug": "in_progress",
+                "value": in_progress_count,
+                "percentage": round(in_progress_count / total_status * 100, 1),
+            },
+            {
+                "label": resolved_label,
+                "slug": "resolved",
+                "value": resolved_count,
+                "percentage": round(resolved_count / total_status * 100, 1),
+            },
+            {
+                "label": closed_label,
+                "slug": "closed",
+                "value": closed_count,
+                "percentage": round(closed_count / total_status * 100, 1),
+            },
+        ]
+
     chart_labels = ["Abierto", "En progreso", resolved_label, closed_label]
     chart_data = json.dumps(
         {
@@ -368,6 +398,7 @@ def dashboard(request):
 
     ctx = {
         "counts": counts,
+        "status_breakdown": status_breakdown,
         "chart_data": chart_data,
         "scope": scope,
         "urgent_tickets": urgent_tickets,
@@ -754,7 +785,8 @@ def ticket_create(request):
             t = form.save(commit=False)
             t.requester = request.user
             t.status = Ticket.OPEN
-            if assignee:
+            can_set_assignee = request.user.has_perm("tickets.set_ticket_assignee")
+            if assignee and can_set_assignee:
                 t.assigned_to = assignee
             t.save()
 
@@ -774,7 +806,7 @@ def ticket_create(request):
                     )
                 )
 
-            if assignee:
+            if assignee and can_set_assignee:
                 TicketAssignment.objects.create(
                     ticket=t, from_user=request.user, to_user=assignee, reason=""
                 )

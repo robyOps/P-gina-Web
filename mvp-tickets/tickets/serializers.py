@@ -65,6 +65,10 @@ class TicketSerializer(serializers.ModelSerializer):
 
         can_choose_category = bool(user and user.has_perm("tickets.set_ticket_category"))
         can_choose_priority = bool(user and user.has_perm("tickets.set_ticket_priority"))
+        can_choose_subcategory = bool(
+            user and user.has_perm("tickets.set_ticket_subcategory")
+        )
+        can_choose_area = bool(user and user.has_perm("tickets.set_ticket_area"))
 
         if not can_choose_category:
             if self.instance is not None:
@@ -82,6 +86,8 @@ class TicketSerializer(serializers.ModelSerializer):
                     )
                 attrs["category"] = default_category
                 attrs["subcategory"] = None
+        elif not can_choose_subcategory:
+            attrs["subcategory"] = None
 
         if not can_choose_priority:
             if self.instance is not None:
@@ -98,11 +104,23 @@ class TicketSerializer(serializers.ModelSerializer):
                     )
                 attrs["priority"] = default_priority
 
+        if not can_choose_area:
+            if self.instance is not None:
+                attrs["area"] = getattr(self.instance, "area")
+            else:
+                attrs["area"] = None
+
         category = attrs.get("category") or getattr(self.instance, "category", None)
         subcategory = attrs.get("subcategory")
         if subcategory is None and self.instance is not None:
             subcategory = getattr(self.instance, "subcategory", None)
-        if can_choose_category and category and subcategory and subcategory.category_id != category.id:
+        if (
+            can_choose_category
+            and can_choose_subcategory
+            and category
+            and subcategory
+            and subcategory.category_id != category.id
+        ):
             raise serializers.ValidationError(
                 {"subcategory": "La subcategoría no pertenece a la categoría seleccionada."}
             )

@@ -71,11 +71,15 @@
           <p class="text-[11px] text-slate-500">Incidente: se cayó algo o dejó de funcionar · Solicitud: necesitas algo nuevo.</p>
           {% if form.kind.errors %}<div class="text-xs text-rose-600">{{ form.kind.errors }}</div>{% endif %}
         </div>
+        {% if form.area.is_hidden %}
+          {{ form.area }}
+        {% else %}
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="area">Área</label>
           {{ form.area|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"|attr:"id=area" }}
           {% if form.area.errors %}<div class="text-xs text-rose-600">{{ form.area.errors }}</div>{% endif %}
         </div>
+        {% endif %}
         {% if form.assignee %}
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="asignar">Asignar a (opcional)</label>

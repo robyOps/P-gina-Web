@@ -37,6 +37,9 @@ PERMISSION_LABELS = {
     "view_all_tickets": "Puede ver todos los tickets",
     "set_ticket_category": "Puede elegir categoría al crear ticket",
     "set_ticket_priority": "Puede elegir prioridad al crear ticket",
+    "set_ticket_subcategory": "Puede elegir subcategoría al crear ticket",
+    "set_ticket_area": "Puede elegir área al crear ticket",
+    "set_ticket_assignee": "Puede asignar técnico al crear ticket",
     # --- Colaboración sobre tickets ---
     "comment_internal": "Puede comentar internamente",
     "add_ticketcomment": "Puede agregar comentario",
@@ -129,6 +132,9 @@ PERMISSION_GROUPS: tuple[PermissionGroup, ...] = (
             "view_all_tickets",
             "set_ticket_category",
             "set_ticket_priority",
+            "set_ticket_subcategory",
+            "set_ticket_area",
+            "set_ticket_assignee",
         ),
     ),
     PermissionGroup(

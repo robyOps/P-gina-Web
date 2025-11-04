@@ -153,8 +153,12 @@
               {% endif %}
             </div>
             <div class="space-y-1">
-              <label class="text-xs font-semibold uppercase text-slate-500" for="id_area">Área</label>
-              {{ quick_edit_form.area }}
+              {% if quick_edit_form.area.is_hidden %}
+                {{ quick_edit_form.area }}
+              {% else %}
+                <label class="text-xs font-semibold uppercase text-slate-500" for="id_area">Área</label>
+                {{ quick_edit_form.area }}
+              {% endif %}
             </div>
             <div class="space-y-1">
               <label class="text-xs font-semibold uppercase text-slate-500" for="id_kind">Tipo</label>
