@@ -43,7 +43,7 @@ except ImportError:  # pragma: no cover - dependencia opcional
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
-from django.db.models import Count, Avg, DurationField, ExpressionWrapper, F
+from django.db.models import Count, Avg, DurationField, ExpressionWrapper, F, Max, Min
 
 # --- App local ---
 from .forms import TicketCreateForm, TicketQuickUpdateForm
@@ -217,32 +217,69 @@ def dashboard(request):
         qs = base.filter(requester=u)
         scope = "de tus tickets"
 
-    month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    mode = request.GET.get("mode", "monthly")
+    if mode not in {"monthly", "historical"}:
+        mode = "monthly"
+
+    now = timezone.now()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     month_end = (month_start + timedelta(days=32)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     month_end_display = month_end - timedelta(seconds=1)
 
     monthly_qs = qs.filter(created_at__gte=month_start, created_at__lt=month_end)
 
+    bounds = qs.aggregate(first_created=Min("created_at"), last_created=Max("created_at"))
+    history_start = bounds["first_created"] or month_start
+    history_end = bounds["last_created"] or now
+    if timezone.is_naive(history_start):
+        history_start = timezone.make_aware(history_start, timezone.utc)
+    if timezone.is_naive(history_end):
+        history_end = timezone.make_aware(history_end, timezone.utc)
+
+    if mode == "monthly":
+        period_qs = monthly_qs
+        period_start = month_start
+        period_end = month_end_display
+    else:
+        period_qs = qs
+        period_start = history_start
+        period_end = history_end
+
+    open_count = qs.filter(status=Ticket.OPEN).count()
+    in_progress_count = qs.filter(status=Ticket.IN_PROGRESS).count()
+    if mode == "monthly":
+        resolved_count = qs.filter(resolved_at__gte=month_start, resolved_at__lt=month_end).count()
+        closed_count = qs.filter(closed_at__gte=month_start, closed_at__lt=month_end).count()
+        resolved_label = "Resueltos (mes)"
+        closed_label = "Cerrados (mes)"
+    else:
+        resolved_count = qs.filter(resolved_at__isnull=False).count()
+        closed_count = qs.filter(closed_at__isnull=False).count()
+        resolved_label = "Resueltos (histórico)"
+        closed_label = "Cerrados (histórico)"
+
     counts = {
-        "open": monthly_qs.filter(status=Ticket.OPEN).count(),
-        "in_progress": monthly_qs.filter(status=Ticket.IN_PROGRESS).count(),
-        "resolved": qs.filter(resolved_at__gte=month_start, resolved_at__lt=month_end).count(),
-        "closed": qs.filter(closed_at__gte=month_start, closed_at__lt=month_end).count(),
+        "open": open_count,
+        "in_progress": in_progress_count,
+        "resolved": resolved_count,
+        "closed": closed_count,
     }
 
-    chart_labels = ["Abierto", "En progreso", "Resuelto (mes)", "Cerrado (mes)"]
-    chart_data = json.dumps({
-        "labels": chart_labels,
-        "data": [
-            counts["open"],
-            counts["in_progress"],
-            counts["resolved"],
-            counts["closed"],
-        ],
-    })
+    chart_labels = ["Abierto", "En progreso", resolved_label, closed_label]
+    chart_data = json.dumps(
+        {
+            "labels": chart_labels,
+            "data": [
+                counts["open"],
+                counts["in_progress"],
+                counts["resolved"],
+                counts["closed"],
+            ],
+        }
+    )
 
     urgent_candidates = (
-        monthly_qs.filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
+        qs.filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
         .select_related("priority")
         .order_by("created_at")
     )
@@ -253,7 +290,7 @@ def dashboard(request):
             urgent_tickets.append(ticket)
     urgent_tickets.sort(key=lambda t: t.remaining_hours)
 
-    failure_qs = monthly_qs
+    failure_qs = period_qs
     failure_rows = (
         failure_qs.values("category__name")
         .annotate(total=Count("id"))
@@ -301,14 +338,31 @@ def dashboard(request):
             "labels": failure_labels,
             "data": failure_totals,
             "colors": [item["color"] for item in failure_breakdown],
-            "since": month_start.date().isoformat(),
-            "until": month_end_display.date().isoformat(),
+            "since": period_start.date().isoformat() if period_start else None,
+            "until": period_end.date().isoformat() if period_end else None,
         }
     )
 
-    top_subcategories = aggregate_top_subcategories(qs, since=month_start)
-    area_by_subcategory = aggregate_area_by_subcategory(qs, since=month_start, limit=10)
-    alerts_panel = recent_ticket_alerts(monthly_qs, warn_ratio=0.75, limit=6)
+    top_subcategories = aggregate_top_subcategories(qs, since=period_start)
+    area_by_subcategory = aggregate_area_by_subcategory(qs, since=period_start, limit=10)
+    alerts_panel = recent_ticket_alerts(qs, warn_ratio=0.75, limit=6)
+
+    period_payload = json.dumps(
+        {
+            "mode": mode,
+            "label": "Mensual" if mode == "monthly" else "Histórico",
+            "start": period_start.isoformat() if period_start else None,
+            "end": period_end.isoformat() if period_end else None,
+        }
+    )
+
+    heatmap_query = json.dumps(
+        {
+            "mode": mode,
+            "from": period_start.date().isoformat() if period_start else None,
+            "to": period_end.date().isoformat() if period_end else None,
+        }
+    )
 
     ctx = {
         "counts": counts,
@@ -317,12 +371,14 @@ def dashboard(request):
         "urgent_tickets": urgent_tickets,
         "failures_chart_data": failures_chart_data,
         "has_failures_data": bool(failure_totals),
-        "failures_since": month_start,
         "failure_breakdown": failure_breakdown,
         "top_subcategories": top_subcategories,
         "area_by_subcategory": area_by_subcategory,
         "alerts_panel": alerts_panel,
-        "current_month_range": {"start": month_start, "end": month_end_display},
+        "mode": mode,
+        "period_range": {"start": period_start, "end": period_end},
+        "period_payload": period_payload,
+        "heatmap_query": heatmap_query,
     }
     return render(request, "dashboard.html", ctx)
 
