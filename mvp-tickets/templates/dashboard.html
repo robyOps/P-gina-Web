@@ -209,7 +209,7 @@
           <div class="space-y-1">
             <h1 class="text-3xl font-semibold text-slate-900">Resumen {{ scope }}</h1>
             <p class="text-sm text-slate-600">
-              Vista {{ mode == 'historical' and 'histórica' or 'mensual' }} · Datos entre
+              Vista {% if is_historical %}histórica{% else %}mensual{% endif %} · Datos entre
               {{ period_range.start|localtime|date:"d/m/Y" }} y {{ period_range.end|localtime|date:"d/m/Y" }}.
             </p>
           </div>
@@ -295,7 +295,7 @@
           <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div class="flex flex-col gap-3">
               <div>
-                <h2 class="text-2xl font-semibold text-slate-900">Distribución {{ mode == 'historical' and 'histórica' or 'del mes en curso' }}</h2>
+                <h2 class="text-2xl font-semibold text-slate-900">Distribución {% if is_historical %}histórica{% else %}del mes en curso{% endif %}</h2>
                 <p class="text-sm text-slate-600">Tickets creados entre {{ period_range.start|localtime|date:"d/m/Y" }} y {{ period_range.end|localtime|date:"d/m/Y" }}.</p>
               </div>
               <div class="mx-auto mt-3 h-80 w-full max-w-2xl">
@@ -346,10 +346,10 @@
               <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 class="text-2xl font-semibold text-slate-900">Tendencias de fallas por categoría</h2>
-                  <p class="text-sm text-slate-600">Detecta patrones y dimensiona el impacto de cada categoría {{ mode == 'historical' and 'a lo largo del histórico disponible' or 'durante el mes actual' }}.</p>
+                  <p class="text-sm text-slate-600">Detecta patrones y dimensiona el impacto de cada categoría {% if is_historical %}a lo largo del histórico disponible{% else %}durante el mes actual{% endif %}.</p>
                 </div>
                 {% if has_failures_data %}
-                <span class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-sky-600"><i class="bi bi-clock-history"></i> {{ mode == 'historical' and 'Histórico' or 'Mes en curso' }} · {{ period_range.start|localtime|date:"d/m" }}-{{ period_range.end|localtime|date:"d/m" }}</span>
+                <span class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-sky-600"><i class="bi bi-clock-history"></i> {% if is_historical %}Histórico{% else %}Mes en curso{% endif %} · {{ period_range.start|localtime|date:"d/m" }}-{{ period_range.end|localtime|date:"d/m" }}</span>
                 {% endif %}
               </div>
 
@@ -362,7 +362,7 @@
               {% else %}
               <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 p-8 text-center text-sm text-sky-600">
                 <i class="bi bi-info-circle text-3xl"></i>
-                <p class="max-w-md text-base">No hay registros {{ mode == 'historical' and 'históricos' or 'recientes' }} suficientes para mostrar tendencias de fallas. Mantén la monitorización para descubrir patrones emergentes.</p>
+                <p class="max-w-md text-base">No hay registros {% if is_historical %}históricos{% else %}recientes{% endif %} suficientes para mostrar tendencias de fallas. Mantén la monitorización para descubrir patrones emergentes.</p>
               </div>
               {% endif %}
             </div>
@@ -372,7 +372,7 @@
             <div class="flex h-full flex-col gap-3">
               <div>
                 <h3 class="text-lg font-semibold text-slate-900">Fallas más comunes por categoría</h3>
-                <p class="text-sm text-slate-600">Top 15 categorías con mayor volumen reportado {{ mode == 'historical' and 'en el histórico disponible' or 'durante el mes en curso' }}.</p>
+                <p class="text-sm text-slate-600">Top 15 categorías con mayor volumen reportado {% if is_historical %}en el histórico disponible{% else %}durante el mes en curso{% endif %}.</p>
               </div>
               {% if failure_breakdown %}
               <ul class="space-y-3 overflow-y-auto pr-2" role="list">
@@ -405,10 +405,10 @@
           <article class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 class="text-2xl font-semibold text-slate-900">Top subcategorías del {{ mode == 'historical' and 'histórico' or 'mes' }}</h2>
-                <p class="text-sm text-slate-600">Clasificación detallada de tickets que concentra la mayor actividad en el {{ mode == 'historical' and 'histórico disponible' or 'período actual' }}.</p>
+                <h2 class="text-2xl font-semibold text-slate-900">Top subcategorías del {% if is_historical %}histórico{% else %}mes{% endif %}</h2>
+                <p class="text-sm text-slate-600">Clasificación detallada de tickets que concentra la mayor actividad en el {% if is_historical %}histórico disponible{% else %}período actual{% endif %}.</p>
               </div>
-              <span class="dashboard-top-subcategories__badge inline-flex items-center gap-2 self-start rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600 sm:self-auto"><i class="bi bi-calendar3"></i> {{ mode == 'historical' and 'Histórico' or 'Mes en curso' }}</span>
+              <span class="dashboard-top-subcategories__badge inline-flex items-center gap-2 self-start rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600 sm:self-auto"><i class="bi bi-calendar3"></i> {% if is_historical %}Histórico{% else %}Mes en curso{% endif %}</span>
             </div>
             {% if top_subcategories %}
             <ol class="mt-4 space-y-3" role="list">
@@ -434,7 +434,7 @@
             {% else %}
             <div class="mt-6 flex flex-col items-center justify-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-8 text-center text-sm text-emerald-600">
               <i class="bi bi-diagram-3 text-3xl"></i>
-              <p class="max-w-sm text-base">Aún no hay suficientes tickets clasificados en el {{ mode == 'historical' and 'histórico' or 'período reciente' }} para construir un ranking.</p>
+              <p class="max-w-sm text-base">Aún no hay suficientes tickets clasificados en el {% if is_historical %}histórico{% else %}período reciente{% endif %} para construir un ranking.</p>
             </div>
             {% endif %}
 
@@ -519,7 +519,7 @@
         <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 id="dashboardHeatmapTitle" class="text-2xl font-semibold text-slate-900">Mapa de calor {{ mode == 'historical' and 'histórico' or 'del mes' }}</h2>
+              <h2 id="dashboardHeatmapTitle" class="text-2xl font-semibold text-slate-900">Mapa de calor {% if is_historical %}histórico{% else %}del mes{% endif %}</h2>
               <p class="text-sm text-slate-600">Distribución de tickets creados por día y hora durante el período actual.</p>
             </div>
             <div class="flex flex-col items-start gap-1 text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 sm:items-end">
@@ -528,7 +528,7 @@
           </div>
 
           <div class="dashboard-heatmap mt-6">
-            <p id="dashboardHeatmapStatus" class="text-sm text-slate-500">Cargando mapa de calor {{ mode == 'historical' and 'histórico' or 'mensual' }}…</p>
+            <p id="dashboardHeatmapStatus" class="text-sm text-slate-500">Cargando mapa de calor {% if is_historical %}histórico{% else %}mensual{% endif %}…</p>
             <div class="dashboard-heatmap__grid" role="group" aria-labelledby="dashboardHeatmapTitle">
               <div id="dashboardHeatmapGrid" class="dashboard-heatmap__grid-inner" role="grid" aria-live="polite" aria-busy="true"></div>
             </div>

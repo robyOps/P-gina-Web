@@ -236,6 +236,8 @@ def dashboard(request):
     if timezone.is_naive(history_end):
         history_end = timezone.make_aware(history_end, timezone.utc)
 
+    is_historical = mode == "historical"
+
     if mode == "monthly":
         period_qs = monthly_qs
         period_start = month_start
@@ -376,6 +378,7 @@ def dashboard(request):
         "area_by_subcategory": area_by_subcategory,
         "alerts_panel": alerts_panel,
         "mode": mode,
+        "is_historical": is_historical,
         "period_range": {"start": period_start, "end": period_end},
         "period_payload": period_payload,
         "heatmap_query": heatmap_query,
