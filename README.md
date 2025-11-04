@@ -52,6 +52,8 @@ helpdesk.urls --> views HTML (tickets/catalog)
 | `DEBUG` | Modo depuración | `True` |
 | `ALLOWED_HOSTS` | Hosts permitidos | `[]` |
 | `TICKET_LABEL_SUGGESTION_THRESHOLD` | Umbral mínimo de sugerencias | `0.35` |
+| `AI_CHAT_API_URL` | Endpoint externo del proveedor de IA utilizado por el chatbot interno | `None` |
+| `AI_CHAT_API_KEY` | Clave Bearer para autenticar las solicitudes hacia la API de IA | `None` |
 
 ## Puesta en marcha
 
@@ -71,6 +73,17 @@ python manage.py runserver
 - `python manage.py migrate --plan` → confirma migraciones aplicables.
 - `python manage.py evaluate_ticket_alerts --dry-run --limit 5` → verifica que
   las tareas programadas se ejecuten sin efectos secundarios.
+
+## Chatbot IA
+
+- Configura las variables `AI_CHAT_API_URL` y `AI_CHAT_API_KEY` antes de iniciar
+  el servidor para habilitar la comunicación con el proveedor externo de IA.
+- El botón **Chatbot IA** aparece en la barra de navegación principal para
+  usuarios autenticados. Al pulsarlo se despliega un panel flotante en la esquina
+  inferior derecha sin abandonar la página actual.
+- El chat envía peticiones `POST /api/chat/` con el mensaje del usuario y el
+  backend genera el contexto seguro según el rol (solicitante, técnico o
+  administrador) antes de invocar la API de IA.
 
 ## Límites y consideraciones
 

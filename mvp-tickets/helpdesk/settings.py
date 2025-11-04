@@ -157,6 +157,11 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"  # imprime emai
 DEFAULT_FROM_EMAIL = "mvp@localhost"
 
 
+# Integración con el chatbot de IA (configurable vía variables de entorno).
+AI_CHAT_API_URL = os.environ.get("AI_CHAT_API_URL")
+AI_CHAT_API_KEY = os.environ.get("AI_CHAT_API_KEY")
+
+
 # URLs de autenticación utilizadas por ``LoginRequiredMixin`` y helpers de Django.
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"

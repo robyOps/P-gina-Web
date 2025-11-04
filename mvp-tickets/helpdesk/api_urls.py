@@ -24,6 +24,7 @@ from tickets.api import (
     TicketFilterOptionsView,
     SubcategoryBackfillView,
 )
+from tickets.api_chat import ChatView
 from reports.api import (
     ReportSummaryView,
     ReportExportView,
@@ -45,6 +46,7 @@ urlpatterns = [
     path("auth/token/", TokenObtainPairView.as_view(), name="token_obtain"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("auth/me/", MeView.as_view(), name="auth_me"),
+    path("chat/", ChatView.as_view(), name="chatbot-ia"),
     path("", include(router.urls)),
     path(
         "tickets/alerts/",
