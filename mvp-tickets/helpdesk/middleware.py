@@ -30,7 +30,8 @@ from django.http import HttpResponseBadRequest
 # PATH-FIREWALL: middleware global anti-LFI
 SAFE_PATH = re.compile(r"^[a-zA-Z0-9/_\-.~]*$")
 SAFE_KEY = re.compile(r"^[a-zA-Z0-9._-]*$")
-SAFE_VAL = re.compile(r"^[a-zA-Z0-9 .,_-]*$")
+# Permite ``/`` en valores para aceptar parámetros como ``next=/`` usados por Django.
+SAFE_VAL = re.compile(r"^[a-zA-Z0-9 .,_/-]*$")
 
 
 # PATH-FIREWALL: middleware global anti-LFI
