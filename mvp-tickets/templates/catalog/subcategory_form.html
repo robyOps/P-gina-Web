@@ -51,6 +51,28 @@
         Cancelar
       </a>
     </div>
+    {% if not is_new and perms.catalog.delete_subcategory and obj %}
+    <div class="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50/70 px-4 py-3 text-sm">
+      <div class="flex-1 text-rose-700">
+        <p class="font-semibold">Eliminar subcategoría</p>
+        <p class="text-xs text-rose-600">Al eliminarla ya no estará disponible para clasificar tickets.</p>
+      </div>
+      <form method="post"
+            action="{% url 'subcategory_delete' obj.id %}"
+            data-requires-confirm
+            data-confirm-name="{{ obj.name|escape }}"
+            data-confirm-title="Eliminar subcategoría"
+            data-confirm-message="Confirma escribiendo el nombre exacto."
+            data-confirm-prompt="Escribe {{ obj.name|escape }} para continuar."
+            data-confirm-error="El nombre no coincide, operación cancelada.">
+        {% csrf_token %}
+        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-rose-700">
+          <i class="bi bi-trash"></i>
+          Eliminar subcategoría
+        </button>
+      </form>
+    </div>
+    {% endif %}
   </form>
 </div>
 {% endblock %}

@@ -33,6 +33,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import Group
+from django.db.models import ProtectedError
 
 from .forms import UserCreateForm, UserEditForm, RoleForm
 from accounts.permissions import PERMISSION_TEMPLATES
@@ -217,6 +218,36 @@ def user_toggle(request, pk):
 
 
 @login_required
+def user_delete(request, pk):
+    """Eliminar definitivamente un usuario existente."""
+
+    if not request.user.has_perm("auth.delete_user"):
+        messages.error(request, "No tienes permiso para eliminar usuarios.")
+        return redirect("tickets_home")
+
+    user = get_object_or_404(User, pk=pk)
+
+    if request.method != "POST":
+        return redirect("accounts:users_list")
+
+    if user == request.user:
+        messages.error(request, "No puedes eliminar tu propia cuenta mientras estás autenticado.")
+        return redirect("accounts:users_list")
+
+    username = user.username
+    try:
+        user.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            f"No se puede eliminar el usuario '{username}' porque tiene registros protegidos asociados.",
+        )
+    else:
+        messages.success(request, f"Usuario '{username}' eliminado.")
+    return redirect("accounts:users_list")
+
+
+@login_required
 def roles_list(request):
     """Listado de roles disponibles ordenados alfabéticamente.
 
@@ -283,6 +314,38 @@ def role_edit(request, pk):
     ctx = _role_form_context(form, is_new=False, obj=role)
     return TemplateResponse(request, "accounts/role_form.html", ctx)
 
+
+@login_required
+def role_delete(request, pk):
+    """Eliminar un rol cuando no tiene usuarios asociados."""
+
+    if not request.user.has_perm("auth.delete_group"):
+        messages.error(request, "No tienes permiso para eliminar roles.")
+        return redirect("tickets_home")
+
+    role = get_object_or_404(Group, pk=pk)
+
+    if request.method != "POST":
+        return redirect("accounts:roles_list")
+
+    name = role.name
+    if role.user_set.exists():
+        messages.error(
+            request,
+            f"No se puede eliminar el rol '{name}' porque aún tiene usuarios asignados.",
+        )
+        return redirect("accounts:roles_list")
+
+    try:
+        role.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            f"No se puede eliminar el rol '{name}' porque está protegido por otros registros.",
+        )
+    else:
+        messages.success(request, f"Rol '{name}' eliminado.")
+    return redirect("accounts:roles_list")
 
 
 @login_required

@@ -167,7 +167,14 @@
             {% if can_manage %}
             <div class="flex items-center gap-3 text-sm">
               <a href="{% url 'faq_edit' faq.id %}" class="text-indigo-600 hover:text-indigo-800"><i class="bi bi-pencil"></i> Editar</a>
-              <form method="post" action="{% url 'faq_delete' faq.id %}" onsubmit="return confirm('¿Seguro que deseas eliminar esta pregunta?');">
+              <form method="post"
+                    action="{% url 'faq_delete' faq.id %}"
+                    data-requires-confirm
+                    data-confirm-name="{{ faq.question|escape }}"
+                    data-confirm-title="Eliminar pregunta frecuente"
+                    data-confirm-message="Esta acción eliminará la pregunta y su respuesta."
+                    data-confirm-prompt="Escribe {{ faq.question|escape }} para continuar."
+                    data-confirm-error="El texto no coincide, no se eliminó la pregunta.">
                 {% csrf_token %}
                 <button type="submit" class="text-rose-600 hover:text-rose-700"><i class="bi bi-trash"></i> Eliminar</button>
               </form>

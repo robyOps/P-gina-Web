@@ -108,6 +108,22 @@
                        onclick="return confirm('¿Seguro? Cambiarás el estado de este usuario.');">
                       <i class="bi bi-arrow-repeat"></i> {{ u.is_active|yesno:"Desactivar,Activar" }}
                     </a>
+                    {% if perms.auth.delete_user %}
+                    <form method="post"
+                          action="{% url 'accounts:user_delete' u.id %}"
+                          class="inline-flex items-center"
+                          data-requires-confirm
+                          data-confirm-name="{{ u.username|escape }}"
+                          data-confirm-title="Eliminar usuario"
+                          data-confirm-message="Esta acción no se puede deshacer."
+                          data-confirm-prompt="Escribe {{ u.username|escape }} para continuar."
+                          data-confirm-error="El nombre ingresado no coincide.">
+                      {% csrf_token %}
+                      <button type="submit" class="inline-flex items-center gap-1 text-rose-600 hover:text-rose-800">
+                        <i class="bi bi-trash"></i> Eliminar
+                      </button>
+                    </form>
+                    {% endif %}
                   </div>
                 </td>
               </tr>

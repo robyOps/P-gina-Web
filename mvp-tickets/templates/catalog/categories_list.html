@@ -36,10 +36,28 @@
             <td class="px-4 py-3 font-medium text-slate-800">{{ it.name }}</td>
             <td class="px-4 py-3 text-slate-600">{{ it.description|default:"—" }}</td>
             <td class="px-4 py-3">
-              <a class="inline-flex items-center gap-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800" href="{% url 'category_edit' it.id %}">
-                <i class="bi bi-pencil"></i>
-                Editar
-              </a>
+              <div class="flex flex-wrap items-center gap-3 text-xs font-semibold">
+                <a class="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800" href="{% url 'category_edit' it.id %}">
+                  <i class="bi bi-pencil"></i>
+                  Editar
+                </a>
+                {% if perms.catalog.delete_category %}
+                <form method="post"
+                      action="{% url 'category_delete' it.id %}"
+                      class="inline-flex items-center"
+                      data-requires-confirm
+                      data-confirm-name="{{ it.name|escape }}"
+                      data-confirm-title="Eliminar categoría"
+                      data-confirm-message="Confirma escribiendo el nombre de la categoría."
+                      data-confirm-prompt="Escribe {{ it.name|escape }} para continuar."
+                      data-confirm-error="El nombre no coincide, operación cancelada.">
+                  {% csrf_token %}
+                  <button type="submit" class="inline-flex items-center gap-1 text-rose-600 hover:text-rose-800">
+                    <i class="bi bi-trash"></i> Eliminar
+                  </button>
+                </form>
+                {% endif %}
+              </div>
             </td>
           </tr>
           {% empty %}

@@ -98,6 +98,8 @@ urlpatterns = [
     path("catalog/categories/new/", catalog_views.category_create, name="category_create"),
     # Edita la categoría ``pk``.
     path("catalog/categories/<int:pk>/edit/", catalog_views.category_edit, name="category_edit"),
+    # Elimina la categoría ``pk``.
+    path("catalog/categories/<int:pk>/delete/", catalog_views.category_delete, name="category_delete"),
 
     # Lista subcategorías disponibles.
     path("catalog/subcategories/", catalog_views.subcategories_list, name="subcategories_list"),
@@ -105,6 +107,8 @@ urlpatterns = [
     path("catalog/subcategories/new/", catalog_views.subcategory_create, name="subcategory_create"),
     # Edita subcategoría ``pk`` con validaciones jerárquicas.
     path("catalog/subcategories/<int:pk>/edit/", catalog_views.subcategory_edit, name="subcategory_edit"),
+    # Elimina subcategoría ``pk``.
+    path("catalog/subcategories/<int:pk>/delete/", catalog_views.subcategory_delete, name="subcategory_delete"),
 
     # Lista prioridades configuradas para SLA.
     path("catalog/priorities/", catalog_views.priorities_list, name="priorities_list"),
@@ -112,6 +116,8 @@ urlpatterns = [
     path("catalog/priorities/new/", catalog_views.priority_create, name="priority_create"),
     # Edita prioridad ``pk`` para ajustar tiempos.
     path("catalog/priorities/<int:pk>/edit/", catalog_views.priority_edit, name="priority_edit"),
+    # Elimina prioridad ``pk``.
+    path("catalog/priorities/<int:pk>/delete/", catalog_views.priority_delete, name="priority_delete"),
 
     # Lista áreas organizacionales.
     path("catalog/areas/", catalog_views.areas_list, name="areas_list"),
@@ -119,6 +125,8 @@ urlpatterns = [
     path("catalog/areas/new/", catalog_views.area_create, name="area_create"),
     # Edita área ``pk`` vinculada a tickets.
     path("catalog/areas/<int:pk>/edit/", catalog_views.area_edit, name="area_edit"),
+    # Elimina área ``pk``.
+    path("catalog/areas/<int:pk>/delete/", catalog_views.area_delete, name="area_delete"),
 
     # --- API bajo /api/ ---
     # PATH-FIREWALL: bloquear "/api" exacto y mantener API normal

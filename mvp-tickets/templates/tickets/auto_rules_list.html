@@ -54,7 +54,15 @@
                     <i class="bi bi-arrow-repeat"></i> Alternar
                   </button>
                 </form>
-                <form method="post" action="{% url 'auto_rule_delete' r.id %}" class="inline" onsubmit="return confirm('¿Eliminar regla?');">
+                <form method="post"
+                      action="{% url 'auto_rule_delete' r.id %}"
+                      class="inline"
+                      data-requires-confirm
+                      data-confirm-name="{{ r|escape }}"
+                      data-confirm-title="Eliminar regla de auto-asignación"
+                      data-confirm-message="Se eliminará la regla seleccionada."
+                      data-confirm-prompt="Escribe {{ r|escape }} para continuar."
+                      data-confirm-error="El identificador no coincide, operación cancelada.">
                   {% csrf_token %}
                   <button class="text-rose-600 hover:text-rose-700">
                     <i class="bi bi-trash"></i> Eliminar
