@@ -349,15 +349,24 @@ def recent_ticket_alerts(
     limited: Sequence[TicketAlertSnapshot] = sorted_snaps[: max(1, limit)]
 
     items: list[dict[str, object]] = []
+    current_tz = timezone.get_current_timezone()
+
     for snap in limited:
         ticket = snap.ticket
+        due_at = snap.due_at
+
+        if timezone.is_naive(due_at):
+            due_at = timezone.make_aware(due_at, current_tz)
+
+        due_at = timezone.localtime(due_at)
+
         items.append(
             {
                 "id": ticket.id,
                 "code": ticket.code,
                 "title": ticket.title,
                 "severity": snap.severity,
-                "due_at": timezone.localtime(snap.due_at),
+                "due_at": due_at,
                 "remaining_hours": snap.remaining_hours,
                 "assigned_to": getattr(ticket.assigned_to, "username", None),
             }

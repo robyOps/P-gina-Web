@@ -1,5 +1,6 @@
 import time
 from datetime import timedelta
+from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, tag
@@ -8,6 +9,7 @@ from django.utils import timezone
 from catalog.models import Category, Priority, Subcategory
 
 from tickets.models import Ticket
+from tickets.services import TicketAlertSnapshot
 from tickets.utils import (
     aggregate_top_subcategories,
     build_ticket_heatmap,
@@ -88,6 +90,30 @@ class DashboardAnalyticsTests(TestCase):
         self.assertGreaterEqual(data["summary"]["breaches"], 1)
         self.assertGreaterEqual(data["summary"]["warnings"], 1)
         self.assertTrue(data["items"])
+
+    @tag("unitaria")
+    @mock.patch("tickets.utils.collect_ticket_alerts")
+    def test_recent_ticket_alerts_normalizes_naive_due_dates(self, collect_mock):
+        """Convierte fechas naive a aware para evitar errores al renderizar el dashboard."""
+        ticket = self._create_ticket(title="Ticket con fecha naive")
+
+        collect_mock.return_value = [
+            TicketAlertSnapshot(
+                ticket=ticket,
+                severity="warning",
+                due_at=timezone.datetime(2024, 1, 15, 10, 30),
+                remaining_hours=4.0,
+                elapsed_hours=20.0,
+                threshold_hours=18.0,
+            )
+        ]
+
+        data = recent_ticket_alerts(Ticket.objects.all(), warn_ratio=0.75, limit=5)
+
+        self.assertEqual(data["summary"], {"warnings": 1, "breaches": 0})
+        self.assertTrue(data["items"])
+        due_at = data["items"][0]["due_at"]
+        self.assertTrue(timezone.is_aware(due_at))
 
     @tag("unitaria")
     def test_aggregate_top_subcategories_respects_limit(self):
