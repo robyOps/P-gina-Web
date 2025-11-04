@@ -62,6 +62,9 @@ class Command(BaseCommand):
             "manage_reports",
             "set_ticket_category",
             "set_ticket_priority",
+            "set_ticket_subcategory",
+            "set_ticket_area",
+            "set_ticket_assignee",
         ]
         custom_perms = list(Permission.objects.filter(codename__in=custom_codes))
 
@@ -91,6 +94,11 @@ class Command(BaseCommand):
                     perm
                     for perm in ticket_perms
                     if perm.codename in ("set_ticket_category", "set_ticket_priority")
+                ],
+                *[
+                    perm
+                    for perm in ticket_perms
+                    if perm.codename in ("set_ticket_subcategory", "set_ticket_area")
                 ],
                 # Puede agregar y ver comentarios
                 *[

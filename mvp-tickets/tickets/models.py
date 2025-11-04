@@ -123,6 +123,18 @@ class Ticket(models.Model):
                 "set_ticket_priority",
                 "Puede seleccionar la prioridad al crear o actualizar un ticket",
             ),
+            (
+                "set_ticket_subcategory",
+                "Puede seleccionar la subcategoría al crear o actualizar un ticket",
+            ),
+            (
+                "set_ticket_area",
+                "Puede seleccionar el área al crear o actualizar un ticket",
+            ),
+            (
+                "set_ticket_assignee",
+                "Puede elegir el técnico asignado al crear un ticket",
+            ),
         ]
 
     def __str__(self):
