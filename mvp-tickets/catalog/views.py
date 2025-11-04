@@ -3,6 +3,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.db import IntegrityError
+from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 
@@ -50,6 +51,31 @@ def _handle_simple_form(
         context.update(extra_context)
 
     return TemplateResponse(request, template_name, context)
+
+
+def _handle_delete(
+    request,
+    *,
+    obj,
+    redirect_url: str,
+    success_message: str,
+):
+    """Gestiona el ciclo de eliminación con manejo de errores protegidos."""
+
+    if request.method != "POST":
+        return redirect(redirect_url)
+
+    name = str(obj)
+    try:
+        obj.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            f"No se puede eliminar '{name}' porque otros registros todavía lo utilizan.",
+        )
+    else:
+        messages.success(request, success_message.format(name=name))
+    return redirect(redirect_url)
 # ---------------------------------------------------------------------------
 # Categorías
 # ---------------------------------------------------------------------------
@@ -100,6 +126,18 @@ def category_edit(request, pk):
     )
 
 
+@login_required
+@permission_required("catalog.delete_category", raise_exception=True)
+def category_delete(request, pk):
+    obj = get_object_or_404(Category, pk=pk)
+    return _handle_delete(
+        request,
+        obj=obj,
+        redirect_url="categories_list",
+        success_message="Categoría '{name}' eliminada.",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Subcategorías
 # ---------------------------------------------------------------------------
@@ -136,6 +174,18 @@ def subcategory_edit(request, pk):
         redirect_url="subcategories_list",
         success_message="Subcategoría actualizada.",
         instance=obj,
+    )
+
+
+@login_required
+@permission_required("catalog.delete_subcategory", raise_exception=True)
+def subcategory_delete(request, pk):
+    obj = get_object_or_404(Subcategory, pk=pk)
+    return _handle_delete(
+        request,
+        obj=obj,
+        redirect_url="subcategories_list",
+        success_message="Subcategoría '{name}' eliminada.",
     )
 
 
@@ -181,6 +231,18 @@ def priority_edit(request, pk):
     )
 
 
+@login_required
+@permission_required("catalog.delete_priority", raise_exception=True)
+def priority_delete(request, pk):
+    obj = get_object_or_404(Priority, pk=pk)
+    return _handle_delete(
+        request,
+        obj=obj,
+        redirect_url="priorities_list",
+        success_message="Prioridad '{name}' eliminada.",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Áreas
 # ---------------------------------------------------------------------------
@@ -220,5 +282,17 @@ def area_edit(request, pk):
         redirect_url="areas_list",
         success_message="Área actualizada.",
         instance=obj,
+    )
+
+
+@login_required
+@permission_required("catalog.delete_area", raise_exception=True)
+def area_delete(request, pk):
+    obj = get_object_or_404(Area, pk=pk)
+    return _handle_delete(
+        request,
+        obj=obj,
+        redirect_url="areas_list",
+        success_message="Área '{name}' eliminada.",
     )
 

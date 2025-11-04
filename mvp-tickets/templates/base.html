@@ -497,6 +497,55 @@
     {% block content %}{% endblock %}
   </main>
 
+  <script>
+    (function () {
+      const submitHandler = (event) => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement)) {
+          return;
+        }
+        if (!form.hasAttribute('data-requires-confirm')) {
+          return;
+        }
+        if (form.dataset.confirmed === 'true') {
+          return;
+        }
+
+        event.preventDefault();
+
+        const name = (form.dataset.confirmName || '').trim();
+        const title = form.dataset.confirmTitle || '¿Estás seguro de eliminar este registro?';
+        const message = form.dataset.confirmMessage || 'Esta acción no se puede deshacer.';
+        const promptLabel = form.dataset.confirmPrompt || (name
+          ? `Escribe "${name}" para confirmar.`
+          : 'Escribe el nombre exacto para confirmar la eliminación.');
+        const errorMessage = form.dataset.confirmError || 'El texto ingresado no coincide. Intenta nuevamente.';
+
+        const confirmMessage = `${title}\n\n${message}`;
+        if (!window.confirm(confirmMessage)) {
+          return;
+        }
+
+        const typed = window.prompt(promptLabel, '');
+        if (typed === null) {
+          return;
+        }
+
+        const normalizedTyped = typed.trim();
+        const normalizedName = name.trim();
+        if ((normalizedName && normalizedTyped !== normalizedName) || (!normalizedName && normalizedTyped.length === 0)) {
+          window.alert(errorMessage);
+          return;
+        }
+
+        form.dataset.confirmed = 'true';
+        form.submit();
+      };
+
+      document.addEventListener('submit', submitHandler, true);
+    })();
+  </script>
+
   {% block body_extra %}{% endblock %}
 </body>
 </html>

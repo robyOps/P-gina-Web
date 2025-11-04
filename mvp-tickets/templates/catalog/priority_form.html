@@ -44,6 +44,28 @@
         Cancelar
       </a>
     </div>
+    {% if not is_new and perms.catalog.delete_priority and obj %}
+    <div class="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50/70 px-4 py-3 text-sm">
+      <div class="flex-1 text-rose-700">
+        <p class="font-semibold">Eliminar prioridad</p>
+        <p class="text-xs text-rose-600">Asegúrate de que no esté asociada a tickets antes de eliminarla.</p>
+      </div>
+      <form method="post"
+            action="{% url 'priority_delete' obj.id %}"
+            data-requires-confirm
+            data-confirm-name="{{ obj.name|escape }}"
+            data-confirm-title="Eliminar prioridad"
+            data-confirm-message="Confirma escribiendo el nombre exacto de la prioridad."
+            data-confirm-prompt="Escribe {{ obj.name|escape }} para continuar."
+            data-confirm-error="El nombre no coincide.">
+        {% csrf_token %}
+        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-rose-700">
+          <i class="bi bi-trash"></i>
+          Eliminar prioridad
+        </button>
+      </form>
+    </div>
+    {% endif %}
   </form>
 </div>
 {% endblock %}
