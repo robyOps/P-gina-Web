@@ -205,6 +205,19 @@
     <div class="dashboard-shell__scrim" aria-hidden="true"></div>
     <div class="dashboard-shell__content">
       <div class="space-y-8 py-5">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div class="space-y-1">
+            <h1 class="text-3xl font-semibold text-slate-900">Resumen {{ scope }}</h1>
+            <p class="text-sm text-slate-600">
+              Vista {{ mode == 'historical' and 'histórica' or 'mensual' }} · Datos entre
+              {{ period_range.start|localtime|date:"d/m/Y" }} y {{ period_range.end|localtime|date:"d/m/Y" }}.
+            </p>
+          </div>
+          <div class="inline-flex items-center rounded-full border border-slate-200 bg-white p-1 shadow-sm" role="group" aria-label="Cambiar vista temporal">
+            <a href="{% url 'dashboard' %}?mode=monthly" class="rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 {% if mode == 'monthly' %}bg-slate-900 text-white shadow{% else %}text-slate-600 hover:bg-slate-100{% endif %}" {% if mode == 'monthly' %}aria-current="page"{% endif %}>Mensual</a>
+            <a href="{% url 'dashboard' %}?mode=historical" class="rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 {% if mode == 'historical' %}bg-slate-900 text-white shadow{% else %}text-slate-600 hover:bg-slate-100{% endif %}" {% if mode == 'historical' %}aria-current="page"{% endif %}>Histórico</a>
+          </div>
+        </div>
         <section class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           <article class="flex flex-col gap-3 rounded-3xl border border-sky-300 bg-sky-200 p-4 shadow-sm sm:p-5">
             <div class="flex items-center justify-between">
@@ -224,7 +237,7 @@
 
           <article class="flex flex-col gap-3 rounded-3xl border border-emerald-300 bg-emerald-200 p-4 shadow-sm sm:p-5">
             <div class="flex items-center justify-between">
-              <span class="text-base font-semibold text-emerald-900 sm:text-lg">Resueltos (mes)</span>
+              <span class="text-base font-semibold text-emerald-900 sm:text-lg">Resueltos {% if mode == 'monthly' %}(mes){% else %}(histórico){% endif %}</span>
               <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg text-emerald-600 shadow-sm"><i class="bi bi-check-circle"></i></span>
             </div>
             <p class="text-3xl font-semibold text-slate-900 sm:text-4xl">{{ counts.resolved }}</p>
@@ -232,7 +245,7 @@
 
           <article class="flex flex-col gap-3 rounded-3xl border border-rose-300 bg-rose-200 p-4 shadow-sm sm:p-5">
             <div class="flex items-center justify-between">
-              <span class="text-base font-semibold text-rose-900 sm:text-lg">Cerrados (mes)</span>
+              <span class="text-base font-semibold text-rose-900 sm:text-lg">Cerrados {% if mode == 'monthly' %}(mes){% else %}(histórico){% endif %}</span>
               <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg text-rose-600 shadow-sm"><i class="bi bi-shield-lock"></i></span>
             </div>
             <p class="text-3xl font-semibold text-slate-900 sm:text-4xl">{{ counts.closed }}</p>
@@ -282,8 +295,8 @@
           <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div class="flex flex-col gap-3">
               <div>
-                <h2 class="text-2xl font-semibold text-slate-900">Distribución del mes en curso</h2>
-                <p class="text-sm text-slate-600">Tickets creados entre {{ current_month_range.start|localtime|date:"d/m/Y" }} y {{ current_month_range.end|localtime|date:"d/m/Y" }}.</p>
+                <h2 class="text-2xl font-semibold text-slate-900">Distribución {{ mode == 'historical' and 'histórica' or 'del mes en curso' }}</h2>
+                <p class="text-sm text-slate-600">Tickets creados entre {{ period_range.start|localtime|date:"d/m/Y" }} y {{ period_range.end|localtime|date:"d/m/Y" }}.</p>
               </div>
               <div class="mx-auto mt-3 h-80 w-full max-w-2xl">
                 <canvas id="statusChart" aria-label="Gráfico circular de estado de tickets"></canvas>
@@ -309,7 +322,7 @@
                   <input type="checkbox" class="status-toggle sr-only" data-index="2" checked>
                   <span class="flex items-center gap-2">
                     <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #a7f3d0"></span>
-                    Resueltos (mes)
+                    Resueltos {% if mode == 'monthly' %}(mes){% else %}(histórico){% endif %}
                   </span>
                   <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.resolved }}</span>
                 </label>
@@ -317,7 +330,7 @@
                   <input type="checkbox" class="status-toggle sr-only" data-index="3" checked>
                   <span class="flex items-center gap-2">
                     <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background-color: #fecdd3"></span>
-                    Cerrados (mes)
+                    Cerrados {% if mode == 'monthly' %}(mes){% else %}(histórico){% endif %}
                   </span>
                   <span class="ml-2 text-xs font-semibold text-slate-400">{{ counts.closed }}</span>
                 </label>
@@ -333,10 +346,10 @@
               <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 class="text-2xl font-semibold text-slate-900">Tendencias de fallas por categoría</h2>
-                  <p class="text-sm text-slate-600">Detecta patrones y dimensiona el impacto de cada categoría durante el mes actual.</p>
+                  <p class="text-sm text-slate-600">Detecta patrones y dimensiona el impacto de cada categoría {{ mode == 'historical' and 'a lo largo del histórico disponible' or 'durante el mes actual' }}.</p>
                 </div>
                 {% if has_failures_data %}
-                <span class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-sky-600"><i class="bi bi-clock-history"></i> Mes en curso · {{ current_month_range.start|localtime|date:"d/m" }}-{{ current_month_range.end|localtime|date:"d/m" }}</span>
+                <span class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-sky-600"><i class="bi bi-clock-history"></i> {{ mode == 'historical' and 'Histórico' or 'Mes en curso' }} · {{ period_range.start|localtime|date:"d/m" }}-{{ period_range.end|localtime|date:"d/m" }}</span>
                 {% endif %}
               </div>
 
@@ -349,7 +362,7 @@
               {% else %}
               <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 p-8 text-center text-sm text-sky-600">
                 <i class="bi bi-info-circle text-3xl"></i>
-                <p class="max-w-md text-base">No hay registros recientes suficientes para mostrar tendencias de fallas. Mantén la monitorización para descubrir patrones emergentes.</p>
+                <p class="max-w-md text-base">No hay registros {{ mode == 'historical' and 'históricos' or 'recientes' }} suficientes para mostrar tendencias de fallas. Mantén la monitorización para descubrir patrones emergentes.</p>
               </div>
               {% endif %}
             </div>
@@ -359,7 +372,7 @@
             <div class="flex h-full flex-col gap-3">
               <div>
                 <h3 class="text-lg font-semibold text-slate-900">Fallas más comunes por categoría</h3>
-                <p class="text-sm text-slate-600">Top 15 categorías con mayor volumen reportado durante el mes en curso.</p>
+                <p class="text-sm text-slate-600">Top 15 categorías con mayor volumen reportado {{ mode == 'historical' and 'en el histórico disponible' or 'durante el mes en curso' }}.</p>
               </div>
               {% if failure_breakdown %}
               <ul class="space-y-3 overflow-y-auto pr-2" role="list">
@@ -392,10 +405,10 @@
           <article class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 class="text-2xl font-semibold text-slate-900">Top subcategorías del mes</h2>
-                <p class="text-sm text-slate-600">Clasificación detallada de tickets que concentra la mayor actividad en el período actual.</p>
+                <h2 class="text-2xl font-semibold text-slate-900">Top subcategorías del {{ mode == 'historical' and 'histórico' or 'mes' }}</h2>
+                <p class="text-sm text-slate-600">Clasificación detallada de tickets que concentra la mayor actividad en el {{ mode == 'historical' and 'histórico disponible' or 'período actual' }}.</p>
               </div>
-              <span class="dashboard-top-subcategories__badge inline-flex items-center gap-2 self-start rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600 sm:self-auto"><i class="bi bi-calendar3"></i> Mes en curso</span>
+              <span class="dashboard-top-subcategories__badge inline-flex items-center gap-2 self-start rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600 sm:self-auto"><i class="bi bi-calendar3"></i> {{ mode == 'historical' and 'Histórico' or 'Mes en curso' }}</span>
             </div>
             {% if top_subcategories %}
             <ol class="mt-4 space-y-3" role="list">
@@ -421,7 +434,7 @@
             {% else %}
             <div class="mt-6 flex flex-col items-center justify-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-8 text-center text-sm text-emerald-600">
               <i class="bi bi-diagram-3 text-3xl"></i>
-              <p class="max-w-sm text-base">Aún no hay suficientes tickets clasificados en los últimos 30 días para construir un ranking.</p>
+              <p class="max-w-sm text-base">Aún no hay suficientes tickets clasificados en el {{ mode == 'historical' and 'histórico' or 'período reciente' }} para construir un ranking.</p>
             </div>
             {% endif %}
 
@@ -506,7 +519,7 @@
         <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 id="dashboardHeatmapTitle" class="text-2xl font-semibold text-slate-900">Mapa de calor del mes</h2>
+              <h2 id="dashboardHeatmapTitle" class="text-2xl font-semibold text-slate-900">Mapa de calor {{ mode == 'historical' and 'histórico' or 'del mes' }}</h2>
               <p class="text-sm text-slate-600">Distribución de tickets creados por día y hora durante el período actual.</p>
             </div>
             <div class="flex flex-col items-start gap-1 text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 sm:items-end">
@@ -515,7 +528,7 @@
           </div>
 
           <div class="dashboard-heatmap mt-6">
-            <p id="dashboardHeatmapStatus" class="text-sm text-slate-500">Cargando mapa de calor…</p>
+            <p id="dashboardHeatmapStatus" class="text-sm text-slate-500">Cargando mapa de calor {{ mode == 'historical' and 'histórico' or 'mensual' }}…</p>
             <div class="dashboard-heatmap__grid" role="group" aria-labelledby="dashboardHeatmapTitle">
               <div id="dashboardHeatmapGrid" class="dashboard-heatmap__grid-inner" role="grid" aria-live="polite" aria-busy="true"></div>
             </div>
@@ -538,6 +551,8 @@
   document.addEventListener('DOMContentLoaded', () => {
     const statusConfig = {{ chart_data|safe }};
     const failuresConfig = {{ failures_chart_data|safe }};
+    const periodMeta = {{ period_payload|safe }};
+    const heatmapParams = {{ heatmap_query|safe }};
     const hasFailureData = {{ has_failures_data|yesno:"true,false" }};
 
     const heatmapStatus = document.getElementById('dashboardHeatmapStatus');
@@ -691,13 +706,24 @@
         heatmapGrid.setAttribute('aria-busy', 'false');
       };
 
+      const modeLabel = periodMeta?.mode === 'historical' ? 'histórico' : 'mensual';
+
       const loadHeatmap = async () => {
-        heatmapStatus.textContent = 'Cargando mapa de calor…';
+        heatmapStatus.textContent = `Cargando mapa de calor ${modeLabel}…`;
         heatmapGrid.setAttribute('aria-busy', 'true');
         heatmapGrid.innerHTML = '';
 
         try {
-          const response = await fetch('/api/reports/heatmap/', { credentials: 'same-origin' });
+          const params = new URLSearchParams();
+          if (heatmapParams?.from) {
+            params.set('from', heatmapParams.from);
+          }
+          if (heatmapParams?.to) {
+            params.set('to', heatmapParams.to);
+          }
+          const url = params.toString() ? `/api/reports/heatmap/?${params.toString()}` : '/api/reports/heatmap/';
+
+          const response = await fetch(url, { credentials: 'same-origin' });
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
           }
@@ -705,7 +731,7 @@
           renderHeatmap(payload);
         } catch (error) {
           console.error('No se pudo cargar el mapa de calor', error);
-          heatmapStatus.textContent = 'No se pudo cargar el mapa de calor. Intenta nuevamente más tarde.';
+          heatmapStatus.textContent = `No se pudo cargar el mapa de calor ${modeLabel}. Intenta nuevamente más tarde.`;
           heatmapLegendMin.textContent = '0';
           heatmapLegendMax.textContent = '0';
           const fallback = document.createElement('div');
