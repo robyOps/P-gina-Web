@@ -229,12 +229,19 @@ def dashboard(request):
     monthly_qs = qs.filter(created_at__gte=month_start, created_at__lt=month_end)
 
     bounds = qs.aggregate(first_created=Min("created_at"), last_created=Max("created_at"))
+
     history_start = bounds["first_created"] or month_start
-    history_end = bounds["last_created"] or now
     if timezone.is_naive(history_start):
         history_start = timezone.make_aware(history_start, timezone.utc)
+
+    history_end = bounds["last_created"] or now
     if timezone.is_naive(history_end):
         history_end = timezone.make_aware(history_end, timezone.utc)
+
+    # Cuando no existen tickets recientes, extender el rango histórico hasta "ahora"
+    # garantiza que la interfaz muestre el período completo disponible.
+    history_end = max(history_end, history_start)
+    history_end = max(history_end, now)
 
     is_historical = mode == "historical"
 
