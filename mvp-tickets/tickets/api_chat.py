@@ -16,9 +16,40 @@ logger = logging.getLogger(__name__)
 
 
 class ChatView(APIView):
-    """Recibe preguntas del usuario y delega la respuesta a la API de IA."""
+    """Gestiona la conversación con el asistente de IA usando sesión de usuario."""
 
     permission_classes = [IsAuthenticated]
+    session_key = "chat_history"
+    max_history = 40
+
+    def _load_history(self, request):
+        history = request.session.get(self.session_key, [])
+        cleaned: list[dict[str, str]] = []
+        if isinstance(history, list):
+            for entry in history:
+                if not isinstance(entry, dict):
+                    continue
+                author = entry.get("author")
+                message = entry.get("message")
+                if author in {"user", "assistant"} and isinstance(message, str):
+                    cleaned.append({"author": author, "message": message})
+        if cleaned != history:
+            request.session[self.session_key] = cleaned
+            request.session.modified = True
+        return cleaned
+
+    def get(self, request):
+        """Devuelve la conversación actual almacenada en la sesión."""
+
+        return Response({"conversation": self._load_history(request)})
+
+    def delete(self, request):
+        """Elimina la conversación persistida en la sesión del usuario."""
+
+        if self.session_key in request.session:
+            del request.session[self.session_key]
+            request.session.modified = True
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def post(self, request):
         message = (request.data.get("message") or "").strip()
@@ -30,6 +61,7 @@ class ChatView(APIView):
 
         user = request.user
         role = determine_user_role(user)
+        history = list(self._load_history(request))
 
         try:
             context = build_chat_context(user, message)
@@ -40,6 +72,16 @@ class ChatView(APIView):
                 " sobre tickets y métricas generales según el rol del usuario."
             )
 
-        answer = call_ai_api(context, message, role)
-        return Response({"answer": answer})
+        answer = call_ai_api(context, message, role, history=history)
+
+        history.append({"author": "user", "message": message})
+        history.append({"author": "assistant", "message": answer})
+
+        if len(history) > self.max_history:
+            history = history[-self.max_history :]
+
+        request.session[self.session_key] = history
+        request.session.modified = True
+
+        return Response({"answer": answer, "conversation": history})
 

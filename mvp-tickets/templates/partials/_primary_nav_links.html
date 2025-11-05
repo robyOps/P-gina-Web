@@ -34,4 +34,9 @@
       Preguntas frecuentes
     </a>
   {% endif %}
+  <a href="{% url 'chat_session' %}"
+     class="{{ link_base_class }} {% if current_path|slice:':6' == '/chat/' %}{{ link_active_class }}{% else %}{{ link_inactive_class }}{% endif %}"
+     aria-current="{% if current_path|slice:':6' == '/chat/' %}page{% endif %}" {{ nav_data_attribute|default:''|safe }}>
+    Chat con IA
+  </a>
 {% endwith %}
