@@ -89,9 +89,28 @@ def build_chat_context(user, question: str) -> str:
     return "\n".join(header + ["", specific_context]).strip()
 
 
-def call_ai_api(context: str, question: str, role: str) -> str:
+def call_ai_api(
+    context: str,
+    question: str,
+    role: str,
+    history: Iterable[dict[str, str]] | None = None,
+) -> str:
     api_url = getattr(settings, "AI_CHAT_API_URL", "http://127.0.0.1:11434/api/generate")
     model = getattr(settings, "AI_CHAT_MODEL", "llama3")
+
+    history_lines: list[str] = []
+    if history:
+        for entry in list(history)[-10:]:
+            if not isinstance(entry, dict):
+                continue
+            author = entry.get("author")
+            message = entry.get("message")
+            if author not in {"user", "assistant"} or not isinstance(message, str):
+                continue
+            speaker = "Usuario" if author == "user" else "Asistente"
+            history_lines.append(f"{speaker}: {message.strip()}")
+
+    history_block = "\n".join(history_lines) if history_lines else "Sin historial previo disponible."
 
     prompt = (
         "Eres un asistente interno del sistema de tickets de soporte.\n"
@@ -101,6 +120,8 @@ def call_ai_api(context: str, question: str, role: str) -> str:
         f"Rol del usuario: {ROLE_LABELS.get(role, role)}.\n\n"
         "=== CONTEXTO ===\n"
         f"{context}\n\n"
+        "=== HISTORIAL DE LA CONVERSACIÓN ===\n"
+        f"{history_block}\n\n"
         "=== PREGUNTA DEL USUARIO ===\n"
         f"{question or ''}\n"
     )

@@ -64,6 +64,8 @@ urlpatterns = [
     path("faq/<int:pk>/edit/", ticket_views.faq_edit, name="faq_edit"),
     # Elimina la FAQ ``pk`` aplicando reglas de negocio internas.
     path("faq/<int:pk>/delete/", ticket_views.faq_delete, name="faq_delete"),
+    # Sesión dedicada para conversar con el asistente de IA.
+    path("chat/", ticket_views.chat_session, name="chat_session"),
 
     # Partials/acciones HTMX
     # Devuelve fragmento de discusión para inyectar en modal o panel.

@@ -418,6 +418,23 @@ def dashboard(request):
 
 
 @login_required
+def chat_session(request):
+    """Renderiza la interfaz dedicada del asistente conversacional."""
+
+    raw_history = request.session.get("chat_history", [])
+    conversation: list[dict[str, str]] = []
+    for entry in raw_history:
+        if not isinstance(entry, dict):
+            continue
+        author = entry.get("author")
+        message = entry.get("message")
+        if author in {"user", "assistant"} and isinstance(message, str):
+            conversation.append({"author": author, "message": message})
+
+    return render(request, "chat/session.html", {"conversation": conversation})
+
+
+@login_required
 def faq_list(request):
     """Listado de preguntas frecuentes y formulario de alta rápida."""
     user = request.user

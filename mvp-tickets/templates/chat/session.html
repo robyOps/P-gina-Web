@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% load json_script %}
+
+{% block content %}
+<div class="mx-auto flex max-w-4xl flex-col gap-6">
+  <section class="rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
+    <div class="flex flex-col gap-4 border-b border-slate-200 bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-5 text-white md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight">Asistente virtual</h1>
+        <p class="text-sm text-indigo-100">Conversación persistente respaldada por Ollama. La sesión se mantiene hasta que la elimines.</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="rounded-full bg-white/20 px-3 py-1 text-xs font-medium uppercase tracking-wide">Sesión única por usuario</span>
+        <button id="chat-clear" type="button" class="inline-flex items-center gap-2 rounded-full border border-white/70 px-4 py-2 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+          <i class="bi bi-trash"></i>
+          Vaciar conversación
+        </button>
+      </div>
+    </div>
+    <div class="grid gap-0 md:grid-cols-[2fr_1fr]">
+      <div class="flex flex-col">
+        <div id="chat-conversation" class="flex min-h-[20rem] flex-col gap-4 overflow-y-auto px-6 py-6" role="log" aria-live="polite" aria-relevant="additions"></div>
+        <div class="border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <form id="chat-form" autocomplete="off" class="flex flex-col gap-3">
+            <label for="chat-input" class="sr-only">Escribe tu consulta para el asistente</label>
+            <input id="chat-input" name="message" type="text" placeholder="Escribe tu consulta sobre tickets, métricas o FAQs" class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-800 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200" required />
+            <div class="flex items-center justify-between gap-4">
+              <p id="chat-status" class="min-h-[1.5rem] text-sm text-slate-500" role="status" aria-live="polite"></p>
+              <button id="chat-submit" type="submit" class="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-blue-500 px-5 py-2 text-sm font-semibold text-white shadow-lg transition hover:from-indigo-500 hover:to-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
+                <i class="bi bi-send"></i>
+                Enviar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <aside class="flex flex-col gap-4 border-t border-slate-200 bg-white px-6 py-6 text-sm text-slate-600 md:border-t-0 md:border-l">
+        <h2 class="text-base font-semibold text-slate-900">Cómo aprovechar al asistente</h2>
+        <ul class="list-disc space-y-2 pl-4">
+          <li>Pide resúmenes de tus tickets, métricas o preguntas frecuentes según tu rol.</li>
+          <li>El asistente usa los datos internos disponibles; evita compartir información sensible fuera del sistema.</li>
+          <li>Si notas incoherencias, solicita precisión indicando los números de ticket o filtros deseados.</li>
+        </ul>
+        <p class="rounded-2xl bg-indigo-50 px-4 py-3 text-indigo-900">El historial se sincroniza con Ollama para mantener el contexto. Puedes reiniciar la conversación cuando lo necesites.</p>
+      </aside>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block body_extra %}
+{{ conversation|json_script:"chat-initial-data" }}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const conversationContainer = document.getElementById('chat-conversation');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('chat-input');
+    const submitButton = document.getElementById('chat-submit');
+    const statusLine = document.getElementById('chat-status');
+    const clearButton = document.getElementById('chat-clear');
+    const initialDataElement = document.getElementById('chat-initial-data');
+    const apiUrl = '/api/chat/';
+
+    const toneClasses = {
+      info: 'text-slate-600',
+      success: 'text-emerald-600',
+      warning: 'text-amber-600',
+      error: 'text-red-600',
+    };
+
+    let conversation = [];
+
+    const getCookie = (name) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) {
+        return decodeURIComponent(parts.pop().split(';').shift() || '');
+      }
+      return '';
+    };
+
+    const sanitizeEntry = (entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return null;
+      }
+      const author = entry.author;
+      const message = typeof entry.message === 'string' ? entry.message.trim() : '';
+      if (!message) {
+        return null;
+      }
+      if (author !== 'user' && author !== 'assistant') {
+        return null;
+      }
+      return { author, message };
+    };
+
+    const renderConversation = (items) => {
+      conversationContainer.innerHTML = '';
+      if (!items.length) {
+        const empty = document.createElement('p');
+        empty.className = 'rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500';
+        empty.textContent = 'Todavía no has iniciado la conversación. Escribe un mensaje para comenzar.';
+        conversationContainer.appendChild(empty);
+        return;
+      }
+
+      items.forEach((entry) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = `flex ${entry.author === 'user' ? 'justify-end' : 'justify-start'}`;
+
+        const bubble = document.createElement('div');
+        bubble.className = 'max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-md transition';
+        if (entry.author === 'user') {
+          bubble.classList.add('bg-gradient-to-r', 'from-indigo-600', 'to-blue-500', 'text-white');
+        } else {
+          bubble.classList.add('bg-slate-100', 'text-slate-900');
+        }
+        bubble.textContent = entry.message;
+
+        wrapper.appendChild(bubble);
+        conversationContainer.appendChild(wrapper);
+      });
+
+      conversationContainer.scrollTop = conversationContainer.scrollHeight;
+    };
+
+    const setStatus = (message, tone = 'info') => {
+      if (!statusLine) {
+        return;
+      }
+      if (!message) {
+        statusLine.textContent = '';
+        statusLine.className = 'min-h-[1.5rem] text-sm text-slate-500';
+        return;
+      }
+      const toneClass = toneClasses[tone] || toneClasses.info;
+      statusLine.textContent = message;
+      statusLine.className = `min-h-[1.5rem] text-sm ${toneClass}`;
+    };
+
+    const setLoading = (state) => {
+      input.disabled = state;
+      submitButton.disabled = state;
+      submitButton.innerHTML = state
+        ? '<span class="inline-flex items-center gap-2"><i class="bi bi-hourglass-split"></i> Enviando…</span>'
+        : '<span class="inline-flex items-center gap-2"><i class="bi bi-send"></i> Enviar</span>';
+    };
+
+    const syncFromPayload = (payload) => {
+      if (!Array.isArray(payload)) {
+        return;
+      }
+      const sanitized = payload
+        .map(sanitizeEntry)
+        .filter((entry) => entry !== null);
+      conversation = sanitized;
+      renderConversation(conversation);
+    };
+
+    const refreshConversation = async () => {
+      try {
+        const response = await fetch(apiUrl, { credentials: 'same-origin' });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const data = await response.json();
+        syncFromPayload(data.conversation);
+      } catch (error) {
+        setStatus('No se pudo sincronizar el historial con el servidor.', 'warning');
+      }
+    };
+
+    if (initialDataElement) {
+      try {
+        const initial = JSON.parse(initialDataElement.textContent);
+        syncFromPayload(initial);
+      } catch (error) {
+        console.error('No se pudo analizar el historial inicial del chat.', error);
+      }
+    }
+
+    renderConversation(conversation);
+    refreshConversation();
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const text = input.value.trim();
+      if (!text) {
+        setStatus('Escribe un mensaje antes de enviarlo.', 'warning');
+        return;
+      }
+
+      const rollbackIndex = conversation.length;
+      conversation = [...conversation, { author: 'user', message: text }];
+      renderConversation(conversation);
+      input.value = '';
+      setLoading(true);
+      setStatus('Consultando a Ollama…', 'info');
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({ message: text }),
+        });
+
+        if (!response.ok) {
+          let detail = `HTTP ${response.status}`;
+          try {
+            const errorPayload = await response.json();
+            if (errorPayload && typeof errorPayload.detail === 'string') {
+              detail = errorPayload.detail;
+            }
+          } catch (parseError) {
+            // ignoramos errores de parseo
+          }
+          throw new Error(detail);
+        }
+
+        const data = await response.json();
+        const answer = typeof data.answer === 'string' && data.answer.trim()
+          ? data.answer.trim()
+          : 'El asistente no envió una respuesta interpretable.';
+
+        conversation = [...conversation, { author: 'assistant', message: answer }];
+        renderConversation(conversation);
+
+        if (Array.isArray(data.conversation)) {
+          syncFromPayload(data.conversation);
+        }
+
+        setStatus('Respuesta recibida correctamente.', 'success');
+      } catch (error) {
+        conversation = conversation.slice(0, rollbackIndex);
+        renderConversation(conversation);
+        setStatus(`No se pudo completar la solicitud: ${error.message}`, 'error');
+      } finally {
+        setLoading(false);
+        input.focus();
+      }
+    });
+
+    if (clearButton) {
+      clearButton.addEventListener('click', async () => {
+        if (!window.confirm('¿Deseas eliminar la conversación actual con el asistente?')) {
+          return;
+        }
+        setLoading(true);
+        setStatus('Eliminando historial…', 'info');
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'DELETE',
+            headers: {
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            credentials: 'same-origin',
+          });
+
+          if (!response.ok && response.status !== 204) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          conversation = [];
+          renderConversation(conversation);
+          setStatus('La conversación se vació correctamente.', 'success');
+        } catch (error) {
+          setStatus('No se pudo eliminar la conversación. Intenta nuevamente.', 'error');
+        } finally {
+          setLoading(false);
+          input.focus();
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}
