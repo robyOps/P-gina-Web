@@ -1,7 +1,8 @@
 {% extends "base.html" %}
+{% block main_container_classes %}px-0 sm:px-0 lg:px-0{% endblock %}
 {% block content %}
-<div class="mx-auto flex max-w-4xl flex-col gap-6">
-  <section class="rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
+<div class="flex h-full w-full flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+  <section class="flex h-full flex-1 flex-col rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
     <div class="flex flex-col gap-4 border-b border-slate-200 bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-5 text-white md:flex-row md:items-center md:justify-between">
       <div>
         <h1 class="text-2xl font-semibold tracking-tight">Asistente virtual</h1>
@@ -15,9 +16,9 @@
         </button>
       </div>
     </div>
-    <div class="grid gap-0 md:grid-cols-[2fr_1fr]">
-      <div class="flex flex-col">
-        <div id="chat-conversation" class="flex min-h-[20rem] flex-col gap-4 overflow-y-auto px-6 py-6" role="log" aria-live="polite" aria-relevant="additions"></div>
+    <div class="grid flex-1 gap-0 md:grid-cols-[2fr_1fr]">
+      <div class="flex min-h-0 flex-1 flex-col">
+        <div id="chat-conversation" class="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-6" role="log" aria-live="polite" aria-relevant="additions"></div>
         <div class="border-t border-slate-200 bg-slate-50 px-6 py-4">
           <form id="chat-form" autocomplete="off" class="flex flex-col gap-3">
             <label for="chat-input" class="sr-only">Escribe tu consulta para el asistente</label>
@@ -32,7 +33,7 @@
           </form>
         </div>
       </div>
-      <aside class="flex flex-col gap-4 border-t border-slate-200 bg-white px-6 py-6 text-sm text-slate-600 md:border-t-0 md:border-l">
+      <aside class="flex min-h-0 flex-col gap-4 border-t border-slate-200 bg-white px-6 py-6 text-sm text-slate-600 md:border-t-0 md:border-l">
         <h2 class="text-base font-semibold text-slate-900">Cómo aprovechar al asistente</h2>
         <ul class="list-disc space-y-2 pl-4">
           <li>Pide resúmenes de tus tickets, métricas o preguntas frecuentes según tu rol.</li>

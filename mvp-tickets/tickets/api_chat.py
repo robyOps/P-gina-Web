@@ -9,7 +9,12 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 
-from .services_chat import build_chat_context, call_ai_api, determine_user_role
+from .services_chat import (
+    build_chat_context,
+    call_ai_api,
+    determine_user_role,
+    is_prompt_injection_attempt,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -62,6 +67,24 @@ class ChatView(APIView):
         user = request.user
         role = determine_user_role(user)
         history = list(self._load_history(request))
+
+        if is_prompt_injection_attempt(message):
+            warning = (
+                "No puedo procesar esa solicitud porque intenta manipular las "
+                "instrucciones internas del asistente. Formula una pregunta sobre "
+                "tickets, métricas o preguntas frecuentes."
+            )
+
+            history.append({"author": "user", "message": message})
+            history.append({"author": "assistant", "message": warning})
+
+            if len(history) > self.max_history:
+                history = history[-self.max_history :]
+
+            request.session[self.session_key] = history
+            request.session.modified = True
+
+            return Response({"answer": warning, "conversation": history})
 
         try:
             context = build_chat_context(user, message)

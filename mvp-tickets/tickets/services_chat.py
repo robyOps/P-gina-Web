@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import unicodedata
 from collections import defaultdict
 from typing import Iterable
@@ -87,6 +88,44 @@ def build_chat_context(user, question: str) -> str:
     ]
 
     return "\n".join(header + ["", specific_context]).strip()
+
+
+def is_prompt_injection_attempt(question: str) -> bool:
+    """Detecta intentos básicos de manipular el prompt del asistente."""
+
+    normalized = _normalize_text(question or "")
+    if not normalized:
+        return False
+
+    suspicious_keywords = {
+        "ignora las instrucciones",
+        "ignora estas instrucciones",
+        "ignora todas las instrucciones",
+        "olvida las instrucciones",
+        "olvida estas instrucciones",
+        "olvida todo",
+        "prompt del sistema",
+        "system prompt",
+        "actua como",
+        "eres ahora",
+        "sin restricciones",
+        "haz caso omiso",
+        "revela el prompt",
+        "muéstrame el prompt",
+        "muestrame el prompt",
+    }
+
+    if any(keyword in normalized for keyword in suspicious_keywords):
+        return True
+
+    pattern = re.compile(
+        r"(ignora|olvida).{0,40}(instruccion|instrucciones|contexto)"
+        r"|revela.{0,40}prompt"
+        r"|muestra.{0,40}prompt",
+        re.IGNORECASE,
+    )
+
+    return bool(pattern.search(question or ""))
 
 
 def call_ai_api(
