@@ -158,8 +158,8 @@ DEFAULT_FROM_EMAIL = "mvp@localhost"
 
 
 # Integración con el chatbot de IA (configurable vía variables de entorno).
-AI_CHAT_API_URL = os.environ.get("AI_CHAT_API_URL")
-AI_CHAT_API_KEY = os.environ.get("AI_CHAT_API_KEY")
+AI_CHAT_API_URL = "http://127.0.0.1:11434/api/generate"
+AI_CHAT_MODEL = "llama3"
 
 
 # URLs de autenticación utilizadas por ``LoginRequiredMixin`` y helpers de Django.
