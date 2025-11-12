@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Dict, Iterable as IterableType, List, Tuple
+from collections import defaultdict
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -423,3 +424,86 @@ def collect_ticket_alerts(
         )
 
     return snapshots
+
+
+def summarize_sla_performance(queryset, *, now: datetime | None = None) -> dict:
+    """Calcula métricas de cumplimiento SLA para el conjunto entregado."""
+
+    now = now or timezone.now()
+    qs = queryset.select_related(
+        "priority",
+        "assigned_to",
+        "category",
+        "subcategory",
+        "area",
+    )
+
+    stats = {
+        "total_considered": 0,
+        "closed_total": 0,
+        "closed_on_time": 0,
+        "closed_overdue": 0,
+        "current_overdue": 0,
+        "open_on_time": 0,
+        "overall_overdue": 0,
+        "overall_on_time": 0,
+        "overdue_by_tech": defaultdict(int),
+        "overdue_by_category": defaultdict(int),
+        "overdue_by_subcategory": defaultdict(int),
+        "overdue_by_area": defaultdict(int),
+    }
+
+    for ticket in qs:
+        stats["total_considered"] += 1
+
+        due_at = ticket.due_at
+        completed_at = ticket.closed_at or ticket.resolved_at
+        is_overdue = False
+
+        if completed_at:
+            stats["closed_total"] += 1
+            if completed_at > due_at:
+                stats["closed_overdue"] += 1
+                is_overdue = True
+            else:
+                stats["closed_on_time"] += 1
+        else:
+            if due_at < now:
+                stats["current_overdue"] += 1
+                is_overdue = True
+            else:
+                stats["open_on_time"] += 1
+
+        if not is_overdue:
+            continue
+
+        tech_label = getattr(ticket.assigned_to, "username", "") or "Sin técnico"
+        stats["overdue_by_tech"][tech_label] += 1
+
+        category_label = getattr(ticket.category, "name", "") or "Sin categoría"
+        stats["overdue_by_category"][category_label] += 1
+
+        if ticket.subcategory_id:
+            sub_label = getattr(ticket.subcategory, "name", "") or "Sin subcategoría"
+        else:
+            sub_label = "Sin subcategoría"
+        stats["overdue_by_subcategory"][sub_label] += 1
+
+        area_label = getattr(ticket.area, "name", "") or "Sin área"
+        stats["overdue_by_area"][area_label] += 1
+
+    stats["overall_overdue"] = stats["closed_overdue"] + stats["current_overdue"]
+    stats["overall_on_time"] = max(
+        0,
+        stats["total_considered"] - stats["overall_overdue"],
+    )
+
+    def _sorted(counts: defaultdict[str, int]) -> dict:
+        return dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
+
+    stats["overdue_by_tech"] = _sorted(stats["overdue_by_tech"])
+    stats["overdue_by_category"] = _sorted(stats["overdue_by_category"])
+    stats["overdue_by_subcategory"] = _sorted(stats["overdue_by_subcategory"])
+    stats["overdue_by_area"] = _sorted(stats["overdue_by_area"])
+
+    return stats

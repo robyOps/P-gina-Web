@@ -36,3 +36,43 @@ class ComplexPasswordValidator:
             "La contraseña debe incluir letras mayúsculas, minúsculas, números y símbolos."
         )
 
+
+rut_clean_re = re.compile(r"[^0-9kK]")
+
+
+def normalize_rut(value: str | None) -> str:
+    """Normaliza y valida un RUT chileno devolviendo el formato 12345678-9."""
+
+    if not value:
+        return ""
+
+    raw = rut_clean_re.sub("", str(value)).upper()
+    if not raw:
+        return ""
+
+    if len(raw) < 2:
+        raise ValidationError("Formato de RUT inválido.")
+
+    body, dv = raw[:-1], raw[-1]
+    if not body.isdigit():
+        raise ValidationError("Formato de RUT inválido.")
+
+    expected = _compute_rut_digit(body)
+    if dv != expected:
+        raise ValidationError("Dígito verificador de RUT inválido.")
+
+    return f"{int(body)}-{expected}"
+
+
+def _compute_rut_digit(body: str) -> str:
+    sequence = [2, 3, 4, 5, 6, 7]
+    total = 0
+    for index, char in enumerate(reversed(body)):
+        total += int(char) * sequence[index % len(sequence)]
+    remainder = 11 - (total % 11)
+    if remainder == 11:
+        return "0"
+    if remainder == 10:
+        return "K"
+    return str(remainder)
+

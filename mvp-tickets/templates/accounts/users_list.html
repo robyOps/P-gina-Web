@@ -73,6 +73,8 @@
                 <th scope="col" class="px-4 py-3 text-left">Usuario</th>
                 <th scope="col" class="px-4 py-3 text-left">Nombre</th>
                 <th scope="col" class="px-4 py-3 text-left">Email</th>
+                <th scope="col" class="px-4 py-3 text-left">RUT</th>
+                <th scope="col" class="px-4 py-3 text-left">Área</th>
                 <th scope="col" class="px-4 py-3 text-left">Grupos</th>
                 <th scope="col" class="px-4 py-3 text-left">Estado</th>
                 <th scope="col" class="px-4 py-3 text-left">Acciones</th>
@@ -84,6 +86,8 @@
                 <td class="px-4 py-3 font-medium text-slate-800">{{ u.username }}</td>
                 <td class="px-4 py-3 text-slate-600">{{ u.first_name }} {{ u.last_name }}</td>
                 <td class="px-4 py-3 text-slate-600">{{ u.email }}</td>
+                <td class="px-4 py-3 text-slate-600">{{ u.profile.rut|default_if_none:"—"|default:"—" }}</td>
+                <td class="px-4 py-3 text-slate-600">{{ u.profile.area|default:"—" }}</td>
                 <td class="px-4 py-3">
                   <div class="flex flex-wrap gap-2">
                     {% for g in u.groups.all %}
@@ -129,7 +133,7 @@
               </tr>
               {% empty %}
               <tr>
-                <td class="px-4 py-6 text-center text-sm text-slate-500" colspan="6">Sin resultados en este momento.</td>
+                <td class="px-4 py-6 text-center text-sm text-slate-500" colspan="8">Sin resultados en este momento.</td>
               </tr>
               {% endfor %}
             </tbody>

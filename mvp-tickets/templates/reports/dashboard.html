@@ -64,7 +64,7 @@
       </div>
     </div>
     <form method="get" class="rounded-2xl border border-white/30 bg-white/95 p-6 shadow-inner backdrop-blur-sm">
-      <div class="reports-filters-grid grid gap-4 text-sm sm:grid-cols-2 md:grid-cols-5">
+      <div class="reports-filters-grid grid gap-4 text-sm sm:grid-cols-2 md:grid-cols-6">
         <div class="flex flex-col gap-1">
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Desde</label>
           <input type="date" name="from" value="{{ from }}" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
@@ -92,7 +92,16 @@
             {% endfor %}
           </select>
         </div>
-        <div class="reports-filter-actions">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">SLA</label>
+          <select name="sla" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+            <option value="" {% if not sla_selected %}selected{% endif %}>(Todos)</option>
+            {% for p in priorities %}
+            <option value="{{ p.id }}" {% if sla_selected == p.id|stringformat:'s' %}selected{% endif %}>{{ p.name }} · {{ p.sla_hours }}h</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="reports-filter-actions md:col-span-2">
           <button class="btn inline-flex w-full items-center justify-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 sm:w-auto" type="submit">
             <i class="bi bi-funnel"></i> Filtrar
           </button>
@@ -136,6 +145,84 @@
   </section>
 
   <section class="grid gap-6 lg:grid-cols-2">
+    <article class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50 to-sky-50 p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Panorama de plazos</h2>
+      <p class="text-sm text-slate-500">Comparativa general entre tickets al día y vencidos en el período filtrado.</p>
+      {% if sla_summary.total_considered %}
+      <div class="chart-wrapper mt-4"><canvas id="chartSlaOverview"></canvas></div>
+      <dl class="mt-4 grid gap-3 text-xs text-slate-600 sm:grid-cols-3">
+        <div class="rounded-xl bg-white px-3 py-2 shadow-sm">
+          <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">Tickets al día</dt>
+          <dd class="mt-1 text-lg font-semibold text-slate-900">{{ sla_summary.overall_on_time }}</dd>
+        </div>
+        <div class="rounded-xl bg-white px-3 py-2 shadow-sm">
+          <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">Vencidos abiertos</dt>
+          <dd class="mt-1 text-lg font-semibold text-rose-600">{{ sla_summary.current_overdue }}</dd>
+        </div>
+        <div class="rounded-xl bg-white px-3 py-2 shadow-sm">
+          <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">Cerrados fuera de plazo</dt>
+          <dd class="mt-1 text-lg font-semibold text-rose-600">{{ sla_summary.closed_overdue }}</dd>
+        </div>
+      </dl>
+      {% else %}
+      <p class="mt-4 rounded-2xl border border-dashed border-indigo-200 bg-white/70 px-4 py-3 text-sm text-indigo-600">No hay datos suficientes en el rango seleccionado para calcular vencimientos de SLA.</p>
+      {% endif %}
+    </article>
+    <article class="rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-emerald-100/70 p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Cierres vs SLA</h2>
+      <p class="text-sm text-slate-500">Tickets cerrados dentro y fuera del plazo comprometido.</p>
+      {% if sla_summary.closed_total %}
+      <div class="chart-wrapper mt-4"><canvas id="chartSlaClosed"></canvas></div>
+      <ul class="mt-4 grid gap-2 text-xs text-slate-600">
+        <li class="flex items-center justify-between rounded-xl bg-white px-3 py-2 shadow-sm"><span>En plazo</span><span class="text-sm font-semibold text-emerald-600">{{ sla_summary.closed_on_time }}</span></li>
+        <li class="flex items-center justify-between rounded-xl bg-white px-3 py-2 shadow-sm"><span>Fuera de plazo</span><span class="text-sm font-semibold text-rose-600">{{ sla_summary.closed_overdue }}</span></li>
+      </ul>
+      {% else %}
+      <p class="mt-4 rounded-2xl border border-dashed border-emerald-200 bg-white/70 px-4 py-3 text-sm text-emerald-600">No se registran cierres de tickets en el período analizado.</p>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="grid gap-6 lg:grid-cols-2">
+    <article class="rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50 to-rose-100/80 p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Vencidos por técnico</h2>
+      <p class="text-sm text-slate-500">Conteo de incumplimientos según responsable asignado.</p>
+      {% if chart_sla_tech.data %}
+      <div class="chart-wrapper mt-4"><canvas id="chartSlaTech"></canvas></div>
+      {% else %}
+      <p class="mt-4 rounded-2xl border border-dashed border-rose-200 bg-white/70 px-4 py-3 text-sm text-rose-600">Sin tickets vencidos asociados a técnicos para este filtro.</p>
+      {% endif %}
+    </article>
+    <article class="rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-sky-50 to-sky-100/70 p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Vencidos por categoría</h2>
+      <p class="text-sm text-slate-500">Áreas funcionales con mayores incumplimientos.</p>
+      {% if chart_sla_category.data %}
+      <div class="chart-wrapper mt-4"><canvas id="chartSlaCategory"></canvas></div>
+      {% else %}
+      <p class="mt-4 rounded-2xl border border-dashed border-sky-200 bg-white/70 px-4 py-3 text-sm text-sky-600">No hay categorías con tickets vencidos según el filtro aplicado.</p>
+      {% endif %}
+    </article>
+    <article class="rounded-3xl border border-amber-100 bg-gradient-to-br from-white via-amber-50 to-amber-100/70 p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Vencidos por subcategoría</h2>
+      <p class="text-sm text-slate-500">Detalle específico de subcategorías con mayor retraso.</p>
+      {% if chart_sla_subcategory.data %}
+      <div class="chart-wrapper mt-4"><canvas id="chartSlaSubcategory"></canvas></div>
+      {% else %}
+      <p class="mt-4 rounded-2xl border border-dashed border-amber-200 bg-white/70 px-4 py-3 text-sm text-amber-600">Sin subcategorías con vencimientos para los criterios actuales.</p>
+      {% endif %}
+    </article>
+    <article class="rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-emerald-100/70 p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Vencidos por área</h2>
+      <p class="text-sm text-slate-500">Distribución de incumplimientos según áreas organizacionales.</p>
+      {% if chart_sla_area.data %}
+      <div class="chart-wrapper mt-4"><canvas id="chartSlaArea"></canvas></div>
+      {% else %}
+      <p class="mt-4 rounded-2xl border border-dashed border-emerald-200 bg-white/70 px-4 py-3 text-sm text-emerald-600">Aún no hay áreas con tickets vencidos en el rango seleccionado.</p>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="grid gap-6 lg:grid-cols-2">
     <article class="rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-sky-50 to-blue-50 p-6 shadow-sm">
       <h2 class="text-base font-semibold text-slate-900">Por categoría</h2>
       <p class="text-sm text-slate-500">Volumen de tickets según clasificación funcional.</p>
@@ -173,6 +260,12 @@
   {{ chart_tech|json_script:"chart_tech_data" }}
   {{ chart_hist|json_script:"chart_hist_data" }}
   {{ chart_cat_slow|json_script:"chart_cat_slow_data" }}
+  {{ chart_sla_overview|json_script:"chart_sla_overview_data" }}
+  {{ chart_sla_closed|json_script:"chart_sla_closed_data" }}
+  {{ chart_sla_tech|json_script:"chart_sla_tech_data" }}
+  {{ chart_sla_category|json_script:"chart_sla_category_data" }}
+  {{ chart_sla_subcategory|json_script:"chart_sla_subcategory_data" }}
+  {{ chart_sla_area|json_script:"chart_sla_area_data" }}
   <script>
     const PALETTES = {
       chartCat: ["#0ea5e9", "#38bdf8", "#0284c7", "#7dd3fc", "#0c4a6e"],
@@ -180,6 +273,12 @@
       chartTech: ["#f59e0b", "#f97316", "#fb923c", "#fbbf24", "#facc15"],
       chartHist: ["#ec4899", "#f472b6", "#be185d", "#f9a8d4", "#db2777"],
       chartCatSlow: ["#6366f1", "#4f46e5", "#818cf8", "#4338ca", "#a5b4fc"],
+      chartSlaOverview: ["#0ea5e9", "#f97316"],
+      chartSlaClosed: ["#10b981", "#ef4444"],
+      chartSlaTech: ["#fb7185", "#f43f5e", "#be123c", "#fda4af", "#ffccd5"],
+      chartSlaCategory: ["#38bdf8", "#0ea5e9", "#0284c7", "#075985", "#7dd3fc"],
+      chartSlaSubcategory: ["#facc15", "#eab308", "#ca8a04", "#fde68a", "#fcd34d"],
+      chartSlaArea: ["#34d399", "#10b981", "#047857", "#6ee7b7", "#a7f3d0"],
       default: ["#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd"],
     };
 
@@ -269,11 +368,23 @@
     const tech = parseData("chart_tech_data");
     const hist = parseData("chart_hist_data");
     const slow = parseData("chart_cat_slow_data");
+    const slaOverview = parseData("chart_sla_overview_data");
+    const slaClosed = parseData("chart_sla_closed_data");
+    const slaTech = parseData("chart_sla_tech_data");
+    const slaCategory = parseData("chart_sla_category_data");
+    const slaSubcategory = parseData("chart_sla_subcategory_data");
+    const slaArea = parseData("chart_sla_area_data");
 
     buildBar("chartCat", cat, "Por categoría");
     buildBar("chartPri", pri, "Por prioridad");
     buildBar("chartTech", tech, "Por técnico");
     buildBar("chartHist", hist, "Horas de resolución (histograma)");
     buildBar("chartCatSlow", slow, "Categorías más lentas (hrs)", { decimals: 1 });
+    buildBar("chartSlaOverview", slaOverview, "Panorama de plazos");
+    buildBar("chartSlaClosed", slaClosed, "Cierres vs SLA");
+    buildBar("chartSlaTech", slaTech, "Vencidos por técnico");
+    buildBar("chartSlaCategory", slaCategory, "Vencidos por categoría");
+    buildBar("chartSlaSubcategory", slaSubcategory, "Vencidos por subcategoría");
+    buildBar("chartSlaArea", slaArea, "Vencidos por área");
   </script>
 {% endblock %}

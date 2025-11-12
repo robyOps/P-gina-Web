@@ -277,7 +277,11 @@
                     <p class="text-base font-semibold text-slate-900">{{ ticket.title }}</p>
                     <div class="flex items-center gap-3 text-sm text-slate-600">
                       <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1"><i class="bi bi-person-circle"></i>{{ ticket.assigned_to.username|default:"-" }}</span>
+                      {% if ticket.is_overdue %}
+                      <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-rose-700 font-semibold"><i class="bi bi-exclamation-circle"></i> Plazo vencido · {{ ticket.remaining_hours|abs|floatformat:1 }} h</span>
+                      {% else %}
                       <span class="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-amber-700 font-semibold"><i class="bi bi-hourglass-split"></i> {{ ticket.remaining_hours|floatformat:1 }} h</span>
+                      {% endif %}
                     </div>
                   </div>
                 </li>
@@ -349,6 +353,36 @@
                 {% endfor %}
               </div>
               {% endif %}
+              <div class="mt-6 rounded-2xl border border-indigo-100 bg-slate-50/70 p-4">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 class="text-base font-semibold text-slate-900">Cumplimiento de plazos</h3>
+                    <p class="text-xs text-slate-500">{{ sla_summary.closed_on_time }} cerrados en plazo · {{ sla_summary.closed_overdue }} fuera de plazo{% if sla_summary.current_overdue %} · {{ sla_summary.current_overdue }} vencidos abiertos{% endif %}</p>
+                  </div>
+                  <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600"><i class="bi bi-clock-history"></i> {{ sla_summary.overall_overdue }} vencidos</span>
+                </div>
+                {% if sla_summary.total_considered %}
+                <div class="mt-4 h-56">
+                  <canvas id="slaOverviewChart" aria-label="Gráfico de cumplimiento de plazos"></canvas>
+                </div>
+                <dl class="mt-4 grid gap-3 text-xs text-slate-600 sm:grid-cols-3">
+                  <div class="rounded-xl bg-white px-3 py-2 shadow-sm">
+                    <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">Abiertos al día</dt>
+                    <dd class="mt-1 text-lg font-semibold text-slate-900">{{ sla_summary.open_on_time }}</dd>
+                  </div>
+                  <div class="rounded-xl bg-white px-3 py-2 shadow-sm">
+                    <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">Cerrados en plazo</dt>
+                    <dd class="mt-1 text-lg font-semibold text-slate-900">{{ sla_summary.closed_on_time }}</dd>
+                  </div>
+                  <div class="rounded-xl bg-white px-3 py-2 shadow-sm">
+                    <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">Cerrados fuera de plazo</dt>
+                    <dd class="mt-1 text-lg font-semibold text-rose-600">{{ sla_summary.closed_overdue }}</dd>
+                  </div>
+                </dl>
+                {% else %}
+                <p class="mt-4 rounded-xl border border-dashed border-slate-200 bg-white/70 px-4 py-3 text-sm text-slate-500">Aún no hay tickets suficientes para evaluar el cumplimiento de plazos en este período.</p>
+                {% endif %}
+              </div>
             </div>
           </article>
         </section>
@@ -563,6 +597,7 @@
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const statusConfig = {{ chart_data|safe }};
+    const slaConfig = {{ sla_overview_chart|safe }};
     const failuresConfig = {{ failures_chart_data|safe }};
     const periodMeta = {{ period_payload|safe }};
     const heatmapParams = {{ heatmap_query|safe }};
@@ -834,6 +869,63 @@
 
           statusChart.update();
         });
+      });
+    }
+
+    const slaCanvas = document.getElementById('slaOverviewChart');
+    if (slaCanvas) {
+      const slaCtx = slaCanvas.getContext('2d');
+      const slaColors = ['#22c55e', '#f97316'];
+      new Chart(slaCtx, {
+        type: 'bar',
+        data: {
+          labels: Array.isArray(slaConfig.labels) ? slaConfig.labels : [],
+          datasets: [{
+            data: Array.isArray(slaConfig.data) ? slaConfig.data : [],
+            backgroundColor: slaColors.map(color => `${color}cc`),
+            borderColor: slaColors,
+            borderWidth: 2,
+            borderRadius: 14,
+            borderSkipped: false,
+            maxBarThickness: 36
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0f172acc',
+              titleColor: '#f8fafc',
+              bodyColor: '#f1f5f9',
+              padding: 12,
+              cornerRadius: 12,
+              callbacks: {
+                label: context => `${context.label}: ${context.parsed.x}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: {
+                color: '#475569',
+                precision: 0
+              },
+              grid: {
+                color: 'rgba(148, 163, 184, 0.12)'
+              }
+            },
+            y: {
+              ticks: {
+                color: '#475569'
+              },
+              grid: { display: false }
+            }
+          }
+        }
       });
     }
 
