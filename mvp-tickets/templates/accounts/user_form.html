@@ -40,6 +40,16 @@
         <label class="text-xs font-semibold uppercase text-slate-500" for="id_last_name">Apellido</label>
         {{ form.last_name|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
       </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_rut">RUT</label>
+        {{ form.rut|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% if form.rut.errors %}<div class="text-xs text-rose-600">{{ form.rut.errors }}</div>{% endif %}
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_area">Área</label>
+        {{ form.area|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% if form.area.errors %}<div class="text-xs text-rose-600">{{ form.area.errors }}</div>{% endif %}
+      </div>
       <div class="space-y-2 md:col-span-2">
         <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
           {{ form.is_active }} Activo

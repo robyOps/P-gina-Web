@@ -61,10 +61,12 @@ from .models import (
 
 
 from accounts.roles import is_admin, is_tech, ROLE_TECH, ROLE_ADMIN  # helpers de rol
+from accounts.models import UserProfile
 from .services import (
     run_sla_check,
     apply_auto_assign,
     tickets_to_workbook,
+    summarize_sla_performance,
 )
 from .utils import (
     aggregate_top_subcategories,
@@ -382,6 +384,17 @@ def dashboard(request):
         }
     )
 
+    sla_summary = summarize_sla_performance(period_qs)
+    sla_overview_chart = json.dumps(
+        {
+            "labels": ["Dentro del plazo", "Fuera del plazo"],
+            "data": [
+                sla_summary.get("overall_on_time", 0),
+                sla_summary.get("overall_overdue", 0),
+            ],
+        }
+    )
+
     top_subcategories = aggregate_top_subcategories(qs, since=period_start)
     area_by_subcategory = aggregate_area_by_subcategory(qs, since=period_start, limit=10)
     alerts_panel = recent_ticket_alerts(qs, warn_ratio=0.75, limit=6)
@@ -412,6 +425,8 @@ def dashboard(request):
         "failures_chart_data": failures_chart_data,
         "has_failures_data": bool(failure_totals),
         "failure_breakdown": failure_breakdown,
+        "sla_summary": sla_summary,
+        "sla_overview_chart": sla_overview_chart,
         "top_subcategories": top_subcategories,
         "area_by_subcategory": area_by_subcategory,
         "alerts_panel": alerts_panel,
@@ -809,6 +824,13 @@ def ticket_create(request):
             t = form.save(commit=False)
             t.requester = request.user
             t.status = Ticket.OPEN
+            if not t.area_id:
+                try:
+                    requester_area = request.user.profile.area
+                except (AttributeError, UserProfile.DoesNotExist):
+                    requester_area = None
+                if requester_area:
+                    t.area = requester_area
             can_set_assignee = request.user.has_perm("tickets.set_ticket_assignee")
             if assignee and can_set_assignee:
                 t.assigned_to = assignee
@@ -1339,6 +1361,10 @@ def reports_dashboard(request):
     if tech_selected:
         qs = qs.filter(assigned_to_id=tech_selected)
 
+    sla_selected = (request.GET.get("sla") or "").strip()
+    if sla_selected:
+        qs = qs.filter(priority_id=sla_selected)
+
     report_type = request.GET.get("type", "total")
     if report_type == "urgencia":
         qs = qs.filter(priority__name__icontains="urgencia")
@@ -1419,17 +1445,49 @@ def reports_dashboard(request):
         ],
     }
 
+    sla_summary = summarize_sla_performance(qs)
+
+    def _chart_from_counts(counts: dict[str, int], limit: int | None = None) -> dict:
+        items = list(counts.items())
+        if limit is not None:
+            items = items[:limit]
+        return {
+            "labels": [label for label, _ in items],
+            "data": [value for _, value in items],
+        }
+
+    chart_sla_closed = {
+        "labels": ["En plazo", "Fuera de plazo"],
+        "data": [
+            sla_summary.get("closed_on_time", 0),
+            sla_summary.get("closed_overdue", 0),
+        ],
+    }
+    chart_sla_overview = {
+        "labels": ["Tickets al día", "Tickets vencidos"],
+        "data": [
+            sla_summary.get("overall_on_time", 0),
+            sla_summary.get("overall_overdue", 0),
+        ],
+    }
+    chart_sla_tech = _chart_from_counts(sla_summary.get("overdue_by_tech", {}), limit=10)
+    chart_sla_category = _chart_from_counts(sla_summary.get("overdue_by_category", {}), limit=10)
+    chart_sla_subcategory = _chart_from_counts(sla_summary.get("overdue_by_subcategory", {}), limit=10)
+    chart_sla_area = _chart_from_counts(sla_summary.get("overdue_by_area", {}), limit=10)
+
     tech_ids = (
         qs.exclude(assigned_to__isnull=True)
         .values_list("assigned_to", flat=True)
         .distinct()
     )
     techs = User.objects.filter(id__in=tech_ids).order_by("username")
+    priorities = Priority.objects.order_by("sla_hours", "name")
     export_params = {
         "from": raw_from or "",
         "to": raw_to or "",
         "type": report_type or "",
         "tech": tech_selected or "",
+        "sla": sla_selected or "",
     }
     export_query = urlencode({key: value for key, value in export_params.items() if value not in (None, "")})
 
@@ -1451,8 +1509,17 @@ def reports_dashboard(request):
             "chart_tech": chart_tech,
             "chart_hist": chart_hist,
             "chart_cat_slow": chart_cat_slow,
+            "chart_sla_closed": chart_sla_closed,
+            "chart_sla_overview": chart_sla_overview,
+            "chart_sla_tech": chart_sla_tech,
+            "chart_sla_category": chart_sla_category,
+            "chart_sla_subcategory": chart_sla_subcategory,
+            "chart_sla_area": chart_sla_area,
+            "sla_summary": sla_summary,
             "techs": techs,
             "tech_selected": tech_selected,
+            "priorities": priorities,
+            "sla_selected": sla_selected,
             "report_type": report_type,
             "export_query": export_query,
         },

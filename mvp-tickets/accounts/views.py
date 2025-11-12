@@ -111,7 +111,11 @@ def users_list(request):
     active = request.GET.get("active")  # "1" | "0" | ""
     g = request.GET.get("group")        # id de grupo
 
-    users = User.objects.all().order_by("username")
+    users = (
+        User.objects.all()
+        .select_related("profile__area")
+        .order_by("username")
+    )
 
     if q:
         users = users.filter(
@@ -154,6 +158,7 @@ def user_create(request):
             user.is_active = form.cleaned_data["is_active"]
             user.set_password(form.cleaned_data["password1"])
             user.save()
+            form.save_profile(user)
             form.save_m2m()  # asigna grupos
 
             messages.success(request, f"Usuario '{user.username}' creado.")
@@ -187,6 +192,7 @@ def user_edit(request, pk):
             if p1:
                 u.set_password(p1)
             u.save()
+            form.save_profile(u)
             form.save_m2m()
 
             messages.success(request, f"Usuario '{u.username}' actualizado.")

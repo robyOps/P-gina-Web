@@ -24,7 +24,11 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 
+from catalog.models import Area
+
+from .models import UserProfile
 from .permissions import PERMISSION_LABELS, group_permissions
+from .validators import normalize_rut
 
 User = get_user_model()
 
@@ -42,9 +46,30 @@ class UserCreateForm(forms.ModelForm):
     )
     is_active = forms.BooleanField(label="Activo", required=False, initial=True)
 
+    rut = forms.CharField(
+        label="RUT",
+        required=False,
+        max_length=12,
+        widget=forms.TextInput(attrs={"class": "border rounded px-3 py-2 w-full"}),
+    )
+    area = forms.ModelChoiceField(
+        label="Área",
+        queryset=Area.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
+        empty_label="(Sin área)",
+    )
+
     class Meta:
         model = User
-        fields = ["username", "email", "first_name", "last_name", "is_active", "groups"]
+        fields = [
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "is_active",
+            "groups",
+        ]
 
     def clean(self):
         """Valida que las contraseñas ingresadas coincidan antes de guardar."""
@@ -55,6 +80,35 @@ class UserCreateForm(forms.ModelForm):
         if p1 and p2 and p1 != p2:
             self.add_error("password2", "Las contraseñas no coinciden.")
         return cleaned
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["area"].queryset = Area.objects.order_by("name")
+        try:
+            profile = self.instance.profile
+        except (AttributeError, UserProfile.DoesNotExist):
+            profile = None
+        if profile:
+            if profile.rut:
+                self.fields["rut"].initial = profile.rut
+            if profile.area_id:
+                self.fields["area"].initial = profile.area_id
+
+    def clean_rut(self):
+        rut = normalize_rut(self.cleaned_data.get("rut"))
+        if rut:
+            qs = UserProfile.objects.filter(rut=rut)
+            if self.instance.pk:
+                qs = qs.exclude(user=self.instance)
+            if qs.exists():
+                raise forms.ValidationError("Ya existe un usuario con este RUT.")
+        return rut
+
+    def save_profile(self, user: User) -> None:
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.rut = self.cleaned_data.get("rut") or None
+        profile.area = self.cleaned_data.get("area")
+        profile.save()
 
 
 class UserEditForm(forms.ModelForm):
@@ -70,10 +124,30 @@ class UserEditForm(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple
     )
     is_active = forms.BooleanField(label="Activo", required=False)
+    rut = forms.CharField(
+        label="RUT",
+        required=False,
+        max_length=12,
+        widget=forms.TextInput(attrs={"class": "border rounded px-3 py-2 w-full"}),
+    )
+    area = forms.ModelChoiceField(
+        label="Área",
+        queryset=Area.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
+        empty_label="(Sin área)",
+    )
 
     class Meta:
         model = User
-        fields = ["username", "email", "first_name", "last_name", "is_active", "groups"]
+        fields = [
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "is_active",
+            "groups",
+        ]
 
     def clean(self):
         """Verifica que las contraseñas nuevas coincidan solo si fueron provistas."""
@@ -84,6 +158,35 @@ class UserEditForm(forms.ModelForm):
         if (p1 or p2) and p1 != p2:
             self.add_error("new_password2", "Las contraseñas no coinciden.")
         return cleaned
+
+    def clean_rut(self):
+        rut = normalize_rut(self.cleaned_data.get("rut"))
+        if rut:
+            qs = UserProfile.objects.filter(rut=rut)
+            if self.instance.pk:
+                qs = qs.exclude(user=self.instance)
+            if qs.exists():
+                raise forms.ValidationError("Ya existe un usuario con este RUT.")
+        return rut
+
+    def save_profile(self, user: User) -> None:
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.rut = self.cleaned_data.get("rut") or None
+        profile.area = self.cleaned_data.get("area")
+        profile.save()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["area"].queryset = Area.objects.order_by("name")
+        try:
+            profile = self.instance.profile
+        except (AttributeError, UserProfile.DoesNotExist):
+            profile = None
+        if profile:
+            if profile.rut:
+                self.fields["rut"].initial = profile.rut
+            if profile.area_id:
+                self.fields["area"].initial = profile.area_id
 
 
 class RoleForm(forms.ModelForm):

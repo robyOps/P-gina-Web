@@ -3,6 +3,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from accounts.roles import ROLE_TECH
+from accounts.models import UserProfile
 from .models import Ticket, AutoAssignRule, FAQ
 from catalog.models import Category, Priority, Area, Subcategory
 from .utils import sanitize_text
@@ -86,6 +87,14 @@ class TicketCreateForm(forms.ModelForm):
 
         self._default_category = self.fields["category"].queryset.first()
         self._default_priority = self.fields["priority"].queryset.first()
+
+        try:
+            profile = user.profile if user else None
+        except UserProfile.DoesNotExist:
+            profile = None
+        self._requester_area_id = getattr(profile, "area_id", None)
+        if self._requester_area_id and not self.initial.get("area"):
+            self.fields["area"].initial = self._requester_area_id
 
         self._can_choose_category = bool(
             user and user.has_perm("tickets.set_ticket_category")
