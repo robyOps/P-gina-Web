@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load perm_labels %}
 {% block title %}Roles{% endblock %}
 
 {% block content %}
@@ -25,7 +24,15 @@
       <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 class="text-lg font-semibold text-slate-900">{{ r.name }}</h2>
-          <p class="text-sm text-slate-500">Permisos disponibles para este rol.</p>
+          {% with total=r.permissions.count %}
+          <p class="text-sm text-slate-500">
+            {% if total %}
+              {{ total }} {% if total == 1 %}permiso{% else %}permisos{% endif %} asignado{% if total != 1 %}s{% endif %}.
+            {% else %}
+              Sin permisos asignados.
+            {% endif %}
+          </p>
+          {% endwith %}
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <a class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600" href="{% url 'accounts:role_edit' r.id %}">
@@ -50,23 +57,6 @@
           {% endif %}
         </div>
       </div>
-      {% with perms=r.permissions.all|perm_known %}
-        {% if perms %}
-          <ul class="flex flex-wrap gap-2" role="list">
-            {% for p in perms %}
-            <li class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
-              <i class="bi bi-check-circle-fill text-blue-400"></i>
-              {{ p|perm_label }}
-            </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="inline-flex items-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-            <i class="bi bi-info-circle"></i>
-            Este rol aún no tiene permisos asignados.
-          </p>
-        {% endif %}
-      {% endwith %}
     </article>
     {% endfor %}
   </div>

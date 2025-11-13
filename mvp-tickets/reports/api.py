@@ -134,7 +134,7 @@ class ReportSummaryView(APIView):
         # filtrado para garantizar KPI = Listados = Reportes.
         report_type = request.query_params.get("type")
         if report_type == "urgencia":
-            qs = qs.filter(priority__name__icontains="urgencia")
+            qs = qs.filter(priority__sla_hours__lte=24)
 
         # --- by_status robusto (incluye estados con 0) ---
         status_list = list(qs.values_list("status", flat=True))
@@ -191,7 +191,7 @@ class ReportExportView(APIView):
         qs = base_queryset(request)
         report_type = request.query_params.get("type")
         if report_type == "urgencia":
-            qs = qs.filter(priority__name__icontains="urgencia")
+            qs = qs.filter(priority__sla_hours__lte=24)
 
         # --- Config CSV / Excel ---
         # Excel (es-CL/es-ES) suele esperar ; como separador

@@ -1,6 +1,5 @@
 import time
 from datetime import timedelta
-from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, tag
@@ -9,11 +8,9 @@ from django.utils import timezone
 from catalog.models import Category, Priority, Subcategory
 
 from tickets.models import Ticket
-from tickets.services import TicketAlertSnapshot
 from tickets.utils import (
     aggregate_top_subcategories,
     build_ticket_heatmap,
-    recent_ticket_alerts,
 )
 
 
@@ -76,46 +73,6 @@ class DashboardAnalyticsTests(TestCase):
         self.assertEqual(payload.matrix[0][15], 1)
 
     @tag("unitaria")
-    def test_recent_ticket_alerts_detects_warning_and_breach(self):
-        """Detecta avisos e incumplimientos del SLA comparando horas transcurridas."""
-        now = timezone.now()
-        overdue = self._create_ticket(title="Portal caído", assigned_to=self.tech)
-        warning = self._create_ticket(title="Reinicio programado")
-
-        Ticket.objects.filter(pk=overdue.pk).update(created_at=now - timedelta(hours=36))
-        Ticket.objects.filter(pk=warning.pk).update(created_at=now - timedelta(hours=20))
-
-        data = recent_ticket_alerts(Ticket.objects.all(), warn_ratio=0.75, limit=5)
-
-        self.assertGreaterEqual(data["summary"]["breaches"], 1)
-        self.assertGreaterEqual(data["summary"]["warnings"], 1)
-        self.assertTrue(data["items"])
-
-    @tag("unitaria")
-    @mock.patch("tickets.utils.collect_ticket_alerts")
-    def test_recent_ticket_alerts_normalizes_naive_due_dates(self, collect_mock):
-        """Convierte fechas naive a aware para evitar errores al renderizar el dashboard."""
-        ticket = self._create_ticket(title="Ticket con fecha naive")
-
-        collect_mock.return_value = [
-            TicketAlertSnapshot(
-                ticket=ticket,
-                severity="warning",
-                due_at=timezone.datetime(2024, 1, 15, 10, 30),
-                remaining_hours=4.0,
-                elapsed_hours=20.0,
-                threshold_hours=18.0,
-            )
-        ]
-
-        data = recent_ticket_alerts(Ticket.objects.all(), warn_ratio=0.75, limit=5)
-
-        self.assertEqual(data["summary"], {"warnings": 1, "breaches": 0})
-        self.assertTrue(data["items"])
-        due_at = data["items"][0]["due_at"]
-        self.assertTrue(timezone.is_aware(due_at))
-
-    @tag("unitaria")
     def test_aggregate_top_subcategories_respects_limit(self):
         """Devuelve solo las subcategorías más frecuentes respetando el límite recibido."""
         self._create_ticket(subcategory=self.subcategory)
@@ -165,7 +122,6 @@ class DashboardAnalyticsPerformanceTests(TestCase):
 
 DashboardAnalyticsTests.test_build_ticket_heatmap_counts_by_hour.__django_test_tags__ = {"unitaria"}
 DashboardAnalyticsTests.test_build_ticket_heatmap_uses_local_timezone.__django_test_tags__ = {"unitaria"}
-DashboardAnalyticsTests.test_recent_ticket_alerts_detects_warning_and_breach.__django_test_tags__ = {"unitaria"}
 DashboardAnalyticsTests.test_aggregate_top_subcategories_respects_limit.__django_test_tags__ = {"unitaria"}
 DashboardAnalyticsPerformanceTests.test_aggregate_top_subcategories_completes_quickly.__django_test_tags__ = {"rendimiento"}
 DashboardAnalyticsPerformanceTests.test_build_ticket_heatmap_is_generated_under_one_second.__django_test_tags__ = {"rendimiento"}

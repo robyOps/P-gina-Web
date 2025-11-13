@@ -72,7 +72,6 @@ from .utils import (
     aggregate_top_subcategories,
     aggregate_area_by_subcategory,
     build_area_subcategory_heatmap,
-    recent_ticket_alerts,
     sanitize_text,
 )
 from .validators import validate_upload, UploadValidationError
@@ -387,18 +386,21 @@ def dashboard(request):
     sla_summary = summarize_sla_performance(period_qs)
     sla_overview_chart = json.dumps(
         {
-            "labels": ["Dentro del plazo", "Fuera del plazo"],
+            "labels": [
+                "Dentro del plazo",
+                "Cerrados fuera del plazo",
+                "Vencidos abiertos",
+            ],
             "data": [
                 sla_summary.get("overall_on_time", 0),
-                sla_summary.get("overall_overdue", 0),
+                sla_summary.get("closed_overdue", 0),
+                sla_summary.get("current_overdue", 0),
             ],
         }
     )
 
     top_subcategories = aggregate_top_subcategories(qs, since=period_start)
     area_by_subcategory = aggregate_area_by_subcategory(qs, since=period_start, limit=10)
-    alerts_panel = recent_ticket_alerts(qs, warn_ratio=0.75, limit=6)
-
     period_payload = json.dumps(
         {
             "mode": mode,
@@ -429,7 +431,6 @@ def dashboard(request):
         "sla_overview_chart": sla_overview_chart,
         "top_subcategories": top_subcategories,
         "area_by_subcategory": area_by_subcategory,
-        "alerts_panel": alerts_panel,
         "mode": mode,
         "is_historical": is_historical,
         "period_range": {"start": period_start, "end": period_end},
@@ -497,6 +498,9 @@ def faq_list(request):
     if selected_subcategories:
         faqs = faqs.filter(subcategory_id__in=selected_subcategories)
 
+    faq_count = faqs.count()
+    faqs = list(faqs)
+
     form = FAQForm()
     if request.method == "POST":
         if not user.has_perm("tickets.add_faq"):
@@ -512,6 +516,7 @@ def faq_list(request):
 
     ctx = {
         "faqs": faqs,
+        "faq_count": faq_count,
         "form": form,
         "can_manage": can_manage,
         "categories": Category.objects.order_by("name"),
@@ -1367,7 +1372,7 @@ def reports_dashboard(request):
 
     report_type = request.GET.get("type", "total")
     if report_type == "urgencia":
-        qs = qs.filter(priority__name__icontains="urgencia")
+        qs = qs.filter(priority__sla_hours__lte=24)
 
     # Métricas base
     by_status_raw = dict(qs.values_list("status").annotate(c=Count("id")))
@@ -1851,7 +1856,7 @@ def reports_export_excel(request):
     if tech:
         qs = qs.filter(assigned_to_id=tech)
     if report_type == "urgencia":
-        qs = qs.filter(priority__name__icontains="urgencia")
+        qs = qs.filter(priority__sla_hours__lte=24)
     if q:
         qs = qs.filter(
             Q(code__icontains=q)

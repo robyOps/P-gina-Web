@@ -2,13 +2,13 @@
 Propósito:
     Registrar rutas REST públicas bajo ``/api/`` enlazándolas con las vistas correspondientes.
 Qué expone:
-    Un ``DefaultRouter`` para catálogos y tickets más rutas adicionales para filtros, alertas y reportes.
+    Un ``DefaultRouter`` para catálogos y tickets más rutas adicionales para filtros y reportes.
 Permisos:
     Delegados completamente en las vistas; aquí solo se conectan endpoints ya protegidos.
 Flujo de datos:
     HTTP → ``DefaultRouter``/``path`` → vistas → serializadores → JSON o archivos descargables.
 Decisiones:
-    Se retiraron rutas de clústeres y marcadores semánticos al quedar sin uso; solo permanecen filtros, alertas y reportes vigentes.
+    Se retiraron rutas de clústeres y marcadores semánticos al quedar sin uso; solo permanecen filtros y reportes vigentes.
 Riesgos:
     Toda ruta nueva debe registrarse también en la documentación para mantener trazabilidad con los clientes.
 """
@@ -20,7 +20,6 @@ from accounts.api import MeView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from tickets.api import (
     TicketViewSet,
-    TicketAlertListView,
     TicketFilterOptionsView,
     SubcategoryBackfillView,
 )
@@ -48,11 +47,6 @@ urlpatterns = [
     path("auth/me/", MeView.as_view(), name="auth_me"),
     path("chat/", ChatView.as_view(), name="chatbot-ia"),
     path("", include(router.urls)),
-    path(
-        "tickets/alerts/",
-        TicketAlertListView.as_view(),
-        name="tickets_alerts",
-    ),
     path(
         "backfill/subcategories/",
         SubcategoryBackfillView.as_view(),

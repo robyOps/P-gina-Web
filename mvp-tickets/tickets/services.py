@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Iterable as IterableType, List, Tuple
+from typing import Dict
 from collections import defaultdict
 
 from django.conf import settings
@@ -26,19 +25,6 @@ from .models import (
 )
 
 User = get_user_model()
-
-
-@dataclass(slots=True)
-class TicketAlertSnapshot:
-    """Representa el estado de alerta SLA de un ticket."""
-
-    ticket: Ticket
-    severity: str
-    due_at: datetime
-    remaining_hours: float
-    elapsed_hours: float
-    threshold_hours: float
-
 
 
 # ---------------------------------------------------------------------------
@@ -372,58 +358,6 @@ def tickets_to_workbook(qs) -> Workbook:
         )
 
     return wb
-
-
-def collect_ticket_alerts(
-    queryset: IterableType[Ticket] | None = None,
-    *,
-    warn_ratio: float = 0.8,
-    now: datetime | None = None,
-) -> List[TicketAlertSnapshot]:
-    """Devuelve alertas SLA activas para el conjunto de tickets dado."""
-
-    qs = queryset or Ticket.objects.all()
-    warn_ratio = max(0.0, min(float(warn_ratio or 0.0), 1.0))
-    now = now or timezone.now()
-
-    snapshots: List[TicketAlertSnapshot] = []
-
-    iterator = qs.iterator(chunk_size=200) if hasattr(qs, "iterator") else qs
-
-    for ticket in iterator:
-        sla_hours = ticket.sla_hours_value
-        threshold_hours = sla_hours * warn_ratio
-        due_at = ticket.due_at
-        elapsed_hours = max(0.0, (now - ticket.created_at).total_seconds() / 3600.0)
-
-        severity: str | None = None
-
-        if ticket.resolved_at:
-            if ticket.resolved_at > due_at:
-                severity = "breach"
-        else:
-            if now >= due_at:
-                severity = "breach"
-            elif elapsed_hours >= threshold_hours:
-                severity = "warning"
-
-        if not severity:
-            continue
-
-        remaining_hours = (due_at - now).total_seconds() / 3600.0
-
-        snapshots.append(
-            TicketAlertSnapshot(
-                ticket=ticket,
-                severity=severity,
-                due_at=due_at,
-                remaining_hours=remaining_hours,
-                elapsed_hours=elapsed_hours,
-                threshold_hours=threshold_hours,
-            )
-        )
-
-    return snapshots
 
 
 def summarize_sla_performance(queryset, *, now: datetime | None = None) -> dict:
