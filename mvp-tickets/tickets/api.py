@@ -1,8 +1,8 @@
 """
 Propósito:
-    Implementar la API REST del módulo de tickets (CRUD, comentarios, adjuntos, alertas).
+    Implementar la API REST del módulo de tickets (CRUD, comentarios y adjuntos).
 Qué expone:
-    ``TicketViewSet`` más vistas auxiliares ``TicketAlertListView`` y ``SubcategoryBackfillView``.
+    ``TicketViewSet`` más la vista auxiliar ``SubcategoryBackfillView``.
 Permisos:
     Se aplican ``AuthenticatedSafeMethodsOnlyForRequesters`` y ``PrivilegedOnlyPermission``
     para limitar operaciones según rol (solicitante, técnico, administrador).
@@ -24,7 +24,6 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action  # define endpoints como /assign, /transition, etc.
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser  # subir archivos (multipart/form-data)
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import APIView
 
 from helpdesk.permissions import (
@@ -54,10 +53,7 @@ from .serializers import (
 # Validación de archivos subidos
 from .validators import validate_upload, UploadValidationError
 
-from .services import (
-    apply_auto_assign,
-    collect_ticket_alerts,
-)
+from .services import apply_auto_assign
 from .utils import sanitize_text
 from .backfill import run_subcategory_backfill
 import logging
@@ -77,11 +73,6 @@ def filter_tickets_for_user(qs, user):
     if is_tech(user):
         return qs.filter(assigned_to=user)
     return qs.filter(requester=user)
-
-class TicketAlertPagination(PageNumberPagination):
-    page_size = 20
-    page_size_query_param = "page_size"
-    max_page_size = 100
 
 
 # ------------------------- VIEWSET PRINCIPAL -------------------------
@@ -434,102 +425,6 @@ class TicketViewSet(viewsets.ModelViewSet):
             "created_at",       # cuándo
         ).order_by("-created_at")
         return Response(list(logs), status=200)
-
-class TicketAlertListView(APIView):
-    permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]
-    pagination_class = TicketAlertPagination
-
-    def get(self, request):
-        raw_warn_ratio = request.query_params.get("warn_ratio")
-        try:
-            warn_ratio = float(raw_warn_ratio) if raw_warn_ratio is not None else 0.8
-        except (TypeError, ValueError):
-            return Response(
-                {"detail": "warn_ratio debe ser numérico."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if warn_ratio <= 0 or warn_ratio > 1:
-            return Response(
-                {"detail": "warn_ratio debe estar en el rango (0, 1]."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        severity_filter = (request.query_params.get("severity") or "").lower()
-
-        base_qs = Ticket.objects.select_related(
-            "priority", "assigned_to", "requester"
-        ).filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
-        base_qs = filter_tickets_for_user(base_qs, request.user)
-
-        snapshots = collect_ticket_alerts(base_qs, warn_ratio=warn_ratio)
-
-        results = []
-        for snapshot in snapshots:
-            severity = snapshot.severity
-            if severity_filter and severity != severity_filter:
-                continue
-
-            ticket = snapshot.ticket
-            results.append(
-                {
-                    "ticket": {
-                        "id": ticket.id,
-                        "code": ticket.code,
-                        "title": ticket.title,
-                        "status": ticket.status,
-                        "priority": {
-                            "id": ticket.priority_id,
-                            "name": getattr(ticket.priority, "name", None),
-                        },
-                        "assigned_to": (
-                            {
-                                "id": ticket.assigned_to_id,
-                                "username": getattr(ticket.assigned_to, "username", None),
-                            }
-                            if ticket.assigned_to_id
-                            else None
-                        ),
-                    },
-                    "sla": {
-                        "severity": severity,
-                        "due_at": snapshot.due_at,
-                        "remaining_hours": round(snapshot.remaining_hours, 2),
-                        "elapsed_hours": round(snapshot.elapsed_hours, 2),
-                        "threshold_hours": round(snapshot.threshold_hours, 2),
-                    },
-                }
-            )
-
-        ordering = request.query_params.get("ordering", "due_at")
-        reverse = ordering.startswith("-")
-        key = ordering.lstrip("-")
-
-        if key == "remaining_hours":
-            results.sort(
-                key=lambda item: item["sla"]["remaining_hours"], reverse=reverse
-            )
-        else:
-            results.sort(key=lambda item: item["sla"]["due_at"], reverse=reverse)
-
-        warnings_count = sum(
-            1 for item in results if item["sla"]["severity"] == "warning"
-        )
-        breaches_count = sum(
-            1 for item in results if item["sla"]["severity"] == "breach"
-        )
-
-        paginator = self.pagination_class()
-        page = paginator.paginate_queryset(results, request, view=self)
-        response = paginator.get_paginated_response(page)
-        response.data["summary"] = {
-            "warn_ratio": warn_ratio,
-            "warnings": warnings_count,
-            "breaches": breaches_count,
-        }
-
-        return response
-
 
 class TicketFilterOptionsView(APIView):
     permission_classes = [AuthenticatedSafeMethodsOnlyForRequesters]

@@ -29,7 +29,6 @@ from django.utils import timezone
 from .timezones import get_local_timezone
 
 from .models import Ticket
-from .services import TicketAlertSnapshot, collect_ticket_alerts
 
 
 _WHITESPACE_RE = re.compile(r"\s+")
@@ -318,62 +317,4 @@ def build_ticket_heatmap(
         max_value=max_value,
     )
 
-
-def recent_ticket_alerts(
-    queryset: QuerySet[Ticket],
-    *,
-    warn_ratio: float = 0.8,
-    limit: int = 5,
-) -> dict[str, object]:
-    """Summarise SLA alerts limited to the user's visible tickets."""
-
-    base = queryset.filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
-    base = base.select_related("priority", "assigned_to")
-
-    snapshots = collect_ticket_alerts(base, warn_ratio=warn_ratio)
-
-    if not snapshots:
-        return {"items": [], "summary": {"warnings": 0, "breaches": 0}}
-
-    total_warnings = sum(1 for snap in snapshots if snap.severity == "warning")
-    total_breaches = sum(1 for snap in snapshots if snap.severity == "breach")
-
-    sorted_snaps = sorted(
-        snapshots,
-        key=lambda snap: (
-            0 if snap.severity == "breach" else 1,
-            snap.remaining_hours,
-        ),
-    )
-
-    limited: Sequence[TicketAlertSnapshot] = sorted_snaps[: max(1, limit)]
-
-    items: list[dict[str, object]] = []
-    current_tz = timezone.get_current_timezone()
-
-    for snap in limited:
-        ticket = snap.ticket
-        due_at = snap.due_at
-
-        if timezone.is_naive(due_at):
-            due_at = timezone.make_aware(due_at, current_tz)
-
-        due_at = timezone.localtime(due_at)
-
-        items.append(
-            {
-                "id": ticket.id,
-                "code": ticket.code,
-                "title": ticket.title,
-                "severity": snap.severity,
-                "due_at": due_at,
-                "remaining_hours": snap.remaining_hours,
-                "assigned_to": getattr(ticket.assigned_to, "username", None),
-            }
-        )
-
-    return {
-        "items": items,
-        "summary": {"warnings": total_warnings, "breaches": total_breaches},
-    }
 
