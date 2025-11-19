@@ -62,11 +62,6 @@ class UserCreateForm(forms.ModelForm):
     is_critical_actor = forms.BooleanField(
         label="Actor crítico",
         required=False,
-        help_text="Prioriza sus tickets y notificaciones.",
-    )
-    is_critical_actor = forms.BooleanField(
-        label="Actor crítico",
-        required=False,
         help_text="Marca si sus acciones deben activar alertas críticas.",
     )
 
@@ -103,7 +98,6 @@ class UserCreateForm(forms.ModelForm):
                 self.fields["rut"].initial = profile.rut
             if profile.area_id:
                 self.fields["area"].initial = profile.area_id
-            self.fields["is_critical_actor"].initial = profile.is_critical_actor
             self.fields["is_critical_actor"].initial = profile.is_critical_actor
 
     def clean_rut(self):
@@ -149,6 +143,11 @@ class UserEditForm(forms.ModelForm):
         required=False,
         widget=forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
         empty_label="(Sin área)",
+    )
+    is_critical_actor = forms.BooleanField(
+        label="Actor crítico",
+        required=False,
+        help_text="Marca si sus acciones deben activar alertas críticas.",
     )
 
     class Meta:
@@ -201,6 +200,7 @@ class UserEditForm(forms.ModelForm):
                 self.fields["rut"].initial = profile.rut
             if profile.area_id:
                 self.fields["area"].initial = profile.area_id
+            self.fields["is_critical_actor"].initial = profile.is_critical_actor
 
 
 class RoleForm(forms.ModelForm):
