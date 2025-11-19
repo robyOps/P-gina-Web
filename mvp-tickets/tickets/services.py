@@ -280,11 +280,40 @@ def apply_auto_assign(ticket: Ticket, actor=None) -> bool:
     """Aplica la regla de auto-asignación que coincida con el ticket."""
 
     qs = AutoAssignRule.objects.filter(is_active=True)
-    rule = (
-        qs.filter(category=ticket.category, area=ticket.area).first()
-        or qs.filter(category=ticket.category, area__isnull=True).first()
-        or qs.filter(category__isnull=True, area=ticket.area).first()
-    )
+
+    lookups: list[dict] = []
+    if ticket.subcategory_id:
+        if ticket.area_id:
+            lookups.append({"subcategory_id": ticket.subcategory_id, "area_id": ticket.area_id})
+        lookups.append({"subcategory_id": ticket.subcategory_id, "area__isnull": True})
+    if ticket.category_id:
+        if ticket.area_id:
+            lookups.append(
+                {
+                    "subcategory__isnull": True,
+                    "category_id": ticket.category_id,
+                    "area_id": ticket.area_id,
+                }
+            )
+        lookups.append(
+            {
+                "subcategory__isnull": True,
+                "category_id": ticket.category_id,
+                "area__isnull": True,
+            }
+        )
+    if ticket.area_id:
+        lookups.append({"subcategory__isnull": True, "category__isnull": True, "area_id": ticket.area_id})
+
+    # Fallback: regla completamente genérica (si existiera)
+    lookups.append({"subcategory__isnull": True, "category__isnull": True, "area__isnull": True})
+
+    rule = None
+    for lookup in lookups:
+        rule = qs.filter(**lookup).first()
+        if rule:
+            break
+
     if not rule or ticket.assigned_to_id == rule.tech_id:
         return False
 

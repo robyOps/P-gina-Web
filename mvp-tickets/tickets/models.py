@@ -432,8 +432,12 @@ class EventLog(models.Model):
         return f"Event({self.model}:{self.obj_id}) {self.action}"
 
 class AutoAssignRule(models.Model):
-    """Regla: (category y/o area) -> técnico."""
+    """Regla: (category/subcategory y/o area) -> técnico."""
+
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True)
+    subcategory = models.ForeignKey(
+        Subcategory, on_delete=models.CASCADE, null=True, blank=True, related_name="auto_rules"
+    )
     area = models.ForeignKey(Area, on_delete=models.CASCADE, null=True, blank=True)
     tech = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="auto_rules")
     is_active = models.BooleanField(default=True)
@@ -441,13 +445,28 @@ class AutoAssignRule(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["category", "area"], name="uniq_auto_rule_cat_area")
+            models.UniqueConstraint(
+                fields=["category", "subcategory", "area"], name="uniq_auto_rule_cat_subcat_area"
+            )
         ]
+
+    def clean(self):
+        super().clean()
+        if self.subcategory_id and not self.category_id:
+            self.category = self.subcategory.category
+        if self.subcategory_id and self.category_id != self.subcategory.category_id:
+            raise ValidationError("La subcategoría no pertenece a la categoría seleccionada.")
+        if not any([self.category_id, self.subcategory_id, self.area_id]):
+            raise ValidationError("Debes elegir al menos categoría, subcategoría o área.")
 
     def __str__(self):
         parts = []
-        if self.category_id: parts.append(f"cat={self.category.name}")
-        if self.area_id: parts.append(f"area={self.area.name}")
+        if self.category_id:
+            parts.append(f"cat={self.category.name}")
+        if self.subcategory_id:
+            parts.append(f"subcat={self.subcategory.name}")
+        if self.area_id:
+            parts.append(f"area={self.area.name}")
         return f"Rule({', '.join(parts) or 'default'}) -> {getattr(self.tech,'username','?')}"
 
 
