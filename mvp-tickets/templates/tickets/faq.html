@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load widget_tweaks %}
+{% load widget_tweaks string_extras %}
 {% block title %}Preguntas frecuentes{% endblock %}
 
 {% block content %}
@@ -200,7 +200,7 @@
             <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-inner">
               <p class="text-xs font-semibold uppercase text-slate-500 mb-2">Video externo</p>
               {% if "youtube" in faq.video_url or "youtu.be" in faq.video_url %}
-                <iframe src="{{ faq.video_url|replace:'watch?v=','embed/' }}" class="max-w-[220px] aspect-video rounded-xl border border-slate-200" allowfullscreen loading="lazy"></iframe>
+                <iframe src="{{ faq.video_url|replace_substring:"watch?v=,embed/" }}" class="max-w-[220px] aspect-video rounded-xl border border-slate-200" allowfullscreen loading="lazy"></iframe>
               {% elif "vimeo" in faq.video_url %}
                 <iframe src="{{ faq.video_url }}" class="max-w-[220px] aspect-video rounded-xl border border-slate-200" allowfullscreen loading="lazy"></iframe>
               {% else %}
