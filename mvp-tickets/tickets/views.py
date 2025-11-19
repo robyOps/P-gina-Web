@@ -28,6 +28,7 @@ from catalog.models import Category, Subcategory
 
 # --- Stdlib ---
 from datetime import datetime, timedelta
+from functools import cmp_to_key
 import calendar
 import json
 from io import BytesIO
@@ -686,7 +687,7 @@ def tickets_home(request):
         )
 
     # Ordenamiento
-    sort = (request.GET.get("sort") or "").strip()
+    sort_param = (request.GET.get("sort") or "").strip()
     allowed_sorts = {
         "code",
         "title",
@@ -698,11 +699,15 @@ def tickets_home(request):
         "created_at",
         "kind",
     }
-    sort_key = sort.lstrip("-")
+    sort_key = sort_param.lstrip("-")
     if sort_key in allowed_sorts:
-        qs = qs.order_by(sort)
+        qs = qs.order_by(sort_param)
+        active_sort = sort_param
     else:
         qs = qs.order_by("-created_at")
+        active_sort = "-created_at"
+        sort_key = "created_at"
+    sort_descending = active_sort.startswith("-")
 
     # Paginación
     try:
@@ -714,6 +719,49 @@ def tickets_home(request):
     tickets_list = list(qs)
     if alerts_only:
         tickets_list = [t for t in tickets_list if t.is_overdue or t.is_warning]
+
+    if sort_key == "code":
+        def _compare_ticket_code(left: Ticket, right: Ticket) -> int:
+            left_code = (left.code or "").strip()
+            right_code = (right.code or "").strip()
+            left_is_numeric = left_code.isdigit()
+            right_is_numeric = right_code.isdigit()
+
+            if left_is_numeric and right_is_numeric:
+                left_value = int(left_code)
+                right_value = int(right_code)
+                if left_value < right_value:
+                    return -1
+                if left_value > right_value:
+                    return 1
+                return 0
+
+            if left_is_numeric != right_is_numeric:
+                # Cuando solo uno es numérico priorizamos los numéricos.
+                return -1 if left_is_numeric else 1
+
+            # Comparación alfabética insensible a mayúsculas para códigos mixtos.
+            left_normalized = left_code.casefold()
+            right_normalized = right_code.casefold()
+            if left_normalized < right_normalized:
+                return -1
+            if left_normalized > right_normalized:
+                return 1
+            return 0
+
+        comparator = _compare_ticket_code
+        if sort_descending:
+            def comparator_desc(left: Ticket, right: Ticket) -> int:
+                return -comparator(left, right)
+
+            tickets_list.sort(key=cmp_to_key(comparator_desc))
+        else:
+            tickets_list.sort(key=cmp_to_key(comparator))
+    elif sort_key == "title":
+        tickets_list.sort(
+            key=lambda ticket: (ticket.title or "").casefold(),
+            reverse=sort_descending,
+        )
 
     paginator = Paginator(tickets_list, page_size)
     page_obj = paginator.get_page(request.GET.get("page"))
