@@ -1265,17 +1265,19 @@ def ticket_quick_update(request, pk):
         "title": t.title,
         "priority": getattr(t.priority, "name", None),
         "category": getattr(t.category, "name", None),
+        "subcategory": getattr(t.subcategory, "name", None),
         "area": getattr(t.area, "name", None),
         "kind": t.get_kind_display(),
     }
 
     form.save()
-    t.refresh_from_db(fields=["title", "priority", "category", "area", "kind"])
+    t.refresh_from_db(fields=["title", "priority", "category", "subcategory", "area", "kind", "assigned_to"])
 
     field_titles = {
         "title": "Título",
         "priority": "Prioridad",
         "category": "Categoría",
+        "subcategory": "Subcategoría",
         "area": "Área",
         "kind": "Tipo",
     }
@@ -1289,6 +1291,7 @@ def ticket_quick_update(request, pk):
         "title": t.title,
         "priority": getattr(t.priority, "name", None),
         "category": getattr(t.category, "name", None),
+        "subcategory": getattr(t.subcategory, "name", None),
         "area": getattr(t.area, "name", None),
         "kind": t.get_kind_display(),
     }
@@ -1321,7 +1324,7 @@ def ticket_quick_update(request, pk):
             return cleaned[0]
         return ", ".join(cleaned[:-1]) + " y " + cleaned[-1]
 
-    change_summary = _human_join(titles_for_message)
+        change_summary = _human_join(titles_for_message)
     messages.success(request, f"Ticket actualizado: {change_summary}.")
 
     link = reverse("ticket_detail", args=[t.pk])
@@ -1331,6 +1334,31 @@ def ticket_quick_update(request, pk):
         create_notification(t.requester, notify_message, link)
     if t.assigned_to_id and t.assigned_to_id not in (u.id, t.requester_id):
         create_notification(t.assigned_to, notify_message, link)
+
+    classification_changed = any(
+        field in form.changed_data for field in ["category", "subcategory", "area"]
+    )
+
+    auto_assigned = False
+    if classification_changed and is_admin_u:
+        try:
+            auto_assigned = apply_auto_assign(t, actor=u)
+        except Exception:
+            auto_assigned = False
+
+    if auto_assigned and t.assigned_to_id:
+        create_notification(
+            t.assigned_to,
+            f"Ticket {t.code} te ha sido asignado automáticamente",
+            link,
+        )
+        if t.requester_id and t.requester_id not in (u.id, t.assigned_to_id):
+            create_notification(
+                t.requester,
+                f"Ticket {t.code} asignado automáticamente a {t.assigned_to.username}",
+                link,
+            )
+        messages.info(request, f"Ticket asignado automáticamente a {t.assigned_to.username}.")
 
     return redirect("ticket_detail", pk=t.pk)
 
@@ -1945,7 +1973,10 @@ def reports_export_excel(request):
 def auto_rules_list(request):
     if not request.user.has_perm("tickets.view_autoassignrule"):
         return forbidden_response(request)
-    rules = AutoAssignRule.objects.select_related("category","area","tech").order_by("-is_active","category__name","area__name")
+    rules = (
+        AutoAssignRule.objects.select_related("category", "subcategory", "area", "tech")
+        .order_by("-is_active", "category__name", "subcategory__name", "area__name")
+    )
     return TemplateResponse(request, "tickets/auto_rules/list.html", {"rules": rules})
 
 @login_required

@@ -336,9 +336,10 @@ class TicketQuickUpdateForm(forms.ModelForm):
 class AutoAssignRuleForm(forms.ModelForm):
     class Meta:
         model = AutoAssignRule
-        fields = ["category", "area", "tech", "is_active"]
+        fields = ["category", "subcategory", "area", "tech", "is_active"]
         widgets = {
             "category": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
+            "subcategory": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
             "area": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
             "tech": forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
             "is_active": forms.CheckboxInput(attrs={"class": "mr-2"}),
@@ -351,8 +352,35 @@ class AutoAssignRuleForm(forms.ModelForm):
             self.fields["tech"].queryset = User.objects.filter(groups=g, is_active=True).order_by("username")
         except Group.DoesNotExist:
             self.fields["tech"].queryset = User.objects.none()
+        self.fields["category"].queryset = Category.objects.order_by("name")
+        self.fields["subcategory"].queryset = (
+            Subcategory.objects.select_related("category").order_by("category__name", "name")
+        )
+        self.fields["area"].queryset = Area.objects.order_by("name")
         self.fields["category"].required = False
+        self.fields["subcategory"].required = False
         self.fields["area"].required = False
+        self.fields["subcategory"].empty_label = "Cualquiera"
+        self.fields["category"].empty_label = "Cualquiera"
+        self.fields["area"].empty_label = "Cualquiera"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        category = cleaned_data.get("category")
+        subcategory = cleaned_data.get("subcategory")
+        area = cleaned_data.get("area")
+
+        if subcategory and not category:
+            cleaned_data["category"] = subcategory.category
+            self.cleaned_data["category"] = subcategory.category
+            category = subcategory.category
+        if subcategory and category and subcategory.category_id != category.id:
+            raise forms.ValidationError("La subcategoría no pertenece a la categoría seleccionada.")
+        if not any([category, subcategory, area]):
+            raise forms.ValidationError(
+                "Define al menos una categoría, subcategoría o área para la regla."
+            )
+        return cleaned_data
 
 
 class FAQForm(forms.ModelForm):

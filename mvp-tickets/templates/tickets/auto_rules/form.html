@@ -8,7 +8,7 @@
       <div class="space-y-2">
         <p class="page-hero__meta inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Automatización</p>
         <h1 class="text-3xl font-bold tracking-tight">{% if is_new %}Nueva{% else %}Editar{% endif %} regla</h1>
-        <p class="max-w-xl text-sm text-blue-100">Define a quién llegará cada ticket de forma automática según la categoría o el área.</p>
+        <p class="max-w-xl text-sm text-blue-100">Define a quién llegará cada ticket de forma automática según la categoría, la subcategoría o el área.</p>
       </div>
       <a href="{% url 'auto_rules_list' %}" class="btn inline-flex items-center gap-2 rounded-full border border-white/40 px-5 py-2 text-sm font-semibold text-white/90 hover:bg-white/15">
         <i class="bi bi-arrow-left"></i>
@@ -24,6 +24,11 @@
         <label class="text-xs font-semibold uppercase text-slate-500" for="id_category">Categoría (opcional)</label>
         {{ form.category|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
         {% if form.category.errors %}<div class="text-xs text-rose-600">{{ form.category.errors }}</div>{% endif %}
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_subcategory">Subcategoría (opcional)</label>
+        {{ form.subcategory|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
+        {% if form.subcategory.errors %}<div class="text-xs text-rose-600">{{ form.subcategory.errors }}</div>{% endif %}
       </div>
       <div class="space-y-1">
         <label class="text-xs font-semibold uppercase text-slate-500" for="id_area">Área (opcional)</label>
