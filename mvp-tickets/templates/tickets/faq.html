@@ -102,9 +102,25 @@
 
   {% if can_manage %}
   <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-    <h2 class="text-lg font-semibold text-slate-900">Registrar nueva pregunta</h2>
-    <p class="text-xs text-slate-500">Comparte aprendizajes comunes para que todos encuentren la solución en segundos.</p>
-    <form method="post" enctype="multipart/form-data" class="mt-4 space-y-4">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 class="text-lg font-semibold text-slate-900">Registrar nueva pregunta</h2>
+        <p class="text-xs text-slate-500">Comparte aprendizajes comunes para que todos encuentren la solución en segundos.</p>
+      </div>
+      <button
+        type="button"
+        class="btn inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 sm:text-sm"
+        data-faq-create-toggle
+        aria-expanded="false"
+        aria-controls="faq-create-panel"
+        data-label-show="Crear pregunta"
+        data-label-hide="Ocultar formulario"
+      >
+        <i class="bi bi-plus-lg" aria-hidden="true" data-toggle-icon></i>
+        <span data-create-label>Crear pregunta</span>
+      </button>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="mt-4 space-y-4 hidden" id="faq-create-panel" data-faq-create-panel>
       {% csrf_token %}
       {{ form.non_field_errors }}
       <div class="space-y-1">
@@ -283,6 +299,8 @@
   document.addEventListener('DOMContentLoaded', () => {
     const filterToggle = document.querySelector('[data-faq-filter-toggle]');
     const filterPanel = document.querySelector('[data-faq-filter-panel]');
+    const createToggle = document.querySelector('[data-faq-create-toggle]');
+    const createPanel = document.querySelector('[data-faq-create-panel]');
     const accordionContainer = document.querySelector('#faq-accordion');
     if (!accordionContainer) {
       return;
@@ -334,6 +352,42 @@
         } else {
           openPanel();
         }
+      });
+    }
+
+    if (createToggle && createPanel) {
+      const createLabel = createToggle.querySelector('[data-create-label]');
+      const createIcon = createToggle.querySelector('[data-toggle-icon]');
+      const showCreateLabel = createToggle.getAttribute('data-label-show') || 'Crear pregunta';
+      const hideCreateLabel = createToggle.getAttribute('data-label-hide') || 'Ocultar formulario';
+      let createOpen = createPanel.hasAttribute('data-open');
+
+      const updateCreateLabel = () => {
+        if (createLabel) {
+          createLabel.textContent = createOpen ? hideCreateLabel : showCreateLabel;
+        }
+        createToggle.setAttribute('aria-expanded', String(createOpen));
+        if (createIcon) {
+          createIcon.classList.toggle('bi-plus-lg', !createOpen);
+          createIcon.classList.toggle('bi-dash-lg', createOpen);
+        }
+      };
+
+      const setCreateState = (open) => {
+        createOpen = open;
+        createPanel.classList.toggle('hidden', !open);
+        if (open) {
+          createPanel.setAttribute('data-open', 'true');
+        } else {
+          createPanel.removeAttribute('data-open');
+        }
+        updateCreateLabel();
+      };
+
+      setCreateState(false);
+
+      createToggle.addEventListener('click', () => {
+        setCreateState(!createOpen);
       });
     }
 
