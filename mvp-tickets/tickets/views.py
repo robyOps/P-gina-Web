@@ -179,7 +179,7 @@ def can_upload_attachments(ticket: Ticket, user) -> bool:
 def discussion_payload(ticket: Ticket, user) -> dict:
     """Construye el contexto con los comentarios visibles para el usuario."""
 
-    comments_qs = TicketComment.objects.filter(ticket=ticket).order_by("created_at")
+    comments_qs = TicketComment.objects.filter(ticket=ticket).order_by("-created_at")
     if not (is_admin(user) or is_tech(user)):
         comments_qs = comments_qs.filter(is_internal=False)
 
@@ -1617,7 +1617,7 @@ def ticket_pdf(request, pk):
         ).prefetch_related(
             Prefetch(
                 "ticketcomment_set",
-                queryset=TicketComment.objects.select_related("author").order_by("created_at"),
+                queryset=TicketComment.objects.select_related("author").order_by("-created_at"),
             ),
             Prefetch(
                 "ticketattachment_set",
@@ -1740,6 +1740,8 @@ def audit_partial(request, pk):
     if not (is_admin(u) or is_tech(u) or t.requester_id == u.id):
         return forbidden_response(request)
 
+    can_view_internal = is_admin(u) or is_tech(u)
+
     # Traemos los últimos 50 eventos (del más nuevo al más antiguo)
     logs = list(
         t.audit_logs.select_related("actor").order_by("-created_at")[:50]
@@ -1848,7 +1850,7 @@ def audit_partial(request, pk):
                 "created_at": localtime(log.created_at),
                 "description": description,
                 "notes": notes,
-                "comment": comment_text,
+                "comment": comment_text if (can_view_internal or not comment_is_internal) else "",
                 "comment_is_internal": comment_is_internal,
             }
         )
