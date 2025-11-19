@@ -99,6 +99,7 @@ class Area(models.Model):
     """Unidad organizacional responsable del ticket."""
 
     name = models.CharField(max_length=120, unique=True)
+    is_critical = models.BooleanField(default=False)
 
     def __str__(self):
         """Retorna el nombre del área."""

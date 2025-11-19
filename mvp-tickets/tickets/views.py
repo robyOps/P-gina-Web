@@ -69,6 +69,10 @@ from .services import (
     tickets_to_workbook,
     summarize_sla_performance,
 )
+from .services_critical import (
+    annotate_critical_score,
+    notify_if_critical,
+)
 from .utils import (
     aggregate_top_subcategories,
     aggregate_area_by_subcategory,
@@ -201,7 +205,7 @@ def dashboard(request):
     u = request.user
     if not (u.has_perm("tickets.view_ticket") or u.has_perm("tickets.view_reports")):
         return forbidden_response(request)
-    base = Ticket.objects.all()
+    base = annotate_critical_score(Ticket.objects.all(), actor=u)
     can_view_all = u.has_perm("tickets.view_all_tickets") or is_admin(u)
     if can_view_all:
         qs = base
@@ -322,7 +326,7 @@ def dashboard(request):
     urgent_candidates = (
         qs.filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
         .select_related("priority")
-        .order_by("created_at")
+        .order_by("-critical_score", "-priority__sla_hours", "created_at")
     )
     urgent_tickets = []
     for ticket in urgent_candidates:
@@ -506,7 +510,7 @@ def faq_list(request):
     if request.method == "POST":
         if not user.has_perm("tickets.add_faq"):
             return forbidden_response(request)
-        form = FAQForm(request.POST)
+        form = FAQForm(request.POST, request.FILES)
         if form.is_valid():
             faq = form.save(commit=False)
             faq.created_by = user
@@ -542,7 +546,7 @@ def faq_edit(request, pk):
         return forbidden_response(request)
 
     if request.method == "POST":
-        form = FAQForm(request.POST, instance=faq)
+        form = FAQForm(request.POST, request.FILES, instance=faq)
         if form.is_valid():
             updated = form.save(commit=False)
             if not updated.created_by_id:
@@ -590,8 +594,11 @@ def tickets_home(request):
     u = request.user
     if not u.has_perm("tickets.view_ticket"):
         return forbidden_response(request)
-    base_qs = Ticket.objects.select_related(
-        "category", "subcategory", "priority", "area", "assigned_to"
+    base_qs = annotate_critical_score(
+        Ticket.objects.select_related(
+            "category", "subcategory", "priority", "area", "assigned_to"
+        ),
+        actor=request.user,
     )
     can_view_all = u.has_perm("tickets.view_all_tickets")
 
@@ -704,9 +711,9 @@ def tickets_home(request):
         qs = qs.order_by(sort_param)
         active_sort = sort_param
     else:
-        qs = qs.order_by("-created_at")
-        active_sort = "-created_at"
-        sort_key = "created_at"
+        qs = qs.order_by("-critical_score", "-priority__sla_hours", "created_at")
+        active_sort = "-critical_score"
+        sort_key = "critical_score"
     sort_descending = active_sort.startswith("-")
 
     # Paginación
@@ -942,6 +949,8 @@ def ticket_create(request):
                     },
                 )
 
+            notify_if_critical(t, request.user, "fue creado")
+
             link = reverse("ticket_detail", args=[t.pk])
             create_notification(request.user, f"Ticket {t.code} creado", link)
             if t.assigned_to_id:
@@ -1127,6 +1136,8 @@ def add_comment(request, pk):
         },
     )
 
+    notify_if_critical(t, u, "agregó un comentario")
+
     payload = discussion_payload(t, u)
     return TemplateResponse(request, "tickets/partials/discussion.html", payload)
 
@@ -1204,6 +1215,8 @@ def ticket_assign(request, pk):
             "title_to": t.title,
         },
     )
+
+    notify_if_critical(t, u, "fue asignado")
 
     link = reverse("ticket_detail", args=[t.pk])
     create_notification(to_user, f"Ticket {t.code} te ha sido asignado", link)
@@ -1375,6 +1388,8 @@ def ticket_transition(request, pk):
         },
     )
 
+    notify_if_critical(t, u, "actualizó el estado")
+
     link = reverse("ticket_detail", args=[t.pk])
     msg = f"Ticket {t.code} estado actualizado a {t.get_status_display()}"
     create_notification(t.requester, msg, link)
@@ -1391,7 +1406,7 @@ def reports_dashboard(request):
     u = request.user
     if not u.has_perm("tickets.view_reports"):
         return forbidden_response(request)
-    qs = Ticket.objects.all()  # NO select_related para evitar FieldError
+    qs = annotate_critical_score(Ticket.objects.all(), actor=u)  # NO select_related para evitar FieldError
 
     # Visibilidad por rol
     if is_admin(u):

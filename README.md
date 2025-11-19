@@ -35,6 +35,16 @@ helpdesk.urls --> views HTML (tickets/catalog)
 3. **Reportes**: consultas agregadas en `reports.api` que delegan en consultas a
    `tickets` y devuelven JSON o PDF.
 
+### Criticidad y autoayuda
+
+- Marca usuarios o áreas como críticos desde el admin (perfil de usuario y
+  catálogo de áreas). Las acciones sobre tickets ejecutadas por ellos generan
+  notificaciones adicionales a técnicos y administradores y se priorizan en las
+  vistas de bandeja.
+- Las FAQ admiten imagen y video (archivo MP4 o URL externa) para ilustrar las
+  respuestas. Los campos opcionales aparecen en los formularios de alta/edición
+  y muestran miniaturas en el listado.
+
 ## Dependencias
 
 - Python 3.11+

@@ -27,6 +27,11 @@ import uuid
 from datetime import timedelta
 from django.utils import timezone
 
+from .validators import (
+    validate_faq_image,
+    validate_faq_video_file,
+)
+
 
 # ------------------------- TICKET -------------------------
 class Ticket(models.Model):
@@ -499,6 +504,23 @@ class FAQ(models.Model):
         blank=True,
         related_name="faqs_updated",
     )
+    image = models.ImageField(
+        upload_to="faq/",
+        null=True,
+        blank=True,
+        validators=[validate_faq_image],
+        help_text="Opcional: imagen ilustrativa (hasta %s MB)"
+        % getattr(settings, "FAQ_IMAGE_MAX_MB", 2),
+    )
+    video_file = models.FileField(
+        upload_to="faq/",
+        null=True,
+        blank=True,
+        validators=[validate_faq_video_file],
+        help_text="Opcional: video MP4 (hasta %s MB)"
+        % getattr(settings, "FAQ_VIDEO_MAX_MB", 25),
+    )
+    video_url = models.URLField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

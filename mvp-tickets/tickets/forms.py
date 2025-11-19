@@ -358,7 +358,7 @@ class AutoAssignRuleForm(forms.ModelForm):
 class FAQForm(forms.ModelForm):
     class Meta:
         model = FAQ
-        fields = ["question", "answer", "category", "subcategory"]
+        fields = ["question", "answer", "category", "subcategory", "image", "video_file", "video_url"]
         widgets = {
             "question": forms.TextInput(
                 attrs={"class": "border rounded px-3 py-2 w-full", "maxlength": 255}
@@ -371,6 +371,15 @@ class FAQForm(forms.ModelForm):
             ),
             "subcategory": forms.Select(
                 attrs={"class": "border rounded px-3 py-2 w-full"}
+            ),
+            "image": forms.ClearableFileInput(
+                attrs={"class": "border rounded px-3 py-2 w-full"}
+            ),
+            "video_file": forms.ClearableFileInput(
+                attrs={"class": "border rounded px-3 py-2 w-full"}
+            ),
+            "video_url": forms.URLInput(
+                attrs={"class": "border rounded px-3 py-2 w-full", "placeholder": "https://"}
             ),
         }
 
@@ -407,4 +416,6 @@ class FAQForm(forms.ModelForm):
                 )
             elif not category:
                 cleaned["category"] = subcategory.category
+        if not cleaned.get("video_url"):
+            cleaned["video_url"] = None
         return cleaned

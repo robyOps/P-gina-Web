@@ -23,11 +23,13 @@ from .models import (
     TicketAssignment,
 )
 from .utils import sanitize_text
+from .services_critical import critical_score_for
 
 class TicketSerializer(serializers.ModelSerializer):
     requester = serializers.HiddenField(default=serializers.CurrentUserDefault())
     code = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
+    critical_score = serializers.SerializerMethodField()
 
     class Meta:
         model = Ticket
@@ -36,7 +38,7 @@ class TicketSerializer(serializers.ModelSerializer):
             "category", "subcategory", "priority", "area", "kind",
             "status", "assigned_to",
             "created_at", "updated_at", "resolved_at", "closed_at",
-            "requester",
+            "requester", "critical_score",
         ]
         read_only_fields = [
             "assigned_to",
@@ -51,6 +53,11 @@ class TicketSerializer(serializers.ModelSerializer):
         if not cleaned:
             raise serializers.ValidationError("El título es obligatorio.")
         return cleaned
+
+    def get_critical_score(self, obj) -> int:
+        request = self.context.get("request")
+        actor = getattr(request, "user", None)
+        return getattr(obj, "critical_score", None) or critical_score_for(obj, actor)
 
     def validate_description(self, value: str) -> str:
         cleaned = sanitize_text(value)
