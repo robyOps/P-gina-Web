@@ -51,6 +51,13 @@
         {% if form.area.errors %}<div class="text-xs text-rose-600">{{ form.area.errors }}</div>{% endif %}
       </div>
       <div class="space-y-2 md:col-span-2">
+        <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-slate-500" for="id_is_critical_actor">
+          {{ form.is_critical_actor }} Actor crítico
+        </label>
+        <p class="text-xs text-slate-400">Cuando está activo, las acciones del usuario elevan la prioridad y disparan alertas adicionales.</p>
+        {% if form.is_critical_actor.errors %}<div class="text-xs text-rose-600">{{ form.is_critical_actor.errors }}</div>{% endif %}
+      </div>
+      <div class="space-y-2 md:col-span-2">
         <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
           {{ form.is_active }} Activo
         </label>
