@@ -59,6 +59,16 @@ class UserCreateForm(forms.ModelForm):
         widget=forms.Select(attrs={"class": "border rounded px-3 py-2 w-full"}),
         empty_label="(Sin área)",
     )
+    is_critical_actor = forms.BooleanField(
+        label="Actor crítico",
+        required=False,
+        help_text="Prioriza sus tickets y notificaciones.",
+    )
+    is_critical_actor = forms.BooleanField(
+        label="Actor crítico",
+        required=False,
+        help_text="Marca si sus acciones deben activar alertas críticas.",
+    )
 
     class Meta:
         model = User
@@ -93,6 +103,8 @@ class UserCreateForm(forms.ModelForm):
                 self.fields["rut"].initial = profile.rut
             if profile.area_id:
                 self.fields["area"].initial = profile.area_id
+            self.fields["is_critical_actor"].initial = profile.is_critical_actor
+            self.fields["is_critical_actor"].initial = profile.is_critical_actor
 
     def clean_rut(self):
         rut = normalize_rut(self.cleaned_data.get("rut"))
@@ -108,6 +120,7 @@ class UserCreateForm(forms.ModelForm):
         profile, _ = UserProfile.objects.get_or_create(user=user)
         profile.rut = self.cleaned_data.get("rut") or None
         profile.area = self.cleaned_data.get("area")
+        profile.is_critical_actor = bool(self.cleaned_data.get("is_critical_actor"))
         profile.save()
 
 
@@ -173,6 +186,7 @@ class UserEditForm(forms.ModelForm):
         profile, _ = UserProfile.objects.get_or_create(user=user)
         profile.rut = self.cleaned_data.get("rut") or None
         profile.area = self.cleaned_data.get("area")
+        profile.is_critical_actor = bool(self.cleaned_data.get("is_critical_actor"))
         profile.save()
 
     def __init__(self, *args, **kwargs):

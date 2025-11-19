@@ -204,7 +204,10 @@
               {% elif "vimeo" in faq.video_url %}
                 <iframe src="{{ faq.video_url }}" class="max-w-[220px] aspect-video rounded-xl border border-slate-200" allowfullscreen loading="lazy"></iframe>
               {% else %}
-                <a href="{{ faq.video_url }}" class="text-indigo-600 hover:text-indigo-800" target="_blank" rel="noopener">{{ faq.video_url }}</a>
+                <video controls preload="metadata" class="max-w-[220px] rounded-xl border border-slate-200">
+                  <source src="{{ faq.video_url }}">
+                  Tu navegador no puede mostrar el video, descarga el archivo directamente desde la URL proporcionada.
+                </video>
               {% endif %}
             </div>
             {% endif %}

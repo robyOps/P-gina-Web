@@ -46,7 +46,12 @@ class PriorityForm(forms.ModelForm):
 class AreaForm(forms.ModelForm):
     class Meta:
         model = Area
-        fields = ["name"]
+        fields = ["name", "is_critical"]
+        widgets = {
+            "is_critical": forms.CheckboxInput(
+                attrs={"class": "h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"}
+            )
+        }
 
 
 class SubcategoryForm(forms.ModelForm):
