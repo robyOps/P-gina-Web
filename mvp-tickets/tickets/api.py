@@ -303,7 +303,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         u = request.user
 
         if request.method == "GET":
-            qs = TicketComment.objects.filter(ticket=ticket).order_by("created_at")
+            qs = TicketComment.objects.filter(ticket=ticket).order_by("-created_at")
             if not (is_admin(u) or is_tech(u)):  # solicitante -> no ve internos
                 qs = qs.filter(is_internal=False)
             ser = TicketCommentSerializer(qs, many=True)
