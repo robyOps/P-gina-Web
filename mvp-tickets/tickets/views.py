@@ -503,6 +503,7 @@ def faq_list(request):
     if selected_subcategories:
         faqs = faqs.filter(subcategory_id__in=selected_subcategories)
 
+    has_active_filters = bool(search_query or selected_categories or selected_subcategories)
     faq_count = faqs.count()
     faqs = list(faqs)
 
@@ -533,6 +534,7 @@ def faq_list(request):
             "categories": [str(pk) for pk in selected_categories],
             "subcategories": [str(pk) for pk in selected_subcategories],
         },
+        "has_active_filters": has_active_filters,
     }
     return render(request, "tickets/faq.html", ctx)
 
