@@ -157,6 +157,14 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"  # imprime emai
 DEFAULT_FROM_EMAIL = "mvp@localhost"
 
 
+# Ajustes para criticidad y multimedia en FAQ
+CRITICAL_USER_WEIGHT = int(os.getenv("CRITICAL_USER_WEIGHT", 2))
+CRITICAL_AREA_WEIGHT = int(os.getenv("CRITICAL_AREA_WEIGHT", 1))
+
+FAQ_IMAGE_MAX_MB = int(os.getenv("FAQ_IMAGE_MAX_MB", 2))
+FAQ_VIDEO_MAX_MB = int(os.getenv("FAQ_VIDEO_MAX_MB", 25))
+
+
 # Integración con el chatbot de IA (configurable vía variables de entorno).
 AI_CHAT_API_URL = "http://127.0.0.1:11434/api/generate"
 AI_CHAT_MODEL = "llama3"

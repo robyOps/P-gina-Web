@@ -19,7 +19,7 @@
   </header>
 
   <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-    <form method="post" class="space-y-4">
+    <form method="post" enctype="multipart/form-data" class="space-y-4">
       {% csrf_token %}
       {{ form.non_field_errors }}
       <div class="space-y-1">
@@ -47,6 +47,27 @@
         <label class="text-xs font-semibold uppercase text-slate-500" for="id_subcategory">Subcategoría</label>
         {{ form.subcategory|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" }}
         {% for error in form.subcategory.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ error }}</p>
+        {% endfor %}
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_image">Imagen (opcional)</label>
+        {{ form.image|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2" }}
+        {% for error in form.image.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ error }}</p>
+        {% endfor %}
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_video_file">Video MP4 (opcional)</label>
+        {{ form.video_file|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2" }}
+        {% for error in form.video_file.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ error }}</p>
+        {% endfor %}
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-semibold uppercase text-slate-500" for="id_video_url">Video externo (opcional)</label>
+        {{ form.video_url|add_class:"w-full rounded-xl border border-slate-200 px-3 py-2" }}
+        {% for error in form.video_url.errors %}
           <p class="text-xs text-rose-600 mt-1">{{ error }}</p>
         {% endfor %}
       </div>

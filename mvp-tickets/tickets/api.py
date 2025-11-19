@@ -54,6 +54,7 @@ from .serializers import (
 from .validators import validate_upload, UploadValidationError
 
 from .services import apply_auto_assign
+from .services_critical import annotate_critical_score, notify_if_critical
 from .utils import sanitize_text
 from .backfill import run_subcategory_backfill
 import logging
@@ -114,10 +115,14 @@ class TicketViewSet(viewsets.ModelViewSet):
         qs = super().get_queryset()
         u = self.request.user
         if is_admin(u):
-            return qs
+            qs = qs
         if is_tech(u):
-            return qs.filter(assigned_to=u)
-        return qs.filter(requester=u)
+            qs = qs.filter(assigned_to=u)
+        else:
+            qs = qs.filter(requester=u)
+
+        qs = annotate_critical_score(qs, actor=u)
+        return qs.order_by("-critical_score", "-priority__sla_hours", "created_at")
 
     def filter_queryset(self, queryset):
         qs = super().filter_queryset(queryset)
@@ -175,6 +180,8 @@ class TicketViewSet(viewsets.ModelViewSet):
             # No bloquear la creación si hay un problema con reglas; deja rastro en logs
             logger.exception("Fallo auto-assign en perform_create", extra={"ticket_id": serializer.instance.id})
 
+        notify_if_critical(serializer.instance, self.request.user, "fue creado")
+
 
     # ---------- H4: Asignación ----------
     @action(detail=True, methods=["post"])
@@ -219,6 +226,8 @@ class TicketViewSet(viewsets.ModelViewSet):
                 "reason": reason,
             },
         )
+
+        notify_if_critical(ticket, u, "fue asignado")
 
         return Response({"message": "Asignado", "from": prev.id if prev else None, "to": to_user.id}, status=200)
 
@@ -290,6 +299,8 @@ class TicketViewSet(viewsets.ModelViewSet):
             },
         )
 
+        notify_if_critical(ticket, u, "actualizó el estado")
+
         return Response({"message": "Estado actualizado", "status": next_status}, status=200)
 
     # ---------- Comentarios (GET/POST) ----------
@@ -330,6 +341,8 @@ class TicketViewSet(viewsets.ModelViewSet):
                 "body_preview": comment.body[:120],
             },
         )
+
+        notify_if_critical(ticket, request.user, "agregó un comentario")
         return Response(TicketCommentSerializer(comment).data, status=201)
 
     # ---------- Adjuntos (GET lista / POST subir) ----------
@@ -393,6 +406,8 @@ class TicketViewSet(viewsets.ModelViewSet):
                 "content_type": att.content_type,
             },
         )
+
+        notify_if_critical(ticket, u, "agregó un adjunto")
 
         return Response(TicketAttachmentSerializer(att).data, status=201)
 
