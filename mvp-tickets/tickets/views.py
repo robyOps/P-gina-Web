@@ -1324,7 +1324,7 @@ def ticket_quick_update(request, pk):
             return cleaned[0]
         return ", ".join(cleaned[:-1]) + " y " + cleaned[-1]
 
-        change_summary = _human_join(titles_for_message)
+    change_summary = _human_join(titles_for_message)
     messages.success(request, f"Ticket actualizado: {change_summary}.")
 
     link = reverse("ticket_detail", args=[t.pk])
