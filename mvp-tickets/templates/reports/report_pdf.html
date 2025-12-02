@@ -157,6 +157,43 @@
         <h2>Tiempo promedio</h2>
         <p class="muted">{{ avg_hours|default_if_none:"—" }} horas en promedio considerando solo tickets resueltos en el periodo.</p>
       </div>
+    {% elif type == 'productividad' %}
+      <div class="section">
+        <h2>KPIs de productividad</h2>
+        <table class="data">
+          <tbody>
+            <tr><td class="muted">Tickets cerrados</td><td><strong>{{ productivity_summary.total_closed|default:"0" }}</strong></td></tr>
+            <tr><td class="muted">Promedio de resolución</td><td>{{ productivity_summary.avg_hours|default:"—" }} h</td></tr>
+            <tr><td class="muted">Técnico con más cierres</td><td>{{ productivity_summary.top_tech|default:"—" }}</td></tr>
+            <tr><td class="muted">Promedio más rápido</td><td>{% if productivity_summary.fastest_tech %}{{ productivity_summary.fastest_tech }} · {{ productivity_summary.fastest_avg }} h{% else %}—{% endif %}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="section">
+        <h2>Top técnicos (cerrados)</h2>
+        <table class="data">
+          <thead>
+            <tr>
+              <th>Técnico</th>
+              <th>Cerrados</th>
+              <th>Promedio (h)</th>
+              <th>Último cierre</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in productivity_rows %}
+              <tr>
+                <td>{{ row.tech }}</td>
+                <td>{{ row.closed }}</td>
+                <td>{{ row.avg_hours|default:"—" }}</td>
+                <td>{% if row.last_closed %}{{ row.last_closed|date:"d/m/Y H:i" }}{% else %}<span class="muted">—</span>{% endif %}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4" class="empty">Sin técnicos con cierres en el rango filtrado.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     {% elif type == 'categoria' %}
       <div class="section">
         <h2>Tickets por categoría</h2>
