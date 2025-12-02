@@ -6,6 +6,14 @@
     .reports-export-group > a {
       display: inline-flex;
     }
+    .reports-hero-actions {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .filters-toggle-wrapper {
+      display: flex;
+      justify-content: flex-start;
+    }
     .reports-filter-actions {
       display: flex;
       flex-wrap: wrap;
@@ -80,18 +88,18 @@
       gap: 0.5rem;
       border: 1px solid #e2e8f0;
       background: #fff;
-      color: #334155;
+      color: #1e293b;
       border-radius: 999px;
-      padding: 0.6rem 1rem;
-      font-weight: 600;
-      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+      padding: 0.55rem 1rem;
+      font-weight: 700;
+      box-shadow: 0 10px 20px rgba(79, 70, 229, 0.12);
       transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
     }
     .filters-toggle:hover {
       border-color: #c7d2fe;
       color: #312e81;
       transform: translateY(-1px);
-      box-shadow: 0 16px 32px rgba(79, 70, 229, 0.18);
+      box-shadow: 0 16px 28px rgba(79, 70, 229, 0.16);
     }
     .filters-toggle.is-active {
       background: #eef2ff;
@@ -100,11 +108,11 @@
       box-shadow: 0 16px 32px rgba(79, 70, 229, 0.22);
     }
     .filters-toggle__dot {
-      width: 0.55rem;
-      height: 0.55rem;
+      width: 0.45rem;
+      height: 0.45rem;
       border-radius: 999px;
-      background: #f43f5e;
-      box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.18);
+      background: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.14);
     }
     @media (max-width: 640px) {
       .reports-export-group {
@@ -133,30 +141,34 @@
 {% block content %}
 <div class="space-y-8">
   <section class="page-hero rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-600 via-blue-500 to-sky-400 p-6 text-white shadow">
-    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-      <div class="space-y-2">
+    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div class="space-y-3">
         <p class="page-hero__meta inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]">Analítica</p>
         <h1 class="text-3xl font-bold tracking-tight">Reportes y tendencias</h1>
         <p class="max-w-2xl text-sm text-blue-100">Analiza la operación del helpdesk con filtros dinámicos, visualizaciones pastel y exporta tus resultados cuando lo necesites.</p>
+        <div class="filters-toggle-wrapper">
+          <button
+            type="button"
+            id="filtersToggle"
+            class="filters-toggle {% if has_active_filters %}is-active{% endif %}"
+            aria-expanded="false"
+            data-has-active-filters="{{ has_active_filters|yesno:'true,false' }}"
+          >
+            <i class="bi bi-funnel"></i>
+            <span data-toggle-label>Mostrar filtros</span>
+            {% if has_active_filters %}<span class="filters-toggle__dot" aria-hidden="true"></span>{% endif %}
+          </button>
+        </div>
       </div>
-      <div class="reports-export-group flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          id="filtersToggle"
-          class="filters-toggle {% if has_active_filters %}is-active{% endif %}"
-          aria-expanded="false"
-          data-has-active-filters="{{ has_active_filters|yesno:'true,false' }}"
-        >
-          <i class="bi bi-funnel"></i>
-          <span data-toggle-label>Mostrar filtros</span>
-          {% if has_active_filters %}<span class="filters-toggle__dot" aria-hidden="true"></span>{% endif %}
-        </button>
-        <a href="{% url 'reports_export_pdf' %}{% if export_query %}?{{ export_query }}{% endif %}" class="btn inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-indigo-700 shadow-lg shadow-indigo-900/20 transition hover:bg-indigo-50">
-          <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
-        </a>
-        <a href="{% url 'reports_export_excel' %}{% if export_query %}?{{ export_query }}{% endif %}" class="btn inline-flex items-center gap-2 rounded-full border border-white/50 px-5 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/15">
-          <i class="bi bi-file-earmark-spreadsheet"></i> Exportar Excel
-        </a>
+      <div class="reports-hero-actions">
+        <div class="reports-export-group flex flex-wrap items-center justify-end gap-3">
+          <a href="{% url 'reports_export_pdf' %}{% if export_query %}?{{ export_query }}{% endif %}" class="btn inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-indigo-700 shadow-lg shadow-indigo-900/20 transition hover:bg-indigo-50">
+            <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+          </a>
+          <a href="{% url 'reports_export_excel' %}{% if export_query %}?{{ export_query }}{% endif %}" class="btn inline-flex items-center gap-2 rounded-full border border-white/50 px-5 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/15">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Exportar Excel
+          </a>
+        </div>
       </div>
     </div>
     <form method="get" id="filtersPanel" data-start-open="{{ has_active_filters|yesno:'true,false' }}" class="reports-filters-panel rounded-2xl border border-white/30 bg-white/95 p-6 shadow-inner backdrop-blur-sm is-collapsed">
@@ -491,12 +503,12 @@
     }
 
     function renderTechSuggestions(term = "") {
-      if (!techSuggestions || !techOptions.length || techSearchInput?.disabled) return;
+      if (!techSuggestions || techSearchInput?.disabled) return;
       const normalized = term.trim().toLowerCase();
       techSuggestions.innerHTML = "";
       let matches = techOptions;
       if (normalized) {
-        matches = techOptions.filter((item) => item.label.toLowerCase().startsWith(normalized));
+        matches = techOptions.filter((item) => item.label.toLowerCase().includes(normalized));
       } else {
         matches = techOptions.slice(0, 5);
       }
@@ -528,9 +540,27 @@
     function syncTechSelection(value = "") {
       if (!techHiddenInput) return;
       const normalized = value.trim().toLowerCase();
-      const match = techOptions.find((item) => item.label.toLowerCase().startsWith(normalized));
+      const match = techOptions.find((item) => item.label.toLowerCase().includes(normalized));
       techHiddenInput.value = match ? match.id : "";
       renderTechSuggestions(value);
+    }
+
+    function commitFirstTechSuggestion() {
+      if (!techSearchInput) return false;
+      const firstButton = techSuggestions?.querySelector("button");
+      if (firstButton) {
+        firstButton.click();
+        return true;
+      }
+      const normalized = techSearchInput.value.trim().toLowerCase();
+      const match = techOptions.find((item) => item.label.toLowerCase().includes(normalized));
+      if (match) {
+        techHiddenInput.value = match.id;
+        techSearchInput.value = match.label;
+        closeTechSuggestions();
+        return true;
+      }
+      return false;
     }
 
     function updateFilterVisibility() {
@@ -576,6 +606,21 @@
     filterTypeSelect?.addEventListener("change", updateFilterVisibility);
     techSearchInput?.addEventListener("input", (event) => {
       syncTechSelection(event.target.value || "");
+    });
+    techSearchInput?.addEventListener("keydown", (event) => {
+      const isEnter = event.key === "Enter";
+      const isTech = filterTypeSelect?.value === "tecnico";
+      const panelOpen = !filtersPanel?.classList.contains("is-collapsed");
+      if (isEnter && isTech && panelOpen) {
+        event.preventDefault();
+        commitFirstTechSuggestion();
+        const form = techSearchInput.form;
+        if (form?.requestSubmit) {
+          form.requestSubmit();
+        } else {
+          form?.submit();
+        }
+      }
     });
     techSearchInput?.addEventListener("focus", () => {
       if (filterTypeSelect?.value === "tecnico" && !filtersPanel?.classList.contains("is-collapsed")) {
