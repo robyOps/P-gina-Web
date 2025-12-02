@@ -15,6 +15,13 @@
       flex-wrap: wrap;
       gap: 0.75rem;
       align-items: flex-end;
+      justify-content: space-between;
+    }
+    .reports-filter-actions__primary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
     }
     .chart-wrapper {
       position: relative;
@@ -69,21 +76,17 @@
     .reports-filters-panel.is-collapsed {
       display: none;
     }
-    .tech-filter-group {
-      position: relative;
-      padding-bottom: 3rem;
-    }
+    .tech-filter-group { position: relative; }
     .tech-list-trigger {
-      position: absolute;
-      right: 0;
-      bottom: 0.25rem;
+      margin-left: auto;
       border: 1px dashed #cbd5e1;
       border-radius: 999px;
-      padding: 0.35rem 0.9rem;
-      font-size: 0.75rem;
+      padding: 0.45rem 1.05rem;
+      font-size: 0.8rem;
       color: #334155;
       background: #f8fafc;
       transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+      align-self: flex-end;
     }
     .tech-list-trigger:hover,
     .tech-list-trigger:focus-visible {
@@ -203,7 +206,7 @@
     <form
       method="get"
       id="filtersPanel"
-      data-start-open="{{ has_active_filters|yesno:'true,false' }}"
+      data-start-open="true"
       class="reports-filters-panel rounded-2xl border border-white/30 bg-white/95 p-6 shadow-inner backdrop-blur-sm is-collapsed"
       data-filter-panel
       {% if has_active_filters %}data-open="true"{% endif %}
@@ -232,7 +235,6 @@
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Técnico</label>
           <input type="hidden" name="tech" id="techHiddenInput" value="{{ tech_selected }}" />
           <input type="text" id="techSearch" value="{{ tech_selected_label }}" autocomplete="off" placeholder="Busca por nombre" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
-          <button type="button" id="techListTrigger" class="tech-list-trigger">Lista de técnicos</button>
           <div id="techSuggestions" class="tech-suggestions is-hidden" aria-live="polite"></div>
         </div>
         <div class="flex flex-col gap-1">
@@ -281,12 +283,15 @@
           </select>
         </div>
         <div class="reports-filter-actions md:col-span-2">
-          <button class="btn inline-flex w-full items-center justify-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 sm:w-auto" type="submit">
-            <i class="bi bi-funnel"></i> Filtrar
-          </button>
-          <a href="{% url 'reports_dashboard' %}" class="btn inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600 sm:w-auto">
-            <i class="bi bi-eraser"></i> Limpiar
-          </a>
+          <div class="reports-filter-actions__primary">
+            <button class="btn inline-flex w-full items-center justify-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 sm:w-auto" type="submit">
+              <i class="bi bi-funnel"></i> Filtrar
+            </button>
+            <a href="{% url 'reports_dashboard' %}" class="btn inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 hover:border-indigo-200 hover:text-indigo-600 sm:w-auto">
+              <i class="bi bi-eraser"></i> Limpiar
+            </a>
+          </div>
+          <button type="button" id="techListTrigger" class="tech-list-trigger">Lista de técnicos</button>
         </div>
       </div>
     </form>
@@ -569,25 +574,25 @@
     }
 
     function updateTechListVisibility(isTechReport = filterTypeSelect?.value === "tecnico") {
-      const hasTechSelected = Boolean(techHiddenInput?.value);
-      const shouldHideList = isTechReport && hasTechSelected;
+      const panelCollapsed = filtersPanel?.classList.contains("is-collapsed");
+      const shouldShowList = isTechReport && !panelCollapsed;
 
       if (techListTrigger) {
-        techListTrigger.classList.toggle("is-hidden", shouldHideList);
+        techListTrigger.classList.toggle("is-hidden", !shouldShowList);
         techListTrigger.disabled = !isTechReport;
       }
 
       if (techSuggestions) {
-        const shouldHideSuggestions = !isTechReport || hasTechSelected;
+        const shouldHideSuggestions = !isTechReport || panelCollapsed;
         techSuggestions.classList.toggle("is-hidden", shouldHideSuggestions);
         if (shouldHideSuggestions) {
           closeTechSuggestions();
-        } else if (!filtersPanel?.classList.contains("is-collapsed")) {
+        } else {
           renderTechSuggestions(techSearchInput?.value || "");
         }
       }
 
-      if (shouldHideList) {
+      if (!shouldShowList) {
         closeTechModal();
       }
     }
@@ -720,6 +725,7 @@
       if (!isOpen) {
         closeTechSuggestions();
       }
+      updateTechListVisibility();
     }
 
     filterTypeSelect?.addEventListener("change", updateFilterVisibility);
