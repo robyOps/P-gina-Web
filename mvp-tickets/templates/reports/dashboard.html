@@ -34,9 +34,9 @@
       grid-template-columns: 1fr;
       gap: 0.35rem;
     }
-    .tech-suggestions {
-      display: none;
-    }
+    .tech-suggestions { display: grid; }
+    .tech-suggestions.is-hidden { display: none; }
+    .tech-list-trigger.is-hidden { display: none; }
     .tech-suggestions button,
     .tech-modal__list button {
       text-align: left;
@@ -568,6 +568,30 @@
       techSuggestions.classList.add("is-hidden");
     }
 
+    function updateTechListVisibility(isTechReport = filterTypeSelect?.value === "tecnico") {
+      const hasTechSelected = Boolean(techHiddenInput?.value);
+      const shouldHideList = isTechReport && hasTechSelected;
+
+      if (techListTrigger) {
+        techListTrigger.classList.toggle("is-hidden", shouldHideList);
+        techListTrigger.disabled = !isTechReport;
+      }
+
+      if (techSuggestions) {
+        const shouldHideSuggestions = !isTechReport || hasTechSelected;
+        techSuggestions.classList.toggle("is-hidden", shouldHideSuggestions);
+        if (shouldHideSuggestions) {
+          closeTechSuggestions();
+        } else if (!filtersPanel?.classList.contains("is-collapsed")) {
+          renderTechSuggestions(techSearchInput?.value || "");
+        }
+      }
+
+      if (shouldHideList) {
+        closeTechModal();
+      }
+    }
+
     function renderTechList(container, term = "", { limit = 8, emptyClass = "tech-suggestions__empty" } = {}) {
       if (!container || techSearchInput?.disabled) return;
       const matches = filterTechOptions(term);
@@ -591,6 +615,7 @@
           if (techHiddenInput) techHiddenInput.value = item.id;
           closeTechSuggestions();
           closeTechModal();
+          updateTechListVisibility();
           techSearchInput?.focus();
         });
         container.appendChild(btn);
@@ -616,6 +641,7 @@
       if (techModal?.classList.contains("is-open")) {
         renderTechModal(value);
       }
+      updateTechListVisibility();
     }
 
     function commitFirstTechSuggestion() {
@@ -630,6 +656,7 @@
         techHiddenInput.value = match.id;
         techSearchInput.value = match.label;
         closeTechSuggestions();
+        updateTechListVisibility();
         return true;
       }
       return false;
@@ -664,9 +691,15 @@
         closeTechSuggestions();
         closeTechModal();
       }
-      if (isTechReport && techSearchInput && !filtersPanel?.classList.contains("is-collapsed")) {
+      if (
+        isTechReport &&
+        techSearchInput &&
+        !techHiddenInput?.value &&
+        !filtersPanel?.classList.contains("is-collapsed")
+      ) {
         renderTechSuggestions(techSearchInput.value || "");
       }
+      updateTechListVisibility(isTechReport);
     }
 
     const hasActiveFilters = filtersToggle?.dataset.hasActiveFilters === "true";
