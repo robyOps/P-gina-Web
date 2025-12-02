@@ -1,81 +1,213 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8"/>
-  <title>Reporte de Tickets</title>
+  <meta charset="utf-8" />
+  <title>Reporte ejecutivo de tickets</title>
   <style>
-    body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 12px; color: #111; }
-    h1 { font-size: 18px; margin: 0 0 8px 0; }
-    h2 { font-size: 14px; margin: 16px 0 6px 0; }
-    .muted { color: #555; }
-    .box { border: 1px solid #ddd; padding: 8px; border-radius: 6px; margin-bottom: 10px; }
-    table { width: 100%; border-collapse: collapse; margin: 6px 0 12px 0; }
-    th, td { border: 1px solid #ddd; padding: 6px; }
-    th { background: #f2f2f2; text-align: left; }
-    .grid-2 { width: 100%; }
-    .col { width: 48%; display: inline-block; vertical-align: top; }
+    :root {
+      --bg: #0f172a;
+      --card: #ffffff;
+      --muted: #475569;
+      --primary: #312e81;
+      --accent: #0ea5e9;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "DejaVu Sans", Arial, sans-serif;
+      margin: 0;
+      padding: 26px;
+      background: linear-gradient(135deg, #0b1224, #101827 45%, #0b1430);
+      color: #0f172a;
+      font-size: 12px;
+    }
+    .page {
+      background: #f8fafc;
+      border-radius: 18px;
+      border: 1px solid #cbd5e1;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+    }
+    header {
+      padding: 22px 26px;
+      background: linear-gradient(120deg, #312e81, #4338ca 50%, #0ea5e9);
+      color: #fff;
+    }
+    .eyebrow {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      letter-spacing: 0.28em;
+      font-weight: 700;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      letter-spacing: -0.02em;
+    }
+    .subtitle { margin: 0; font-size: 13px; opacity: 0.9; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .chip {
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #fff;
+      border-radius: 12px;
+      padding: 6px 10px;
+      font-weight: 600;
+      font-size: 11px;
+    }
+    main { padding: 22px 24px 26px; }
+    h2 { margin: 0 0 10px; font-size: 15px; color: #0f172a; }
+    .muted { color: var(--muted); font-size: 11px; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .kpi {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px 14px;
+      box-shadow: 0 12px 30px rgba(99, 102, 241, 0.08);
+    }
+    .kpi-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #4338ca; }
+    .kpi-value { font-size: 22px; font-weight: 800; color: #0f172a; margin: 6px 0 2px; }
+    .kpi-note { font-size: 11px; color: var(--muted); }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+    }
+    .card h3 { margin: 0 0 6px; font-size: 13px; color: #0f172a; }
+    .pill-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+    .pill { background: #e0f2fe; color: #0ea5e9; border: 1px solid #bae6fd; border-radius: 12px; padding: 6px 8px; font-size: 11px; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+    th { text-align: left; background: #eef2ff; color: #312e81; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; padding: 8px 9px; border: 1px solid #dbeafe; }
+    td { padding: 8px 9px; border: 1px solid #e2e8f0; color: #0f172a; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    .empty { text-align: center; color: #94a3b8; padding: 10px 6px; }
+    .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
   </style>
 </head>
 <body>
+  <div class="page">
+    <header>
+      <div class="eyebrow">Panel ejecutivo</div>
+      <h1>Reporte de tickets</h1>
+      <p class="subtitle">Resumen limpio para decisiones rápidas del equipo.</p>
+      <div class="chips">
+        <span class="chip">Generado: {{ now|date:"d/m/Y H:i" }}</span>
+        <span class="chip">Usuario: {{ user.username }}</span>
+        <span class="chip">Tickets totales: {{ total }}</span>
+        {% if from or to %}<span class="chip">Rango: {{ from|default:"(inicio)" }} → {{ to|default:"(hoy)" }}</span>{% endif %}
+      </div>
+    </header>
 
-  <h1>Reporte de Tickets</h1>
-  <div class="muted">
-    Generado: {{ now|date:"Y-m-d H:i" }} — Usuario: {{ user.username }}
-    {% if from or to %}<br/>Rango: {{ from|default:"(inicio)" }} → {{ to|default:"(hoy)" }}{% endif %}
+    <main>
+      <section class="kpi-grid">
+        <article class="kpi">
+          <div class="kpi-label">Tickets activos</div>
+          <div class="kpi-value">{{ total }}</div>
+          <div class="kpi-note">Conteo general según filtros aplicados.</div>
+        </article>
+        <article class="kpi">
+          <div class="kpi-label">Promedio de resolución</div>
+          <div class="kpi-value">{{ avg_hours|default:"—" }} h</div>
+          <div class="kpi-note">Horas promedio de cierre sobre tickets resueltos.</div>
+        </article>
+        {% if from or to %}
+        <article class="kpi">
+          <div class="kpi-label">Periodo analizado</div>
+          <div class="kpi-value" style="font-size:15px;">{{ from|default:"(inicio)" }} → {{ to|default:"(hoy)" }}</div>
+          <div class="kpi-note">Fechas límite consideradas.</div>
+        </article>
+        {% endif %}
+      </section>
+
+      <section class="two-col">
+        <article class="card">
+          <h3>Estado de los tickets</h3>
+          <table>
+            <thead><tr><th>Estado</th><th>Cantidad</th></tr></thead>
+            <tbody>
+              {% for k,v in by_status.items %}
+              <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+              {% empty %}<tr><td colspan="2" class="empty">Sin datos</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </article>
+        <article class="card">
+          <h3>Por prioridad</h3>
+          <table>
+            <thead><tr><th>Prioridad</th><th>Cantidad</th></tr></thead>
+            <tbody>
+              {% for r in by_priority %}
+              <tr><td>{{ r.priority__name|default:"Sin prioridad" }}</td><td>{{ r.count }}</td></tr>
+              {% empty %}<tr><td colspan="2" class="empty">Sin datos</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </article>
+      </section>
+
+      <section class="card-grid" style="margin-top:14px;">
+        <article class="card">
+          <h3>Distribución por categoría</h3>
+          <table>
+            <thead><tr><th>Categoría</th><th>Cantidad</th></tr></thead>
+            <tbody>
+              {% for r in by_category %}
+              <tr><td>{{ r.category__name|default:"Sin categoría" }}</td><td>{{ r.count }}</td></tr>
+              {% empty %}<tr><td colspan="2" class="empty">Sin datos</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </article>
+        <article class="card">
+          <h3>Subcategorías</h3>
+          <table>
+            <thead><tr><th>Subcategoría</th><th>Cantidad</th></tr></thead>
+            <tbody>
+              {% for r in by_subcategory %}
+              <tr><td>{{ r.subcategory__name|default:"Sin subcategoría" }}</td><td>{{ r.count }}</td></tr>
+              {% empty %}<tr><td colspan="2" class="empty">Sin datos</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </article>
+      </section>
+
+      <section class="two-col" style="margin-top:14px;">
+        <article class="card">
+          <h3>Tickets por técnico</h3>
+          <table>
+            <thead><tr><th>Técnico</th><th>Cantidad</th></tr></thead>
+            <tbody>
+              {% for r in by_tech %}
+              <tr><td>{{ r.assigned_to__username|default:"Sin asignar" }}</td><td>{{ r.count }}</td></tr>
+              {% empty %}<tr><td colspan="2" class="empty">Sin datos</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </article>
+        <article class="card">
+          <h3>Alertas rápidas</h3>
+          <ul class="pill-list">
+            {% with first_priority=by_priority|first %}
+            <li class="pill">Prioridades críticas: {{ first_priority.count|default:"0" }}</li>
+            {% endwith %}
+            <li class="pill">Promedio (h): {{ avg_hours|default:"—" }}</li>
+            <li class="pill">Última actualización: {{ now|date:"d/m/Y" }}</li>
+          </ul>
+          <p class="muted" style="margin-top:8px;">Consolida en un vistazo la carga y velocidad de respuesta.</p>
+        </article>
+      </section>
+    </main>
   </div>
-
-  <div class="box">
-    <strong>Total de tickets:</strong> {{ total }}<br/>
-    <strong>Promedio de resolución (horas):</strong> {{ avg_hours|default:"—" }}
-  </div>
-
-  <h2>Por estado</h2>
-  <table>
-    <thead><tr><th>Estado</th><th>Cantidad</th></tr></thead>
-    <tbody>
-      {% for k,v in by_status.items %}
-        <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
-      {% empty %}
-        <tr><td colspan="2">Sin datos</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <div class="grid-2">
-    <div class="col">
-      <h2>Por categoría</h2>
-      <table>
-        <thead><tr><th>Categoría</th><th>Cantidad</th></tr></thead>
-        <tbody>
-          {% for r in by_category %}
-            <tr><td>{{ r.category__name|default:"—" }}</td><td>{{ r.count }}</td></tr>
-          {% empty %}<tr><td colspan="2">Sin datos</td></tr>{% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="col">
-      <h2>Por prioridad</h2>
-      <table>
-        <thead><tr><th>Prioridad</th><th>Cantidad</th></tr></thead>
-        <tbody>
-          {% for r in by_priority %}
-            <tr><td>{{ r.priority__name|default:"—" }}</td><td>{{ r.count }}</td></tr>
-          {% empty %}<tr><td colspan="2">Sin datos</td></tr>{% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <h2>Por técnico</h2>
-  <table>
-    <thead><tr><th>Técnico</th><th>Cantidad</th></tr></thead>
-    <tbody>
-      {% for r in by_tech %}
-        <tr><td>{{ r.assigned_to__username|default:"—" }}</td><td>{{ r.count }}</td></tr>
-      {% empty %}<tr><td colspan="2">Sin datos</td></tr>{% endfor %}
-    </tbody>
-  </table>
-
 </body>
 </html>

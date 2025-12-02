@@ -23,7 +23,7 @@ TODOs:
 from dataclasses import dataclass
 from typing import Iterable
 
-from accounts.roles import ROLE_ADMIN, ROLE_TECH
+from accounts.roles import ROLE_ADMIN, ROLE_REQUESTER, ROLE_TECH
 
 
 PERMISSION_LABELS = {
@@ -320,6 +320,24 @@ PERMISSION_TEMPLATES = {
             "view_faq",
             "change_faq",
             "view_reports",
+        ],
+    },
+    ROLE_REQUESTER: {
+        "label": "Usuario solicitante",
+        "description": "Puede crear, seguir y colaborar en sus solicitudes.",
+        "codenames": [
+            "add_ticket",
+            "change_ticket",
+            "view_ticket",
+            "add_ticketcomment",
+            "view_ticketcomment",
+            "add_ticketattachment",
+            "view_ticketattachment",
+            "set_ticket_category",
+            "set_ticket_priority",
+            "set_ticket_subcategory",
+            "set_ticket_area",
+            "view_faq",
         ],
     },
 }

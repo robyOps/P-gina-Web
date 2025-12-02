@@ -10,10 +10,6 @@
       display: grid;
       gap: 0.75rem;
     }
-    .filters-toggle-wrapper {
-      display: flex;
-      justify-content: flex-start;
-    }
     .reports-filter-actions {
       display: flex;
       flex-wrap: wrap;
@@ -32,14 +28,17 @@
     .report-filter-hidden {
       display: none;
     }
+    .tech-suggestions,
+    .tech-modal__list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.35rem;
+    }
     .tech-suggestions {
       position: absolute;
       top: calc(100% + 0.35rem);
       left: 0;
       right: 0;
-      display: none;
-      grid-template-columns: 1fr;
-      gap: 0.35rem;
       padding: 0.5rem;
       background: #ffffff;
       border-radius: 0.9rem;
@@ -49,10 +48,11 @@
       overflow-y: auto;
       z-index: 20;
     }
-    .tech-suggestions.is-visible {
-      display: grid;
+    .tech-suggestions.is-hidden {
+      display: none;
     }
-    .tech-suggestions button {
+    .tech-suggestions button,
+    .tech-modal__list button {
       text-align: left;
       border: 1px solid #e2e8f0;
       background: #ffffff;
@@ -60,15 +60,19 @@
       padding: 0.5rem 0.75rem;
       font-size: 0.85rem;
       color: #0f172a;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
     }
     .tech-suggestions button:hover,
-    .tech-suggestions button:focus-visible {
+    .tech-suggestions button:focus-visible,
+    .tech-modal__list button:hover,
+    .tech-modal__list button:focus-visible {
       border-color: #818cf8;
       box-shadow: 0 10px 25px rgba(99, 102, 241, 0.15);
       outline: none;
+      transform: translateY(-1px);
     }
-    .tech-suggestions__empty {
+    .tech-suggestions__empty,
+    .tech-modal__empty {
       font-size: 0.8rem;
       color: #475569;
       padding: 0.35rem 0.5rem;
@@ -82,37 +86,67 @@
     .tech-filter-group {
       position: relative;
     }
-    .filters-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      border: 1px solid #e2e8f0;
-      background: #fff;
-      color: #1e293b;
+    .tech-list-trigger {
+      align-self: flex-start;
+      border: 1px dashed #cbd5e1;
       border-radius: 999px;
-      padding: 0.55rem 1rem;
-      font-weight: 700;
-      box-shadow: 0 10px 20px rgba(79, 70, 229, 0.12);
-      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      color: #334155;
+      background: #f8fafc;
+      transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
     }
-    .filters-toggle:hover {
-      border-color: #c7d2fe;
+    .tech-list-trigger:hover,
+    .tech-list-trigger:focus-visible {
+      border-color: #818cf8;
       color: #312e81;
-      transform: translateY(-1px);
-      box-shadow: 0 16px 28px rgba(79, 70, 229, 0.16);
-    }
-    .filters-toggle.is-active {
       background: #eef2ff;
-      border-color: #c7d2fe;
-      color: #312e81;
-      box-shadow: 0 16px 32px rgba(79, 70, 229, 0.22);
+      outline: none;
     }
-    .filters-toggle__dot {
-      width: 0.45rem;
-      height: 0.45rem;
+    .tech-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.36);
+      padding: 1.5rem;
+      z-index: 40;
+    }
+    .tech-modal.is-open {
+      display: flex;
+    }
+    .tech-modal__dialog {
+      width: min(520px, 100%);
+      background: #ffffff;
+      border-radius: 1rem;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+      padding: 1rem;
+      max-height: min(70vh, 540px);
+      display: grid;
+      gap: 0.75rem;
+    }
+    .tech-modal__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .tech-modal__close {
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
       border-radius: 999px;
-      background: #22c55e;
-      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.14);
+      padding: 0.35rem 0.6rem;
+      color: #475569;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .tech-modal__close:hover,
+    .tech-modal__close:focus-visible {
+      background: #eef2ff;
+      border-color: #818cf8;
+      color: #312e81;
+      outline: none;
     }
     @media (max-width: 640px) {
       .reports-export-group {
@@ -150,13 +184,18 @@
           <button
             type="button"
             id="filtersToggle"
-            class="filters-toggle {% if has_active_filters %}is-active{% endif %}"
+            class="btn inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm transition sm:text-sm {% if has_active_filters %}border-indigo-300 bg-indigo-50 text-indigo-700 hover:border-indigo-400 hover:bg-indigo-100{% else %}border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:text-indigo-600{% endif %}"
+            data-filter-toggle
             aria-expanded="false"
+            data-label-show="Mostrar filtros"
+            data-label-hide="Ocultar filtros"
             data-has-active-filters="{{ has_active_filters|yesno:'true,false' }}"
           >
             <i class="bi bi-funnel"></i>
-            <span data-toggle-label>Mostrar filtros</span>
-            {% if has_active_filters %}<span class="filters-toggle__dot" aria-hidden="true"></span>{% endif %}
+            <span data-filter-label>Mostrar filtros</span>
+            {% if has_active_filters %}
+              <span class="ml-1 inline-flex h-2 w-2 items-center justify-center rounded-full bg-rose-500"></span>
+            {% endif %}
           </button>
         </div>
       </div>
@@ -171,7 +210,14 @@
         </div>
       </div>
     </div>
-    <form method="get" id="filtersPanel" data-start-open="{{ has_active_filters|yesno:'true,false' }}" class="reports-filters-panel rounded-2xl border border-white/30 bg-white/95 p-6 shadow-inner backdrop-blur-sm is-collapsed">
+    <form
+      method="get"
+      id="filtersPanel"
+      data-start-open="{{ has_active_filters|yesno:'true,false' }}"
+      class="reports-filters-panel rounded-2xl border border-white/30 bg-white/95 p-6 shadow-inner backdrop-blur-sm is-collapsed"
+      data-filter-panel
+      {% if has_active_filters %}data-open="true"{% endif %}
+    >
       <div class="reports-filters-grid grid gap-4 text-sm sm:grid-cols-2 md:grid-cols-6">
         <div class="flex flex-col gap-1">
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Desde</label>
@@ -196,7 +242,8 @@
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Técnico</label>
           <input type="hidden" name="tech" id="techHiddenInput" value="{{ tech_selected }}" />
           <input type="text" id="techSearch" value="{{ tech_selected_label }}" autocomplete="off" placeholder="Busca por nombre" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
-          <div id="techSuggestions" class="tech-suggestions" aria-live="polite"></div>
+          <button type="button" id="techListTrigger" class="tech-list-trigger">Lista de técnicos</button>
+          <div id="techSuggestions" class="tech-suggestions is-hidden" aria-live="polite"></div>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">SLA</label>
@@ -254,6 +301,21 @@
       </div>
     </form>
   </section>
+
+  <div class="tech-modal" id="techModal" role="dialog" aria-modal="true" aria-labelledby="techModalTitle">
+    <div class="tech-modal__dialog">
+      <div class="tech-modal__header">
+        <div>
+          <h3 id="techModalTitle" class="text-base font-semibold text-slate-900">Lista de técnicos</h3>
+          <p class="text-xs text-slate-600">Haz clic en un nombre para rellenar el filtro automáticamente.</p>
+        </div>
+        <button type="button" class="tech-modal__close" id="techModalClose" aria-label="Cerrar lista de técnicos">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="tech-modal__list" id="techModalList" aria-live="polite"></div>
+    </div>
+  </div>
 
   <section class="grid gap-6 md:grid-cols-3">
     <article class="flex flex-col gap-3 rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-blue-50 p-6 shadow-sm">
@@ -492,37 +554,45 @@
     const techHiddenInput = document.getElementById("techHiddenInput");
     const techSearchInput = document.getElementById("techSearch");
     const techSuggestions = document.getElementById("techSuggestions");
+    const techListTrigger = document.getElementById("techListTrigger");
+    const techModal = document.getElementById("techModal");
+    const techModalList = document.getElementById("techModalList");
+    const techModalClose = document.getElementById("techModalClose");
     const filtersPanel = document.getElementById("filtersPanel");
     const filtersToggle = document.getElementById("filtersToggle");
     const techOptions = JSON.parse(document.getElementById("tech_options_data")?.textContent || "[]");
 
+    function filterTechOptions(term = "") {
+      const normalized = term.trim().toLowerCase();
+      if (!normalized) return techOptions.slice(0, 10);
+      return techOptions.filter(
+        (item) =>
+          item.label.toLowerCase().startsWith(normalized) ||
+          item.username.toLowerCase().startsWith(normalized)
+      );
+    }
+
     function closeTechSuggestions() {
       if (!techSuggestions) return;
       techSuggestions.innerHTML = "";
-      techSuggestions.classList.remove("is-visible");
+      techSuggestions.classList.add("is-hidden");
     }
 
-    function renderTechSuggestions(term = "") {
-      if (!techSuggestions || techSearchInput?.disabled) return;
-      const normalized = term.trim().toLowerCase();
-      techSuggestions.innerHTML = "";
-      let matches = techOptions;
-      if (normalized) {
-        matches = techOptions.filter((item) => item.label.toLowerCase().includes(normalized));
-      } else {
-        matches = techOptions.slice(0, 5);
-      }
+    function renderTechList(container, term = "", { limit = 8, emptyClass = "tech-suggestions__empty" } = {}) {
+      if (!container || techSearchInput?.disabled) return;
+      const matches = filterTechOptions(term);
+      container.innerHTML = "";
+      const subset = matches.slice(0, limit);
 
-      if (!matches.length) {
+      if (!subset.length) {
         const empty = document.createElement("div");
-        empty.className = "tech-suggestions__empty";
+        empty.className = emptyClass;
         empty.textContent = "Sin coincidencias";
-        techSuggestions.appendChild(empty);
-        techSuggestions.classList.add("is-visible");
+        container.appendChild(empty);
         return;
       }
 
-      matches.slice(0, 6).forEach((item) => {
+      subset.forEach((item) => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.textContent = `${item.label} (${item.username})`;
@@ -530,19 +600,32 @@
           if (techSearchInput) techSearchInput.value = item.label;
           if (techHiddenInput) techHiddenInput.value = item.id;
           closeTechSuggestions();
-          techSearchInput?.blur();
+          closeTechModal();
+          techSearchInput?.focus();
         });
-        techSuggestions.appendChild(btn);
+        container.appendChild(btn);
       });
-      techSuggestions.classList.add("is-visible");
+    }
+
+    function renderTechSuggestions(term = "") {
+      if (!techSuggestions || techSearchInput?.disabled) return;
+      renderTechList(techSuggestions, term, { limit: 10, emptyClass: "tech-suggestions__empty" });
+      techSuggestions.classList.remove("is-hidden");
+    }
+
+    function renderTechModal(term = "") {
+      if (!techModalList) return;
+      renderTechList(techModalList, term, { limit: 30, emptyClass: "tech-modal__empty" });
     }
 
     function syncTechSelection(value = "") {
       if (!techHiddenInput) return;
-      const normalized = value.trim().toLowerCase();
-      const match = techOptions.find((item) => item.label.toLowerCase().includes(normalized));
+      const match = filterTechOptions(value)[0];
       techHiddenInput.value = match ? match.id : "";
       renderTechSuggestions(value);
+      if (techModal?.classList.contains("is-open")) {
+        renderTechModal(value);
+      }
     }
 
     function commitFirstTechSuggestion() {
@@ -552,8 +635,7 @@
         firstButton.click();
         return true;
       }
-      const normalized = techSearchInput.value.trim().toLowerCase();
-      const match = techOptions.find((item) => item.label.toLowerCase().includes(normalized));
+      const match = filterTechOptions(techSearchInput.value)[0];
       if (match) {
         techHiddenInput.value = match.id;
         techSearchInput.value = match.label;
@@ -561,6 +643,17 @@
         return true;
       }
       return false;
+    }
+
+    function openTechModal() {
+      if (!techModal || techSearchInput?.disabled) return;
+      techModal.classList.add("is-open");
+      renderTechModal(techSearchInput?.value || "");
+    }
+
+    function closeTechModal() {
+      if (!techModal) return;
+      techModal.classList.remove("is-open");
     }
 
     function updateFilterVisibility() {
@@ -579,6 +672,7 @@
         techHiddenInput.value = "";
         if (techSearchInput) techSearchInput.value = "";
         closeTechSuggestions();
+        closeTechModal();
       }
       if (isTechReport && techSearchInput && !filtersPanel?.classList.contains("is-collapsed")) {
         renderTechSuggestions(techSearchInput.value || "");
@@ -586,17 +680,19 @@
     }
 
     const hasActiveFilters = filtersToggle?.dataset.hasActiveFilters === "true";
+    const labelShow = filtersToggle?.dataset.labelShow || "Mostrar filtros";
+    const labelHide = filtersToggle?.dataset.labelHide || "Ocultar filtros";
 
     function setFiltersOpen(isOpen = false) {
       filtersPanel?.classList.toggle("is-collapsed", !isOpen);
-      const label = filtersToggle?.querySelector("[data-toggle-label]");
+      const label = filtersToggle?.querySelector("[data-filter-label]");
       if (filtersToggle) {
         filtersToggle.setAttribute("aria-expanded", String(isOpen));
         const shouldMarkActive = Boolean(isOpen || hasActiveFilters);
         filtersToggle.classList.toggle("is-active", shouldMarkActive);
       }
       if (label) {
-        label.textContent = isOpen ? "Ocultar filtros" : "Mostrar filtros";
+        label.textContent = isOpen ? labelHide : labelShow;
       }
       if (!isOpen) {
         closeTechSuggestions();
@@ -630,12 +726,30 @@
     techSearchInput?.addEventListener("blur", () => {
       setTimeout(closeTechSuggestions, 120);
     });
+    techListTrigger?.addEventListener("click", openTechModal);
+    techModalClose?.addEventListener("click", closeTechModal);
+    techModal?.addEventListener("click", (event) => {
+      const dialog = techModal.querySelector(".tech-modal__dialog");
+      if (event.target === techModal && dialog && !dialog.contains(event.target)) {
+        closeTechModal();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeTechModal();
+        closeTechSuggestions();
+      }
+    });
     filtersToggle?.addEventListener("click", () => {
       const nextState = filtersPanel?.classList.contains("is-collapsed");
       setFiltersOpen(nextState);
       if (nextState && filterTypeSelect?.value === "tecnico") {
         renderTechSuggestions(techSearchInput?.value || "");
       }
+    });
+    filtersPanel?.addEventListener("submit", () => {
+      closeTechSuggestions();
+      closeTechModal();
     });
 
     const shouldStartOpen = filtersPanel?.dataset.startOpen === "true";
