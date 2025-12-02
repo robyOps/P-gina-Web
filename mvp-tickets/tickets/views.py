@@ -138,10 +138,12 @@ def _parse_date_param(s: str | None):
 
 
 def _current_month_bounds():
-    """Devuelve (primer_día_mes_actual, hoy)."""
+    """Devuelve (primer_día_mes_actual, último_día_mes_actual)."""
 
     today = timezone.localdate()
-    return today.replace(day=1), today
+    last_day = calendar.monthrange(today.year, today.month)[1]
+    end_of_month = today.replace(day=last_day)
+    return today.replace(day=1), end_of_month
 
 
 def _resolved_range(raw_from: str | None, raw_to: str | None):
@@ -149,10 +151,10 @@ def _resolved_range(raw_from: str | None, raw_to: str | None):
 
     dfrom = _parse_date_param(raw_from)
     dto = _parse_date_param(raw_to)
-    start_month, today = _current_month_bounds()
+    start_month, end_month = _current_month_bounds()
 
     if not raw_from and not raw_to:
-        dfrom, dto = start_month, today
+        dfrom, dto = start_month, end_month
     else:
         if not dfrom and dto:
             dfrom = dto.replace(day=1)
@@ -160,8 +162,8 @@ def _resolved_range(raw_from: str | None, raw_to: str | None):
             dfrom = start_month
 
         if not dto and dfrom:
-            if dfrom.year == today.year and dfrom.month == today.month:
-                dto = today
+            if dfrom.year == end_month.year and dfrom.month == end_month.month:
+                dto = end_month
             else:
                 last_day = calendar.monthrange(dfrom.year, dfrom.month)[1]
                 dto = dfrom.replace(day=last_day)
@@ -1719,6 +1721,7 @@ def reports_dashboard(request):
         "status": status_selected or "",
     }
     export_query = urlencode({key: value for key, value in export_params.items() if value not in (None, "")})
+    has_active_filters = any(value not in (None, "") for value in export_params.values())
 
     return TemplateResponse(
         request,
@@ -1761,6 +1764,7 @@ def reports_dashboard(request):
             "report_type": report_type,
             "export_query": export_query,
             "productivity_stats": productivity_stats,
+            "has_active_filters": has_active_filters,
         },
     )
 
@@ -2076,7 +2080,7 @@ def reports_export_excel(request):
     status = (request.GET.get("status") or "").strip()
     category = (request.GET.get("category") or "").strip()
     subcategory = (request.GET.get("subcategory") or "").strip()
-    priority = (request.GET.get("priority") or "").strip()
+    priority = (request.GET.get("sla") or request.GET.get("priority") or "").strip()
     tech = (request.GET.get("tech") or "").strip()
     area = (request.GET.get("area") or "").strip()
     report_type = (request.GET.get("type") or "").strip()
@@ -2256,7 +2260,7 @@ def reports_export_pdf(request):
     status = (request.GET.get("status") or "").strip()
     category = (request.GET.get("category") or "").strip()
     subcategory = (request.GET.get("subcategory") or "").strip()
-    priority = (request.GET.get("priority") or "").strip()
+    priority = (request.GET.get("sla") or request.GET.get("priority") or "").strip()
     area = (request.GET.get("area") or "").strip()
     report_type = request.GET.get("type", "total")
 
@@ -2273,6 +2277,9 @@ def reports_export_pdf(request):
     if area:
         qs = qs.filter(area_id=area)
 
+    if report_type == "urgencia":
+        qs = qs.filter(priority__sla_hours__lte=24)
+
     dur = ExpressionWrapper(F("resolved_at") - F("created_at"), output_field=DurationField())
     resolved = qs.exclude(resolved_at__isnull=True)
     avg_resolve = resolved.aggregate(avg=Avg(dur))["avg"]
@@ -2280,9 +2287,56 @@ def reports_export_pdf(request):
 
     status_map = dict(Ticket.STATUS_CHOICES)
     tech_username = ""
+    priority_label = ""
+    category_label = ""
+    area_label = ""
+    status_label = status_map.get(status, "") if status else ""
     if tech_id:
         tech_obj = User.objects.filter(pk=tech_id).only("username").first()
         tech_username = getattr(tech_obj, "username", "")
+    if priority:
+        priority_obj = Priority.objects.filter(pk=priority).only("name", "sla_hours").first()
+        if priority_obj:
+            priority_label = f"{priority_obj.name} · {priority_obj.sla_hours}h"
+    if category:
+        category_obj = Category.objects.filter(pk=category).only("name").first()
+        category_label = getattr(category_obj, "name", "")
+    if area:
+        area_obj = Area.objects.filter(pk=area).only("name").first()
+        area_label = getattr(area_obj, "name", "")
+
+    filters_applied: list[dict[str, str]] = []
+    if dfrom or dto:
+        filters_applied.append(
+            {
+                "label": "Rango",
+                "value": f"{dfrom.isoformat() if dfrom else '—'} → {dto.isoformat() if dto else '—'}",
+            }
+        )
+    if report_type:
+        filters_applied.append(
+            {
+                "label": "Tipo de reporte",
+                "value": {
+                    "total": "Resumen general",
+                    "categoria": "Por categoría",
+                    "promedio": "Tiempo promedio",
+                    "tecnico": "Por técnico",
+                    "urgencia": "Urgencia",
+                    "productividad": "Productividad",
+                }.get(report_type, report_type),
+            }
+        )
+    if tech_username:
+        filters_applied.append({"label": "Técnico", "value": tech_username})
+    if priority_label:
+        filters_applied.append({"label": "SLA", "value": priority_label})
+    if category_label:
+        filters_applied.append({"label": "Categoría", "value": category_label})
+    if status_label:
+        filters_applied.append({"label": "Estado", "value": status_label})
+    if area_label:
+        filters_applied.append({"label": "Área", "value": area_label})
 
     ctx = {
         "generated_at": timezone.now(),
@@ -2300,6 +2354,7 @@ def reports_export_pdf(request):
             "productividad": "Productividad de técnicos",
         }.get(report_type, "Resumen"),
         "tech_filter": tech_username,
+        "filters_applied": filters_applied,
     }
 
     subcategory_stats = list(
