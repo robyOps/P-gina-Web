@@ -1536,6 +1536,8 @@ def reports_dashboard(request):
     else:
         qs = qs.filter(requester=u)
 
+    tech_source_qs = qs
+
     # Filtro por fechas (rango en created_at)
     raw_from = request.GET.get("from")
     raw_to = request.GET.get("to")
@@ -1691,7 +1693,7 @@ def reports_dashboard(request):
         productivity_stats = build_productivity_stats(qs, date_from=dfrom, date_to=dto)
 
     tech_ids = (
-        qs.exclude(assigned_to__isnull=True)
+        tech_source_qs.exclude(assigned_to__isnull=True)
         .values_list("assigned_to", flat=True)
         .distinct()
     )
@@ -1721,7 +1723,12 @@ def reports_dashboard(request):
         "status": status_selected or "",
     }
     export_query = urlencode({key: value for key, value in export_params.items() if value not in (None, "")})
-    has_active_filters = any(value not in (None, "") for value in export_params.values())
+    active_filter_values = {
+        key: value
+        for key, value in export_params.items()
+        if key != "type" and value not in (None, "")
+    }
+    has_active_filters = bool(active_filter_values or report_type != "total")
 
     return TemplateResponse(
         request,
