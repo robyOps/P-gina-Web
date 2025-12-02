@@ -33,6 +33,7 @@ import calendar
 import json
 from io import BytesIO
 from urllib.parse import urlencode
+from openpyxl import Workbook
 
 # --- Third-party ---
 try:
@@ -45,6 +46,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
 from django.db.models import Count, Avg, DurationField, ExpressionWrapper, F, Max, Min
+from django.db.models.functions import Coalesce
 
 # --- App local ---
 from .forms import TicketCreateForm, TicketQuickUpdateForm
@@ -165,6 +167,74 @@ def _resolved_range(raw_from: str | None, raw_to: str | None):
                 dto = dfrom.replace(day=last_day)
 
     return dfrom, dto
+
+
+def _done_at_expression():
+    return Coalesce("closed_at", "resolved_at")
+
+
+def build_productivity_stats(qs, *, date_from=None, date_to=None):
+    """Calcula métricas de productividad por técnico usando cierres o resoluciones."""
+
+    productivity_qs = qs.annotate(done_at=_done_at_expression()).filter(
+        done_at__isnull=False, assigned_to__isnull=False
+    )
+    if date_from:
+        productivity_qs = productivity_qs.filter(done_at__date__gte=date_from)
+    if date_to:
+        productivity_qs = productivity_qs.filter(done_at__date__lte=date_to)
+
+    duration_expr = ExpressionWrapper(
+        F("done_at") - F("created_at"), output_field=DurationField()
+    )
+    aggregated = productivity_qs.annotate(resolution_duration=duration_expr)
+
+    per_tech = (
+        aggregated.values("assigned_to_id", "assigned_to__username")
+        .annotate(
+            closed=Count("id"),
+            avg_duration=Avg(duration_expr),
+            last_closed=Max("done_at"),
+        )
+        .order_by("-closed", "assigned_to__username")
+    )
+
+    rows: list[dict] = []
+    for row in per_tech:
+        avg_duration = row.get("avg_duration")
+        rows.append(
+            {
+                "tech_id": row.get("assigned_to_id"),
+                "tech": row.get("assigned_to__username") or "Sin técnico",
+                "closed": row.get("closed", 0),
+                "avg_hours": round(avg_duration.total_seconds() / 3600.0, 2)
+                if avg_duration
+                else None,
+                "last_closed": timezone.localtime(row.get("last_closed"))
+                if row.get("last_closed")
+                else None,
+            }
+        )
+
+    overall_avg = aggregated.aggregate(avg=Avg(duration_expr))["avg"]
+    summary = {
+        "total_closed": aggregated.count(),
+        "avg_hours": round(overall_avg.total_seconds() / 3600.0, 2)
+        if overall_avg
+        else None,
+        "top_tech": rows[0]["tech"] if rows else "",
+        "fastest_tech": "",
+        "fastest_avg": None,
+    }
+
+    for entry in rows:
+        if entry["avg_hours"] is None:
+            continue
+        if summary["fastest_avg"] is None or entry["avg_hours"] < summary["fastest_avg"]:
+            summary["fastest_avg"] = entry["avg_hours"]
+            summary["fastest_tech"] = entry["tech"]
+
+    return {"rows": rows, "summary": summary}
 
 
 def can_upload_attachments(ticket: Ticket, user) -> bool:
@@ -423,6 +493,22 @@ def dashboard(request):
         }
     )
 
+    week_start = now - timedelta(days=7)
+    recent_done_qs = (
+        qs.annotate(done_at=_done_at_expression())
+        .filter(done_at__isnull=False, done_at__gte=week_start, done_at__lte=now, assigned_to__isnull=False)
+    )
+    top_weekly_techs = list(
+        recent_done_qs.values("assigned_to__username")
+        .annotate(total=Count("id"))
+        .order_by("-total", "assigned_to__username")[:5]
+    )
+
+    assignments_today = TicketAssignment.objects.filter(
+        ticket__in=qs,
+        created_at__date=timezone.localdate(),
+    ).count()
+
     ctx = {
         "counts": counts,
         "status_breakdown": status_breakdown,
@@ -441,6 +527,8 @@ def dashboard(request):
         "period_range": {"start": period_start, "end": period_end},
         "period_payload": period_payload,
         "heatmap_query": heatmap_query,
+        "top_weekly_techs": top_weekly_techs,
+        "assignments_today": assignments_today,
     }
     return render(request, "dashboard.html", ctx)
 
@@ -1464,8 +1552,22 @@ def reports_dashboard(request):
         qs = qs.filter(priority_id=sla_selected)
 
     report_type = request.GET.get("type", "total")
+    area_selected = (request.GET.get("area") or "").strip()
+    category_selected = (request.GET.get("category") or "").strip()
+    priority_selected = (request.GET.get("priority") or "").strip()
+    status_selected = (request.GET.get("status") or "").strip()
+
     if report_type == "urgencia":
         qs = qs.filter(priority__sla_hours__lte=24)
+    if report_type == "productividad":
+        if area_selected:
+            qs = qs.filter(area_id=area_selected)
+        if category_selected:
+            qs = qs.filter(category_id=category_selected)
+        if priority_selected:
+            qs = qs.filter(priority_id=priority_selected)
+        if status_selected:
+            qs = qs.filter(status=status_selected)
 
     # Métricas base
     by_status_raw = dict(qs.values_list("status").annotate(c=Count("id")))
@@ -1573,19 +1675,48 @@ def reports_dashboard(request):
     chart_sla_subcategory = _chart_from_counts(sla_summary.get("overdue_by_subcategory", {}), limit=10)
     chart_sla_area = _chart_from_counts(sla_summary.get("overdue_by_area", {}), limit=10)
 
+    productivity_stats = {
+        "rows": [],
+        "summary": {
+            "total_closed": 0,
+            "avg_hours": None,
+            "top_tech": "",
+            "fastest_tech": "",
+            "fastest_avg": None,
+        },
+    }
+    if report_type == "productividad":
+        productivity_stats = build_productivity_stats(qs, date_from=dfrom, date_to=dto)
+
     tech_ids = (
         qs.exclude(assigned_to__isnull=True)
         .values_list("assigned_to", flat=True)
         .distinct()
     )
-    techs = User.objects.filter(id__in=tech_ids).order_by("username")
+    techs_qs = User.objects.filter(id__in=tech_ids).order_by("username")
+    tech_selected_label = ""
+    tech_options: list[dict[str, str]] = []
+    techs = list(techs_qs)
+    for tech in techs:
+        display = (tech.get_full_name() or "").strip() or tech.username
+        tech_options.append({"id": tech.id, "label": display, "username": tech.username})
+        if str(tech.id) == str(tech_selected):
+            tech_selected_label = display
+
     priorities = Priority.objects.order_by("sla_hours", "name")
+    categories = Category.objects.order_by("name")
+    areas = Area.objects.order_by("name")
+    status_choices = Ticket.STATUS_CHOICES
     export_params = {
         "from": raw_from or "",
         "to": raw_to or "",
         "type": report_type or "",
         "tech": tech_selected or "",
         "sla": sla_selected or "",
+        "area": area_selected or "",
+        "category": category_selected or "",
+        "priority": priority_selected or "",
+        "status": status_selected or "",
     }
     export_query = urlencode({key: value for key, value in export_params.items() if value not in (None, "")})
 
@@ -1616,10 +1747,20 @@ def reports_dashboard(request):
             "sla_summary": sla_summary,
             "techs": techs,
             "tech_selected": tech_selected,
+            "tech_selected_label": tech_selected_label,
+            "tech_options": tech_options,
             "priorities": priorities,
             "sla_selected": sla_selected,
+            "categories": categories,
+            "areas": areas,
+            "status_choices": status_choices,
+            "area_selected": area_selected,
+            "category_selected": category_selected,
+            "priority_selected": priority_selected,
+            "status_selected": status_selected,
             "report_type": report_type,
             "export_query": export_query,
+            "productivity_stats": productivity_stats,
         },
     )
 
@@ -1937,6 +2078,7 @@ def reports_export_excel(request):
     subcategory = (request.GET.get("subcategory") or "").strip()
     priority = (request.GET.get("priority") or "").strip()
     tech = (request.GET.get("tech") or "").strip()
+    area = (request.GET.get("area") or "").strip()
     report_type = (request.GET.get("type") or "").strip()
     q = (request.GET.get("q") or "").strip()
 
@@ -1950,6 +2092,8 @@ def reports_export_excel(request):
         qs = qs.filter(subcategory_id=subcategory)
     if tech:
         qs = qs.filter(assigned_to_id=tech)
+    if area:
+        qs = qs.filter(area_id=area)
     if report_type == "urgencia":
         qs = qs.filter(priority__sla_hours__lte=24)
     if q:
@@ -1958,6 +2102,53 @@ def reports_export_excel(request):
             | Q(title__icontains=q)
             | Q(description__icontains=q)
         )
+
+    if report_type == "productividad":
+        stats = build_productivity_stats(qs, date_from=dfrom, date_to=dto)
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Productividad"
+        ws.append([
+            "Técnico",
+            "Tickets cerrados",
+            "Promedio resolución (hrs)",
+            "Último cierre",
+        ])
+        for row in stats.get("rows", []):
+            ws.append(
+                [
+                    row.get("tech"),
+                    row.get("closed", 0),
+                    row.get("avg_hours") or "",
+                    row.get("last_closed").strftime("%Y-%m-%d %H:%M")
+                    if row.get("last_closed")
+                    else "",
+                ]
+            )
+
+        summary = stats.get("summary", {})
+        ws_summary = wb.create_sheet(title="KPIs")
+        ws_summary.append(["Métrica", "Valor"])
+        ws_summary.append(["Tickets cerrados", summary.get("total_closed", 0)])
+        ws_summary.append(["Promedio de resolución (hrs)", summary.get("avg_hours") or ""])
+        if summary.get("top_tech"):
+            ws_summary.append(["Técnico con más cierres", summary.get("top_tech")])
+        if summary.get("fastest_tech"):
+            ws_summary.append(
+                [
+                    "Promedio más rápido",
+                    f"{summary.get('fastest_tech')} ({summary.get('fastest_avg')} h)",
+                ]
+            )
+
+        out = BytesIO()
+        wb.save(out)
+        resp = HttpResponse(
+            out.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        resp["Content-Disposition"] = 'attachment; filename="productividad_tecnicos.xlsx"'
+        return resp
 
     wb = tickets_to_workbook(qs)
     out = BytesIO()
@@ -2062,10 +2253,25 @@ def reports_export_pdf(request):
         qs = qs.filter(created_at__date__lte=dto)
 
     tech_id = (request.GET.get("tech") or "").strip()
+    status = (request.GET.get("status") or "").strip()
+    category = (request.GET.get("category") or "").strip()
+    subcategory = (request.GET.get("subcategory") or "").strip()
+    priority = (request.GET.get("priority") or "").strip()
+    area = (request.GET.get("area") or "").strip()
+    report_type = request.GET.get("type", "total")
+
     if tech_id:
         qs = qs.filter(assigned_to_id=tech_id)
-
-    report_type = request.GET.get("type", "total")
+    if status:
+        qs = qs.filter(status=status)
+    if category:
+        qs = qs.filter(category_id=category)
+    if priority:
+        qs = qs.filter(priority_id=priority)
+    if subcategory:
+        qs = qs.filter(subcategory_id=subcategory)
+    if area:
+        qs = qs.filter(area_id=area)
 
     dur = ExpressionWrapper(F("resolved_at") - F("created_at"), output_field=DurationField())
     resolved = qs.exclude(resolved_at__isnull=True)
@@ -2091,6 +2297,7 @@ def reports_export_pdf(request):
             "promedio": "Tiempo promedio de resolución",
             "tecnico": "Rendimiento por técnico",
             "urgencia": "Tickets urgentes",
+            "productividad": "Productividad de técnicos",
         }.get(report_type, "Resumen"),
         "tech_filter": tech_username,
     }
@@ -2115,6 +2322,10 @@ def reports_export_pdf(request):
             .annotate(count=Count("id"))
             .order_by("-count")
         )
+    elif report_type == "productividad":
+        stats = build_productivity_stats(qs, date_from=dfrom, date_to=dto)
+        ctx["productivity_rows"] = stats.get("rows", [])
+        ctx["productivity_summary"] = stats.get("summary", {})
     elif report_type == "urgencia":
         ctx["urgent_tickets"] = list(
             qs.values(

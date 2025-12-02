@@ -21,6 +21,38 @@
       width: 100% !important;
       height: 100% !important;
     }
+    .report-filter-hidden {
+      display: none;
+    }
+    .tech-suggestions {
+      display: grid;
+      gap: 0.35rem;
+      margin-top: 0.35rem;
+    }
+    .tech-suggestions button {
+      text-align: left;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      border-radius: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.85rem;
+      color: #0f172a;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .tech-suggestions button:hover,
+    .tech-suggestions button:focus-visible {
+      border-color: #818cf8;
+      box-shadow: 0 10px 25px rgba(99, 102, 241, 0.15);
+      outline: none;
+    }
+    .tech-suggestions__empty {
+      font-size: 0.8rem;
+      color: #475569;
+      padding: 0.35rem 0.5rem;
+      border: 1px dashed #e2e8f0;
+      border-radius: 0.75rem;
+      background: #f8fafc;
+    }
     @media (max-width: 640px) {
       .reports-export-group {
         width: 100%;
@@ -80,17 +112,16 @@
             <option value="categoria" {% if report_type == 'categoria' %}selected{% endif %}>Por categoría</option>
             <option value="promedio" {% if report_type == 'promedio' %}selected{% endif %}>Tiempo promedio</option>
             <option value="tecnico" {% if report_type == 'tecnico' %}selected{% endif %}>Por técnico</option>
+            <option value="productividad" {% if report_type == 'productividad' %}selected{% endif %}>Productividad de técnicos</option>
             <option value="urgencia" {% if report_type == 'urgencia' %}selected{% endif %}>Urgencia</option>
           </select>
         </div>
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-1 {% if report_type != 'tecnico' %}report-filter-hidden{% endif %}" data-report-type="tecnico" id="techFilterGroup">
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Técnico</label>
-          <select name="tech" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-            <option value="" {% if not tech_selected %}selected{% endif %}>(Todos)</option>
-            {% for t in techs %}
-            <option value="{{ t.id }}" {% if tech_selected == t.id|stringformat:'s' %}selected{% endif %}>{{ t.username }}</option>
-            {% endfor %}
-          </select>
+          <input type="hidden" name="tech" id="techHiddenInput" value="{{ tech_selected }}" />
+          <input type="text" id="techSearch" value="{{ tech_selected_label }}" autocomplete="off" placeholder="Busca por nombre" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+          <div id="techSuggestions" class="tech-suggestions" aria-live="polite"></div>
+          <p class="text-[11px] text-slate-500">Escribe para autocompletar y seleccionar técnicos por nombre.</p>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">SLA</label>
@@ -98,6 +129,42 @@
             <option value="" {% if not sla_selected %}selected{% endif %}>(Todos)</option>
             {% for p in priorities %}
             <option value="{{ p.id }}" {% if sla_selected == p.id|stringformat:'s' %}selected{% endif %}>{{ p.name }} · {{ p.sla_hours }}h</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex flex-col gap-1 {% if report_type != 'productividad' %}report-filter-hidden{% endif %}" data-report-type="productividad">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Área</label>
+          <select name="area" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+            <option value="" {% if not area_selected %}selected{% endif %}>(Todas)</option>
+            {% for area in areas %}
+            <option value="{{ area.id }}" {% if area_selected == area.id|stringformat:'s' %}selected{% endif %}>{{ area.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex flex-col gap-1 {% if report_type != 'productividad' %}report-filter-hidden{% endif %}" data-report-type="productividad">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Categoría</label>
+          <select name="category" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+            <option value="" {% if not category_selected %}selected{% endif %}>(Todas)</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if category_selected == cat.id|stringformat:'s' %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex flex-col gap-1 {% if report_type != 'productividad' %}report-filter-hidden{% endif %}" data-report-type="productividad">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Prioridad</label>
+          <select name="priority" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+            <option value="" {% if not priority_selected %}selected{% endif %}>(Todas)</option>
+            {% for pri in priorities %}
+            <option value="{{ pri.id }}" {% if priority_selected == pri.id|stringformat:'s' %}selected{% endif %}>{{ pri.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex flex-col gap-1 {% if report_type != 'productividad' %}report-filter-hidden{% endif %}" data-report-type="productividad">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Estado</label>
+          <select name="status" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+            <option value="" {% if not status_selected %}selected{% endif %}>(Todos)</option>
+            {% for key,label in status_choices %}
+            <option value="{{ key }}" {% if status_selected == key %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
         </div>
@@ -143,6 +210,66 @@
       </ul>
     </article>
   </section>
+
+  {% if report_type == 'productividad' %}
+  <section class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+    <article class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50 to-sky-50 p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">KPIs de productividad</h2>
+      <p class="text-sm text-slate-500">Cierres y tiempos promedio considerando el rango y filtros aplicados.</p>
+      <dl class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="rounded-2xl bg-white px-3 py-2 shadow-sm">
+          <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">Tickets cerrados</dt>
+          <dd class="mt-1 text-2xl font-semibold text-slate-900">{{ productivity_stats.summary.total_closed|default:"0" }}</dd>
+        </div>
+        <div class="rounded-2xl bg-white px-3 py-2 shadow-sm">
+          <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">Promedio de resolución</dt>
+          <dd class="mt-1 text-2xl font-semibold text-slate-900">{{ productivity_stats.summary.avg_hours|default:"—" }} h</dd>
+        </div>
+        <div class="rounded-2xl bg-white px-3 py-2 shadow-sm">
+          <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">Mayor cierre</dt>
+          <dd class="mt-1 text-2xl font-semibold text-slate-900">{{ productivity_stats.summary.top_tech|default:"—" }}</dd>
+        </div>
+        <div class="rounded-2xl bg-white px-3 py-2 shadow-sm">
+          <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">Promedio más rápido</dt>
+          <dd class="mt-1 text-xl font-semibold text-emerald-600">{% if productivity_stats.summary.fastest_tech %}{{ productivity_stats.summary.fastest_tech }} · {{ productivity_stats.summary.fastest_avg }} h{% else %}—{% endif %}</dd>
+        </div>
+      </dl>
+    </article>
+    <article class="rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-emerald-100/70 p-6 shadow-sm">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-semibold text-slate-900">Top técnicos</h2>
+          <p class="text-sm text-slate-500">Ordenados por tickets cerrados en el período.</p>
+        </div>
+        <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600">Top 10</span>
+      </div>
+      <div class="-mx-4 mt-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+        <table class="min-w-full divide-y divide-emerald-100 text-sm">
+          <thead class="bg-emerald-50 text-xs uppercase tracking-[0.25em] text-emerald-700">
+            <tr>
+              <th scope="col" class="px-3 py-2 text-left">Técnico</th>
+              <th scope="col" class="px-3 py-2 text-right">Cerrados</th>
+              <th scope="col" class="px-3 py-2 text-right">Promedio (h)</th>
+              <th scope="col" class="px-3 py-2 text-right">Último cierre</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-emerald-50">
+            {% for row in productivity_stats.rows|slice:":10" %}
+            <tr>
+              <td class="px-3 py-2 font-semibold text-slate-900">{{ row.tech }}</td>
+              <td class="px-3 py-2 text-right font-semibold text-emerald-700">{{ row.closed }}</td>
+              <td class="px-3 py-2 text-right text-slate-700">{{ row.avg_hours|default:"—" }}</td>
+              <td class="px-3 py-2 text-right text-slate-600">{% if row.last_closed %}{{ row.last_closed|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="px-3 py-3 text-center text-sm text-slate-500">Sin técnicos cerrando tickets en este rango.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+  {% endif %}
 
   <section class="grid gap-6 lg:grid-cols-2">
     <article class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50 to-sky-50 p-6 shadow-sm">
@@ -193,6 +320,7 @@
       <p class="mt-4 rounded-2xl border border-dashed border-rose-200 bg-white/70 px-4 py-3 text-sm text-rose-600">Sin tickets vencidos asociados a técnicos para este filtro.</p>
       {% endif %}
     </article>
+    {% if report_type != 'tecnico' %}
     <article class="rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-sky-50 to-sky-100/70 p-6 shadow-sm">
       <h2 class="text-base font-semibold text-slate-900">Vencidos por categoría</h2>
       <p class="text-sm text-slate-500">Áreas funcionales con mayores incumplimientos.</p>
@@ -220,8 +348,23 @@
       <p class="mt-4 rounded-2xl border border-dashed border-emerald-200 bg-white/70 px-4 py-3 text-sm text-emerald-600">Aún no hay áreas con tickets vencidos en el rango seleccionado.</p>
       {% endif %}
     </article>
+    {% endif %}
   </section>
 
+  {% if report_type in ['tecnico', 'productividad'] %}
+  <section class="grid gap-6 lg:grid-cols-2">
+    <article class="rounded-3xl border border-amber-100 bg-gradient-to-br from-white via-amber-50 to-amber-100/70 p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Por técnico</h2>
+      <p class="text-sm text-slate-500">Tickets asignados por responsable.</p>
+      <div class="chart-wrapper mt-4"><canvas id="chartTech"></canvas></div>
+    </article>
+    <article class="rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50 to-rose-100/70 p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Horas de resolución</h2>
+      <p class="text-sm text-slate-500">Histograma de tiempos empleados en resolver incidencias.</p>
+      <div class="chart-wrapper mt-4"><canvas id="chartHist"></canvas></div>
+    </article>
+  </section>
+  {% else %}
   <section class="grid gap-6 lg:grid-cols-2">
     <article class="rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-sky-50 to-blue-50 p-6 shadow-sm">
       <h2 class="text-base font-semibold text-slate-900">Por categoría</h2>
@@ -249,6 +392,7 @@
       <div class="chart-wrapper mt-4"><canvas id="chartCatSlow"></canvas></div>
     </article>
   </section>
+  {% endif %}
 
 </div>
 {% endblock %}
@@ -266,7 +410,78 @@
   {{ chart_sla_category|json_script:"chart_sla_category_data" }}
   {{ chart_sla_subcategory|json_script:"chart_sla_subcategory_data" }}
   {{ chart_sla_area|json_script:"chart_sla_area_data" }}
+  {{ tech_options|json_script:"tech_options_data" }}
   <script>
+    const filterTypeSelect = document.querySelector('select[name="type"]');
+    const conditionalFilters = document.querySelectorAll('[data-report-type]');
+    const techHiddenInput = document.getElementById("techHiddenInput");
+    const techSearchInput = document.getElementById("techSearch");
+    const techSuggestions = document.getElementById("techSuggestions");
+    const techOptions = JSON.parse(document.getElementById("tech_options_data")?.textContent || "[]");
+
+    function renderTechSuggestions(term = "") {
+      if (!techSuggestions) return;
+      const normalized = term.trim().toLowerCase();
+      techSuggestions.innerHTML = "";
+      let matches = techOptions;
+      if (normalized) {
+        matches = techOptions.filter((item) => item.label.toLowerCase().startsWith(normalized));
+      } else {
+        matches = techOptions.slice(0, 5);
+      }
+
+      if (!matches.length) {
+        const empty = document.createElement("div");
+        empty.className = "tech-suggestions__empty";
+        empty.textContent = "Sin coincidencias";
+        techSuggestions.appendChild(empty);
+        return;
+      }
+
+      matches.slice(0, 6).forEach((item) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = `${item.label} (${item.username})`;
+        btn.addEventListener("click", () => {
+          if (techSearchInput) techSearchInput.value = item.label;
+          if (techHiddenInput) techHiddenInput.value = item.id;
+          renderTechSuggestions(item.label);
+        });
+        techSuggestions.appendChild(btn);
+      });
+    }
+
+    function syncTechSelection(value = "") {
+      if (!techHiddenInput) return;
+      const normalized = value.trim().toLowerCase();
+      const match = techOptions.find((item) => item.label.toLowerCase().startsWith(normalized));
+      techHiddenInput.value = match ? match.id : "";
+      renderTechSuggestions(value);
+    }
+
+    function updateFilterVisibility() {
+      const activeType = filterTypeSelect?.value;
+      conditionalFilters.forEach((node) => {
+        const targetType = node.getAttribute("data-report-type");
+        const shouldShow = targetType === activeType;
+        node.classList.toggle("report-filter-hidden", !shouldShow);
+      });
+      if (activeType !== "tecnico" && techHiddenInput) {
+        techHiddenInput.value = "";
+        if (techSearchInput) techSearchInput.value = "";
+      }
+    }
+
+    filterTypeSelect?.addEventListener("change", updateFilterVisibility);
+    techSearchInput?.addEventListener("input", (event) => {
+      syncTechSelection(event.target.value || "");
+    });
+
+    updateFilterVisibility();
+    if (techSearchInput) {
+      syncTechSelection(techSearchInput.value || "");
+    }
+
     const PALETTES = {
       chartCat: ["#0ea5e9", "#38bdf8", "#0284c7", "#7dd3fc", "#0c4a6e"],
       chartPri: ["#059669", "#34d399", "#10b981", "#047857", "#6ee7b7"],
