@@ -78,19 +78,33 @@
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      border: 1px solid rgba(255, 255, 255, 0.4);
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #334155;
       border-radius: 999px;
-      padding: 0.65rem 1rem;
+      padding: 0.6rem 1rem;
       font-weight: 600;
-      transition: background-color 0.2s ease, transform 0.1s ease;
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
     }
     .filters-toggle:hover {
-      background: rgba(255, 255, 255, 0.18);
+      border-color: #c7d2fe;
+      color: #312e81;
+      transform: translateY(-1px);
+      box-shadow: 0 16px 32px rgba(79, 70, 229, 0.18);
     }
-    .filters-toggle:active {
-      transform: translateY(1px);
+    .filters-toggle.is-active {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+      color: #312e81;
+      box-shadow: 0 16px 32px rgba(79, 70, 229, 0.22);
+    }
+    .filters-toggle__dot {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 999px;
+      background: #f43f5e;
+      box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.18);
     }
     @media (max-width: 640px) {
       .reports-export-group {
@@ -126,9 +140,16 @@
         <p class="max-w-2xl text-sm text-blue-100">Analiza la operación del helpdesk con filtros dinámicos, visualizaciones pastel y exporta tus resultados cuando lo necesites.</p>
       </div>
       <div class="reports-export-group flex flex-wrap items-center gap-3">
-        <button type="button" id="filtersToggle" class="filters-toggle" aria-expanded="false">
-          <i class="bi bi-sliders"></i>
+        <button
+          type="button"
+          id="filtersToggle"
+          class="filters-toggle {% if has_active_filters %}is-active{% endif %}"
+          aria-expanded="false"
+          data-has-active-filters="{{ has_active_filters|yesno:'true,false' }}"
+        >
+          <i class="bi bi-funnel"></i>
           <span data-toggle-label>Mostrar filtros</span>
+          {% if has_active_filters %}<span class="filters-toggle__dot" aria-hidden="true"></span>{% endif %}
         </button>
         <a href="{% url 'reports_export_pdf' %}{% if export_query %}?{{ export_query }}{% endif %}" class="btn inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-indigo-700 shadow-lg shadow-indigo-900/20 transition hover:bg-indigo-50">
           <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
@@ -496,7 +517,8 @@
         btn.addEventListener("click", () => {
           if (techSearchInput) techSearchInput.value = item.label;
           if (techHiddenInput) techHiddenInput.value = item.id;
-          renderTechSuggestions(item.label);
+          closeTechSuggestions();
+          techSearchInput?.blur();
         });
         techSuggestions.appendChild(btn);
       });
@@ -533,11 +555,15 @@
       }
     }
 
+    const hasActiveFilters = filtersToggle?.dataset.hasActiveFilters === "true";
+
     function setFiltersOpen(isOpen = false) {
       filtersPanel?.classList.toggle("is-collapsed", !isOpen);
       const label = filtersToggle?.querySelector("[data-toggle-label]");
       if (filtersToggle) {
         filtersToggle.setAttribute("aria-expanded", String(isOpen));
+        const shouldMarkActive = Boolean(isOpen || hasActiveFilters);
+        filtersToggle.classList.toggle("is-active", shouldMarkActive);
       }
       if (label) {
         label.textContent = isOpen ? "Ocultar filtros" : "Mostrar filtros";
