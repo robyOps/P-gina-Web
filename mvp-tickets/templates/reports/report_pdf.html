@@ -7,25 +7,25 @@
     * { box-sizing: border-box; }
     body {
       font-family: "DejaVu Sans", Arial, Helvetica, sans-serif;
-      background: radial-gradient(circle at 15% 20%, rgba(14,165,233,0.08), transparent 22%),
-                  radial-gradient(circle at 80% 10%, rgba(49,46,129,0.12), transparent 24%),
-                  #0b1224;
+      background: #e2e8f0;
       color: #0f172a;
       font-size: 12px;
       margin: 0;
-      padding: 26px;
+      padding: 24px;
     }
     .page {
-      background: #f8fafc;
-      border-radius: 18px;
-      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid #d9e2ec;
       overflow: hidden;
-      box-shadow: 0 22px 50px rgba(15, 23, 42, 0.28);
+      box-shadow: 0 20px 48px rgba(15, 23, 42, 0.14);
+      max-width: 1080px;
+      margin: 0 auto;
     }
     header {
       padding: 22px 26px;
       color: #fff;
-      background: linear-gradient(120deg, #312e81, #4338ca 45%, #0ea5e9);
+      background: linear-gradient(135deg, #0f172a, #1e293b 35%, #312e81);
     }
     .eyebrow { display: inline-flex; padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,0.16); letter-spacing: 0.28em; font-weight: 800; font-size: 10px; text-transform: uppercase; margin-bottom: 8px; }
     h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: -0.02em; }
@@ -34,11 +34,12 @@
     .meta span { background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 12px; padding: 6px 10px; font-weight: 600; font-size: 11px; }
     main { padding: 22px 24px 26px; }
     h2 { margin: 0 0 10px; font-size: 15px; color: #0f172a; }
+    .section { margin-top: 14px; }
     .muted { color: #475569; font-size: 11px; }
-    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-    .pill { background: #e0f2fe; color: #0ea5e9; border: 1px solid #bae6fd; border-radius: 12px; padding: 6px 9px; font-weight: 700; font-size: 11px; }
-    .pill.dark { background: #eef2ff; color: #312e81; border-color: #c7d2fe; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .pill { background: #eef2ff; color: #312e81; border: 1px solid #c7d2fe; border-radius: 12px; padding: 6px 9px; font-weight:700; font-size: 11px; }
+    .pill.dark { background: #e0f2fe; color: #0ea5e9; border-color: #bae6fd; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 10px 0 12px; }
     .kpi { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 12px 14px; box-shadow: 0 12px 26px rgba(49, 46, 129, 0.08); }
     .kpi-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #4338ca; }
     .kpi-value { font-size: 22px; font-weight: 800; margin: 6px 0 2px; color: #0f172a; }
@@ -51,7 +52,10 @@
     .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
     .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 22px rgba(15, 23, 42, 0.06); }
     .card h3 { margin: 0 0 8px; font-size: 13px; color: #0f172a; }
-    .note { border-left: 3px solid #22c55e; padding-left: 10px; font-size: 12px; color: #15803d; margin: 8px 0 0; }
+    .note { border-left: 3px solid #22c55e; padding-left: 10px; font-size: 12px; color: #15803d; margin: 10px 0 0; }
+    .filters-card { border: 1px dashed #cbd5e1; background: #f8fafc; }
+    .filters-card h2 { margin-bottom: 6px; }
+    .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
   </style>
 </head>
 <body>
@@ -69,7 +73,7 @@
     </header>
 
     <main>
-      <section>
+      <section class="card filters-card">
         <h2>Filtros aplicados</h2>
         <div class="pill-row">
           {% for f in filters_applied %}
