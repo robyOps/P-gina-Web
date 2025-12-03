@@ -41,7 +41,21 @@
       grid-template-columns: 1fr;
       gap: 0.35rem;
     }
-    .tech-suggestions { display: grid; }
+    .tech-suggestions {
+      position: absolute;
+      inset: auto 0 auto 0;
+      top: calc(100% + 0.35rem);
+      display: none;
+      padding: 0.35rem;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+      max-height: 15rem;
+      overflow-y: auto;
+      z-index: 10;
+    }
+    .tech-suggestions:not(.is-hidden) { display: grid; }
     .tech-suggestions.is-hidden { display: none; }
     .tech-list-trigger.is-hidden { display: none; }
     .tech-suggestions button,
@@ -629,6 +643,11 @@
 
     function renderTechSuggestions(term = "") {
       if (!techSuggestions || techSearchInput?.disabled) return;
+      const hasTerm = Boolean(term.trim());
+      if (!hasTerm) {
+        closeTechSuggestions();
+        return;
+      }
       renderTechList(techSuggestions, term, { limit: 10, emptyClass: "tech-suggestions__empty" });
       techSuggestions.classList.remove("is-hidden");
     }
