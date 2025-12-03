@@ -641,14 +641,14 @@
       });
     }
 
-    function renderTechSuggestions(term = "") {
+    function renderTechSuggestions(term = "", { allowEmpty = false } = {}) {
       if (!techSuggestions || techSearchInput?.disabled) return;
       const hasTerm = Boolean(term.trim());
-      if (!hasTerm) {
+      if (!hasTerm && !allowEmpty) {
         closeTechSuggestions();
         return;
       }
-      renderTechList(techSuggestions, term, { limit: 10, emptyClass: "tech-suggestions__empty" });
+      renderTechList(techSuggestions, hasTerm ? term : "", { limit: 10, emptyClass: "tech-suggestions__empty" });
       techSuggestions.classList.remove("is-hidden");
     }
 
@@ -657,13 +657,16 @@
       renderTechList(techModalList, term, { limit: 30, emptyClass: "tech-modal__empty" });
     }
 
-    function syncTechSelection(value = "") {
+    function syncTechSelection(value = "", { renderSuggestions = true } = {}) {
       if (!techHiddenInput) return;
-      const match = filterTechOptions(value)[0];
+      const hasTerm = Boolean(value.trim());
+      const match = hasTerm ? filterTechOptions(value)[0] : null;
       techHiddenInput.value = match ? match.id : "";
-      renderTechSuggestions(value);
-      if (techModal?.classList.contains("is-open")) {
-        renderTechModal(value);
+      if (renderSuggestions) {
+        renderTechSuggestions(value, { allowEmpty: Boolean(techHiddenInput.value) });
+        if (techModal?.classList.contains("is-open")) {
+          renderTechModal(value || "");
+        }
       }
       updateTechListVisibility();
     }
@@ -689,7 +692,9 @@
     function openTechModal() {
       if (!techModal || techSearchInput?.disabled) return;
       techModal.classList.add("is-open");
-      renderTechModal(techSearchInput?.value || "");
+      const hasSelection = Boolean(techHiddenInput?.value);
+      const term = hasSelection ? "" : techSearchInput?.value || "";
+      renderTechModal(term);
     }
 
     function closeTechModal() {
@@ -768,7 +773,9 @@
     });
     techSearchInput?.addEventListener("focus", () => {
       if (filterTypeSelect?.value === "tecnico" && !filtersPanel?.classList.contains("is-collapsed")) {
-        renderTechSuggestions(techSearchInput.value || "");
+        const hasSelection = Boolean(techHiddenInput?.value);
+        const term = hasSelection ? "" : techSearchInput.value || "";
+        renderTechSuggestions(term, { allowEmpty: hasSelection });
       }
     });
     techSearchInput?.addEventListener("blur", () => {
@@ -804,7 +811,7 @@
     setFiltersOpen(shouldStartOpen);
     updateFilterVisibility();
     if (techSearchInput) {
-      syncTechSelection(techSearchInput.value || "");
+      syncTechSelection(techSearchInput.value || "", { renderSuggestions: false });
     }
 
     const PALETTES = {
