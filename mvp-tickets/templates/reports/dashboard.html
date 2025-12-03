@@ -597,13 +597,8 @@
       }
 
       if (techSuggestions) {
-        const shouldHideSuggestions = !isTechReport || panelCollapsed;
-        techSuggestions.classList.toggle("is-hidden", shouldHideSuggestions);
-        if (shouldHideSuggestions) {
-          closeTechSuggestions();
-        } else {
-          renderTechSuggestions(techSearchInput?.value || "");
-        }
+        techSuggestions.classList.add("is-hidden");
+        closeTechSuggestions();
       }
 
       if (!shouldShowList) {
@@ -657,16 +652,17 @@
       renderTechList(techModalList, term, { limit: 30, emptyClass: "tech-modal__empty" });
     }
 
-    function syncTechSelection(value = "", { renderSuggestions = true } = {}) {
+    function syncTechSelection(value = "", { renderSuggestions = false } = {}) {
       if (!techHiddenInput) return;
       const hasTerm = Boolean(value.trim());
       const match = hasTerm ? filterTechOptions(value)[0] : null;
       techHiddenInput.value = match ? match.id : "";
+      const shouldUpdateModal = techModal?.classList.contains("is-open");
       if (renderSuggestions) {
         renderTechSuggestions(value, { allowEmpty: Boolean(techHiddenInput.value) });
-        if (techModal?.classList.contains("is-open")) {
-          renderTechModal(value || "");
-        }
+      }
+      if (shouldUpdateModal) {
+        renderTechModal(value || "");
       }
       updateTechListVisibility();
     }
@@ -720,14 +716,6 @@
         closeTechSuggestions();
         closeTechModal();
       }
-      if (
-        isTechReport &&
-        techSearchInput &&
-        !techHiddenInput?.value &&
-        !filtersPanel?.classList.contains("is-collapsed")
-      ) {
-        renderTechSuggestions(techSearchInput.value || "");
-      }
       updateTechListVisibility(isTechReport);
     }
 
@@ -746,14 +734,13 @@
       if (label) {
         label.textContent = isOpen ? labelHide : labelShow;
       }
-      if (!isOpen) {
-        closeTechSuggestions();
-      }
+      closeTechSuggestions();
       updateTechListVisibility();
     }
 
     filterTypeSelect?.addEventListener("change", updateFilterVisibility);
     techSearchInput?.addEventListener("input", (event) => {
+      closeTechSuggestions();
       syncTechSelection(event.target.value || "");
     });
     techSearchInput?.addEventListener("keydown", (event) => {
@@ -771,13 +758,7 @@
         }
       }
     });
-    techSearchInput?.addEventListener("focus", () => {
-      if (filterTypeSelect?.value === "tecnico" && !filtersPanel?.classList.contains("is-collapsed")) {
-        const hasSelection = Boolean(techHiddenInput?.value);
-        const term = hasSelection ? "" : techSearchInput.value || "";
-        renderTechSuggestions(term, { allowEmpty: hasSelection });
-      }
-    });
+    techSearchInput?.addEventListener("focus", closeTechSuggestions);
     techSearchInput?.addEventListener("blur", () => {
       setTimeout(closeTechSuggestions, 120);
     });
@@ -798,9 +779,6 @@
     filtersToggle?.addEventListener("click", () => {
       const nextState = filtersPanel?.classList.contains("is-collapsed");
       setFiltersOpen(nextState);
-      if (nextState && filterTypeSelect?.value === "tecnico") {
-        renderTechSuggestions(techSearchInput?.value || "");
-      }
     });
     filtersPanel?.addEventListener("submit", () => {
       closeTechSuggestions();
