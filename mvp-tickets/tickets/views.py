@@ -2352,6 +2352,10 @@ def reports_export_pdf(request):
         "total": qs.count(),
         "type": report_type,
         "avg_hours": avg_hours,
+        "by_status": {},
+        "by_priority": [],
+        "by_category": [],
+        "by_subcategory": [],
         "type_label": {
             "total": "Resumen general",
             "categoria": "Desglose por categoría",

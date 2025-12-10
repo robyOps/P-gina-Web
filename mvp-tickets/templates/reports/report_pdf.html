@@ -112,7 +112,7 @@
         {% endif %}
       </section>
 
-      {% with status_data=by_status|default:{} priority_data=by_priority|default:[] %}
+      {% with status_data=by_status priority_data=by_priority %}
       <section class="grid-auto" style="margin-bottom:12px;">
         <article class="chart-card">
           <h3>Vista rápida de estado</h3>
