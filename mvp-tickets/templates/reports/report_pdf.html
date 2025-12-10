@@ -7,7 +7,7 @@
     * { box-sizing: border-box; }
     body {
       font-family: "DejaVu Sans", Arial, Helvetica, sans-serif;
-      background: #e2e8f0;
+      background: #f5f7fb;
       color: #0f172a;
       font-size: 12px;
       margin: 0;
@@ -16,47 +16,54 @@
     .page {
       background: #ffffff;
       border-radius: 16px;
-      border: 1px solid #d9e2ec;
+      border: 1px solid #e2e8f0;
       overflow: hidden;
-      box-shadow: 0 20px 48px rgba(15, 23, 42, 0.14);
-      max-width: 1080px;
+      box-shadow: 0 22px 60px rgba(15, 23, 42, 0.12);
+      max-width: 1100px;
       margin: 0 auto;
     }
     header {
-      padding: 22px 26px;
-      color: #fff;
-      background: #0f172a;
-      background: linear-gradient(135deg, #0f172a, #1e293b 35%, #312e81);
+      padding: 24px 26px;
+      color: #0b1330;
+      background: linear-gradient(135deg, #e0e7ff, #eef2ff 45%, #ffffff);
+      border-bottom: 1px solid #cbd5e1;
     }
-    .eyebrow { display: inline-flex; padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,0.16); letter-spacing: 0.28em; font-weight: 800; font-size: 10px; text-transform: uppercase; margin-bottom: 8px; }
-    h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: -0.02em; }
-    .subtitle { margin: 0; font-size: 13px; opacity: 0.92; }
-    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .meta span { background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 12px; padding: 6px 10px; font-weight: 600; font-size: 11px; }
-    main { padding: 22px 24px 26px; }
+    .eyebrow { display: inline-flex; padding: 6px 10px; border-radius: 999px; background: #1d4ed8; color: #eef2ff; letter-spacing: 0.28em; font-weight: 800; font-size: 10px; text-transform: uppercase; margin-bottom: 10px; }
+    h1 { margin: 0 0 8px; font-size: 24px; letter-spacing: -0.02em; color: #0b1330; }
+    .subtitle { margin: 0; font-size: 13px; color: #334155; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .meta span { background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 7px 11px; font-weight: 600; font-size: 11px; }
+    main { padding: 24px 24px 26px; }
     h2 { margin: 0 0 10px; font-size: 15px; color: #0f172a; }
-    .section { margin-top: 14px; }
     .muted { color: #475569; font-size: 11px; }
     .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-    .pill { background: #eef2ff; color: #312e81; border: 1px solid #c7d2fe; border-radius: 12px; padding: 6px 9px; font-weight:700; font-size: 11px; }
-    .pill.dark { background: #e0f2fe; color: #0ea5e9; border-color: #bae6fd; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 10px 0 12px; }
-    .kpi { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 12px 14px; box-shadow: 0 12px 26px rgba(49, 46, 129, 0.08); }
-    .kpi-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #4338ca; }
-    .kpi-value { font-size: 22px; font-weight: 800; margin: 6px 0 2px; color: #0f172a; }
+    .pill { background: #ecfeff; color: #0f172a; border: 1px solid #bae6fd; border-radius: 10px; padding: 6px 9px; font-weight:700; font-size: 11px; }
+    .pill.dark { background: #eef2ff; color: #312e81; border-color: #c7d2fe; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 10px 0 14px; }
+    .kpi { background: linear-gradient(180deg, #ffffff, #f8fafc); border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06); }
+    .kpi-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #475569; }
+    .kpi-value { font-size: 22px; font-weight: 800; margin: 6px 0 2px; color: #111827; }
     .kpi-note { font-size: 11px; color: #475569; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
-    th { text-align: left; background: #eef2ff; color: #312e81; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; padding: 8px 9px; border: 1px solid #dbeafe; }
+    th { text-align: left; background: #e5e7eb; color: #111827; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; padding: 8px 9px; border: 1px solid #d1d5db; }
     td { padding: 8px 9px; border: 1px solid #e2e8f0; color: #0f172a; }
     tr:nth-child(even) td { background: #f8fafc; }
     .empty { text-align: center; color: #94a3b8; padding: 12px 8px; }
     .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
-    .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 22px rgba(15, 23, 42, 0.06); }
+    .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06); }
     .card h3 { margin: 0 0 8px; font-size: 13px; color: #0f172a; }
-    .note { border-left: 3px solid #22c55e; padding-left: 10px; font-size: 12px; color: #15803d; margin: 10px 0 0; }
+    .note { border-left: 3px solid #22c55e; padding-left: 10px; font-size: 12px; color: #15803d; margin: 12px 0 0; }
     .filters-card { border: 1px dashed #cbd5e1; background: #f8fafc; }
     .filters-card h2 { margin-bottom: 6px; }
-    .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .bar-row { display: grid; grid-template-columns: 1fr 80px; gap: 8px; align-items: center; margin-bottom: 6px; }
+    .bar-label { font-weight: 600; color: #0f172a; font-size: 11px; }
+    .bar { position: relative; width: 100%; height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #6366f1, #22c55e); }
+    .bar-fill.secondary { background: linear-gradient(90deg, #0ea5e9, #3b82f6); }
+    .chart-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; background: #ffffff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); }
+    .chart-card h3 { margin-bottom: 6px; }
+    .grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .tag { display: inline-block; padding: 4px 8px; border-radius: 10px; background: #eef2ff; color: #312e81; font-weight: 700; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
   </style>
 </head>
 <body>
@@ -104,6 +111,39 @@
         </article>
         {% endif %}
       </section>
+
+      {% with status_data=by_status|default:{} priority_data=by_priority|default:[] %}
+      <section class="grid-auto" style="margin-bottom:12px;">
+        <article class="chart-card">
+          <h3>Vista rápida de estado</h3>
+          {% for name, count in status_data.items %}
+            <div class="bar-row">
+              <div class="bar-label">{{ name }}</div>
+              <div class="bar">
+                <div class="bar-fill" style="width:{% widthratio count total 100 %}%;"></div>
+              </div>
+              <div class="tag">{{ count }}</div>
+            </div>
+          {% empty %}
+            <p class="muted">Sin datos disponibles para el rango seleccionado.</p>
+          {% endfor %}
+        </article>
+        <article class="chart-card">
+          <h3>Prioridades</h3>
+          {% for row in priority_data %}
+            <div class="bar-row">
+              <div class="bar-label">{{ row.priority__name|default:"Sin prioridad" }}</div>
+              <div class="bar">
+                <div class="bar-fill secondary" style="width:{% widthratio row.count total 100 %}%;"></div>
+              </div>
+              <div class="tag">{{ row.count }}</div>
+            </div>
+          {% empty %}
+            <p class="muted">Aún no hay prioridades registradas en el período.</p>
+          {% endfor %}
+        </article>
+      </section>
+      {% endwith %}
 
       {% if type == 'promedio' %}
         <section class="card" style="margin-bottom:14px;">
