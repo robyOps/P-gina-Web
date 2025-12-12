@@ -73,6 +73,10 @@ class Command(BaseCommand):
         auto_rules = self._ensure_auto_assign_rules(categories, areas, techs)
         faqs = self._ensure_faqs(categories, techs or admins or requesters)
 
+        # Control para limitar tickets creados el día actual
+        self._today_creation_cap = 7
+        self._today_creations = 0
+
         tickets = self._create_tickets(
             total=options["tickets"],
             from_date=from_date,
@@ -343,28 +347,40 @@ class Command(BaseCommand):
                 "Utiliza el portal de autoservicio y confirma con MFA.",
                 "Seguridad",
                 "Credenciales",
-                True,
-                None,
             ),
             (
-                "Acceso VPN intermitente",
-                "Revisa tu cliente y actualiza certificados desde el portal interno.",
+                "Conexión VPN inestable",
+                "Valida tu cliente, renueva certificados desde el portal interno y reinicia el equipo.",
                 "Infraestructura",
                 "VPN",
-                False,
-                "https://videos.demo.local/vpn-tip",
             ),
             (
-                "Adjuntar evidencia en tickets",
-                "Puedes subir imágenes o videos breves como respaldo del incidente.",
+                "Solicitar acceso temporal a un sistema",
+                "Crea el ticket indicando sistema, responsable aprobador y fecha de caducidad.",
                 "Soporte Aplicaciones",
                 "ERP",
-                False,
-                None,
+            ),
+            (
+                "Buenas prácticas para comentar tickets",
+                "Describe el impacto, pasos ejecutados y próximos hitos; evita adjuntar datos sensibles.",
+                "Soporte Aplicaciones",
+                "API Partners",
+            ),
+            (
+                "Impresora sin responder",
+                "Revisa conexión de red, reinicia el equipo y comparte el código del activo.",
+                "Dispositivos",
+                "Impresora",
+            ),
+            (
+                "Reportes atrasados en BI",
+                "Confirma si hubo cargas nocturnas fallidas y adjunta el dashboard o consulta afectada.",
+                "Datos y Analítica",
+                "Reporting",
             ),
         ]
         faqs = []
-        for idx, (question, answer, cat_name, sub_name, with_image, video_url) in enumerate(payload, start=1):
+        for question, answer, cat_name, sub_name in payload:
             faq, _ = FAQ.objects.get_or_create(
                 question=question,
                 defaults={
@@ -373,18 +389,13 @@ class Command(BaseCommand):
                     "subcategory": Subcategory.objects.filter(name__iexact=sub_name).first(),
                     "created_by": author,
                     "updated_by": author,
-                    "video_url": video_url,
                 },
             )
-            if with_image and not faq.image:
-                faq.image.save(
-                    f"faq_demo_{idx}.png",
-                    ContentFile(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"),
-                    save=True,
-                )
-            if video_url and not faq.video_url:
-                faq.video_url = video_url
+            if faq.video_url:
+                faq.video_url = ""
                 faq.save(update_fields=["video_url"])
+            if faq.image:
+                faq.image.delete(save=True)
             faqs.append(faq)
         return faqs
 
@@ -393,9 +404,9 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
     def _build_status_plan(self, total: int) -> List[str]:
         proportions = [
-            (Ticket.CLOSED, 0.55),
-            (Ticket.RESOLVED, 0.20),
-            (Ticket.IN_PROGRESS, 0.20),
+            (Ticket.CLOSED, 0.58),
+            (Ticket.RESOLVED, 0.22),
+            (Ticket.IN_PROGRESS, 0.15),
             (Ticket.OPEN, 0.05),
         ]
         plan: List[str] = []
@@ -410,14 +421,20 @@ class Command(BaseCommand):
         end_dt = timezone.make_aware(datetime.combine(to_date, datetime.max.time()))
         start_dt = timezone.make_aware(datetime.combine(from_date, datetime.min.time()))
         if status in (Ticket.OPEN, Ticket.IN_PROGRESS):
-            recent_start = max(start_dt, end_dt - timedelta(days=30))
+            recent_start = max(start_dt, end_dt - timedelta(days=20))
             delta = end_dt - recent_start
             created_at = recent_start + timedelta(seconds=random.uniform(0, delta.total_seconds()))
         else:
             span = (end_dt - start_dt).total_seconds()
-            created_at = start_dt + timedelta(seconds=random.uniform(0, span * 0.9))
+            created_at = start_dt + timedelta(seconds=random.uniform(0, span * 0.85))
         if created_at > end_dt:
             created_at = end_dt - timedelta(hours=random.uniform(1, 6))
+
+        if created_at.date() == to_date:
+            if self._today_creations >= self._today_creation_cap:
+                created_at = created_at - timedelta(days=random.randint(1, 5))
+            else:
+                self._today_creations += 1
         return created_at
 
     def _pick_resolution_times(self, *, status: str, created_at: datetime, priority: Priority, to_date: date):
@@ -425,7 +442,7 @@ class Command(BaseCommand):
         resolved_at = None
         closed_at = None
         if status in (Ticket.RESOLVED, Ticket.CLOSED):
-            factor = random.uniform(0.6, 1.8)
+            factor = random.uniform(0.5, 1.15)
             resolved_at = created_at + timedelta(hours=priority.sla_hours * factor)
             if resolved_at > end_dt:
                 resolved_at = end_dt - timedelta(hours=random.uniform(1, 6))
@@ -434,6 +451,44 @@ class Command(BaseCommand):
             if closed_at > end_dt:
                 closed_at = end_dt - timedelta(hours=random.uniform(1, 6))
         return resolved_at, closed_at
+
+    def _build_title(self, *, category: Category, subcategory: Subcategory | None, idx: int) -> str:
+        catalog = {
+            "infraestructura": [
+                "Incidente de VPN: desconexiones recurrentes",
+                "Correo corporativo sin sincronizar",
+                "Alerta de ancho de banda en sede principal",
+            ],
+            "seguridad": [
+                "Bloqueo de MFA para usuario",
+                "Solicitud de restablecimiento de credenciales privilegiadas",
+                "Investigación de alerta SIEM",
+            ],
+            "soporte aplicaciones": [
+                "Error al aprobar orden en ERP",
+                "Integración con CRM devuelve timeout",
+                "Mejora menor en flujo de API Partners",
+            ],
+            "dispositivos": [
+                "Laptop con rendimiento degradado",
+                "Teclado inalámbrico sin respuesta",
+                "Solicitud de periférico de reemplazo",
+            ],
+            "datos y analítica": [
+                "ETL nocturna falló por falta de espacio",
+                "Dashboard sin refrescar métricas diarias",
+            ],
+            "soporte al cliente": [
+                "Cortes en telefonía de sucursal",
+                "Chat de agentes no recibe nuevos casos",
+            ],
+        }
+        pool = catalog.get(category.name.lower(), [])
+        if subcategory:
+            pool.append(f"Seguimiento por {subcategory.name.title()}")
+        if not pool:
+            return f"Seguimiento operativo #{idx:04d}"
+        return random.choice(pool)
 
     def _create_tickets(
         self,
@@ -472,8 +527,11 @@ class Command(BaseCommand):
 
             ticket = Ticket.objects.create(
                 code="",
-                title=f"Caso demo #{idx:04d} en {category.name.title()}",
-                description=f"Ticket generado para prueba de tableros y SLA. Prioridad {priority.name}.",
+                title=self._build_title(category=category, subcategory=subcategory, idx=idx),
+                description=(
+                    f"Ticket generado para escenarios de tablero y SLA. Prioridad {priority.name}. "
+                    f"Solicitante del área {getattr(getattr(requester, 'profile', None), 'area', area).name if getattr(getattr(requester, 'profile', None), 'area', None) else area.name}."
+                ),
                 requester=requester,
                 category=category,
                 subcategory=subcategory,
@@ -488,11 +546,14 @@ class Command(BaseCommand):
             ticket.resolved_at = resolved_at
             ticket.closed_at = closed_at
 
-            AuditLog.objects.create(
+            create_log = AuditLog.objects.create(
                 ticket=ticket,
                 actor=requester,
                 action="CREATE",
                 meta={"source": "seed_demo_data"},
+            )
+            AuditLog.objects.filter(pk=create_log.pk).update(
+                created_at=created_at + timedelta(minutes=random.uniform(1, 8))
             )
 
             auto_assigned = apply_auto_assign(ticket, actor=requester)
@@ -512,16 +573,65 @@ class Command(BaseCommand):
                         ticket=ticket,
                         actor=requester,
                         action="ASSIGN",
-                        meta={"to": chosen_tech.id, "to_username": chosen_tech.username},
+                        meta={"to": chosen_tech.id, "to_username": chosen_tech.username, "reason": "distribución"},
+                    )
+
+            if auto_assigned:
+                latest_assignment = (
+                    TicketAssignment.objects.filter(ticket=ticket).order_by("-created_at").first()
+                )
+                if latest_assignment:
+                    TicketAssignment.objects.filter(pk=latest_assignment.pk).update(
+                        created_at=created_at + timedelta(minutes=random.uniform(6, 15))
+                    )
+                auto_log = (
+                    AuditLog.objects.filter(ticket=ticket, action="ASSIGN").order_by("-created_at").first()
+                )
+                if auto_log:
+                    AuditLog.objects.filter(pk=auto_log.pk).update(
+                        created_at=created_at + timedelta(minutes=random.uniform(6, 15))
                     )
 
             if status != Ticket.OPEN:
-                AuditLog.objects.create(
+                status_actor = random.choice(techs) if techs else None
+                status_log = AuditLog.objects.create(
                     ticket=ticket,
-                    actor=random.choice(techs) if techs else None,
+                    actor=status_actor,
                     action="STATUS",
                     meta={"new_status": status},
                 )
+                AuditLog.objects.filter(pk=status_log.pk).update(
+                    created_at=(resolved_at or created_at) - timedelta(minutes=random.uniform(15, 45))
+                    if resolved_at
+                    else created_at + timedelta(minutes=random.uniform(30, 90))
+                )
+
+            if techs and random.random() < 0.18 and len(techs) > 1:
+                reassigned_to = random.choice([t for t in techs if t != ticket.assigned_to])
+                if reassigned_to:
+                    reassign_time = created_at + timedelta(minutes=random.uniform(25, 240))
+                    reassign = TicketAssignment.objects.create(
+                        ticket=ticket,
+                        from_user=ticket.assigned_to,
+                        to_user=reassigned_to,
+                        reason="reasignación por disponibilidad",
+                    )
+                    TicketAssignment.objects.filter(pk=reassign.pk).update(created_at=reassign_time)
+                    ticket.assigned_to = reassigned_to
+                    ticket.save(update_fields=["assigned_to", "updated_at"])
+                    reassign_log = AuditLog.objects.create(
+                        ticket=ticket,
+                        actor=status_actor or requester,
+                        action="ASSIGN",
+                        meta={
+                            "from": getattr(reassign.from_user, "id", None),
+                            "from_username": getattr(reassign.from_user, "username", None),
+                            "to": reassigned_to.id,
+                            "to_username": reassigned_to.username,
+                            "reason": "reasignación",
+                        },
+                    )
+                    AuditLog.objects.filter(pk=reassign_log.pk).update(created_at=reassign_time)
 
             self._maybe_add_interactions(ticket=ticket, created_at=created_at, resolved_at=resolved_at, techs=techs, admins=admins)
 
@@ -536,13 +646,17 @@ class Command(BaseCommand):
                             created_at=created_at,
                         )
                     )
-                EventLog.objects.create(
-                    actor=random.choice(recipients) if recipients else None,
+                critic_actor = random.choice(recipients) if recipients else None
+                event = EventLog.objects.create(
+                    actor=critic_actor,
                     model="Ticket",
                     obj_id=ticket.pk,
-                    action="CRITICAL",
+                    action="ALERTA",
                     message="Ticket crítico generado por seed_demo_data",
                     resource_id=ticket.pk,
+                )
+                EventLog.objects.filter(pk=event.pk).update(
+                    created_at=created_at + timedelta(minutes=random.uniform(1, 10))
                 )
 
             tickets.append(ticket)
@@ -556,13 +670,26 @@ class Command(BaseCommand):
         if random.random() < 0.75:
             author_pool = techs + admins
             author = random.choice(author_pool) if author_pool else ticket.requester
+            comment_time = created_at + timedelta(hours=random.uniform(1, 6))
             comment = TicketComment.objects.create(
                 ticket=ticket,
                 author=author,
                 body="Seguimiento automático para validar hilos de conversación.",
             )
-            TicketComment.objects.filter(pk=comment.pk).update(created_at=created_at + timedelta(hours=2))
+            TicketComment.objects.filter(pk=comment.pk).update(created_at=comment_time)
             AuditLog.objects.create(ticket=ticket, actor=author, action="COMMENT", meta={"auto": True})
+
+            if self._is_critical_ticket(ticket) or getattr(author.profile, "is_critical_actor", False):
+                recipients = list({*(techs + admins)}) or [ticket.requester]
+                notif_body = (
+                    f"Nuevo comentario en ticket crítico {ticket.code or ticket.id}: {ticket.title}. "
+                    f"Autor: {author.get_full_name() or author.username}"
+                )
+                notifications = [
+                    Notification(user=user, message=notif_body, url=f"/tickets/{ticket.pk}/", created_at=comment_time)
+                    for user in recipients
+                ]
+                Notification.objects.bulk_create(notifications)
 
         # Adjuntos
         if random.random() < 0.25:
@@ -587,13 +714,16 @@ class Command(BaseCommand):
                 meta={"resolved_at": resolved_at.isoformat()},
             )
             if ticket.status == Ticket.CLOSED:
-                EventLog.objects.create(
+                close_event = EventLog.objects.create(
                     actor=closer,
                     model="Ticket",
                     obj_id=ticket.pk,
-                    action="CLOSE",
+                    action="CIERRE",
                     message="Ticket cerrado durante seed_demo_data",
                     resource_id=ticket.pk,
+                )
+                EventLog.objects.filter(pk=close_event.pk).update(
+                    created_at=(ticket.closed_at or resolved_at or created_at)
                 )
 
     def _is_critical_ticket(self, ticket: Ticket) -> bool:
