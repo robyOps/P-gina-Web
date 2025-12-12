@@ -12,6 +12,7 @@
       font-size: 12px;
       margin: 0;
       padding: 26px;
+      line-height: 1.5;
     }
     .page {
       max-width: 1120px;
@@ -42,7 +43,7 @@
     .header-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: center; }
     .eyebrow { display: inline-flex; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,0.12); color: #c7d2fe; letter-spacing: 0.26em; font-weight: 800; font-size: 10px; text-transform: uppercase; margin-bottom: 10px; backdrop-filter: blur(6px); }
     h1 { margin: 0 0 10px; font-size: 26px; letter-spacing: -0.02em; color: #f8fafc; }
-    .subtitle { margin: 0; font-size: 13px; color: #cbd5e1; }
+    .subtitle { margin: 0; font-size: 13px; color: #cbd5e1; max-width: 520px; }
     .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
     .chip { background: rgba(255,255,255,0.08); color: #e2e8f0; border-radius: 10px; padding: 7px 11px; font-weight: 600; font-size: 11px; border: 1px solid rgba(255,255,255,0.12); }
     .summary-box { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 12px 14px; backdrop-filter: blur(4px); }
@@ -68,6 +69,12 @@
     .kpi-label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #475569; margin-bottom: 6px; }
     .kpi-value { font-size: 24px; font-weight: 800; margin: 2px 0 6px; color: #0f172a; }
     .kpi-note { font-size: 11px; color: #475569; }
+
+    .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 4px 0 12px; }
+    .status-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; background: #f8fafc; box-shadow: inset 0 1px 0 rgba(255,255,255,0.8); }
+    .status-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: #475569; margin-bottom: 4px; }
+    .status-value { font-size: 18px; font-weight: 800; color: #0f172a; }
+    .status-note { font-size: 11px; color: #64748b; }
 
     /* Tablas y tarjetas */
     .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
@@ -148,6 +155,21 @@
           <div class="kpi-note">Fechas límite consideradas.</div>
         </article>
         {% endif %}
+      </section>
+
+      <section class="section">
+        <h2 class="section-title"><span></span>Estado y carga de trabajo</h2>
+        <div class="status-grid">
+          {% for name, count in by_status.items %}
+            <article class="status-card">
+              <div class="status-label">{{ name }}</div>
+              <div class="status-value">{{ count|default:"0" }}</div>
+              <div class="status-note">{{ total }} tickets analizados · {{ name }}</div>
+            </article>
+          {% empty %}
+            <p class="muted">No hay tickets en el rango indicado.</p>
+          {% endfor %}
+        </div>
       </section>
 
       {% with status_data=by_status priority_data=by_priority %}

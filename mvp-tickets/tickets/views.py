@@ -2345,6 +2345,12 @@ def reports_export_pdf(request):
     if area_label:
         filters_applied.append({"label": "Área", "value": area_label})
 
+    status_map = dict(Ticket.STATUS_CHOICES)
+    by_status_raw = dict(qs.values_list("status").annotate(c=Count("id")))
+    base_by_status = {
+        status_map.get(key, key): by_status_raw.get(key, 0) for key, _ in Ticket.STATUS_CHOICES
+    }
+
     ctx = {
         "generated_at": timezone.now(),
         "from": dfrom.isoformat() if dfrom else "",
@@ -2352,9 +2358,13 @@ def reports_export_pdf(request):
         "total": qs.count(),
         "type": report_type,
         "avg_hours": avg_hours,
-        "by_status": {},
-        "by_priority": [],
-        "by_category": [],
+        "by_status": base_by_status,
+        "by_priority": list(
+            qs.values("priority__name").annotate(count=Count("id")).order_by("-count")
+        ),
+        "by_category": list(
+            qs.values("category__name").annotate(count=Count("id")).order_by("-count")
+        ),
         "by_subcategory": [],
         "type_label": {
             "total": "Resumen general",
@@ -2375,9 +2385,6 @@ def reports_export_pdf(request):
     )
 
     if report_type == "categoria":
-        ctx["by_category"] = list(
-            qs.values("category__name").annotate(count=Count("id")).order_by("-count")
-        )
         ctx["by_subcategory"] = subcategory_stats
     elif report_type == "promedio":
         pass
@@ -2403,14 +2410,6 @@ def reports_export_pdf(request):
             ).order_by("-created_at")
         )
     else:
-        by_status_raw = dict(qs.values_list("status").annotate(c=Count("id")))
-        ctx["by_status"] = {status_map.get(k, k): v for k, v in by_status_raw.items()}
-        ctx["by_category"] = list(
-            qs.values("category__name").annotate(count=Count("id")).order_by("-count")
-        )
-        ctx["by_priority"] = list(
-            qs.values("priority__name").annotate(count=Count("id")).order_by("-count")
-        )
         ctx["by_subcategory"] = subcategory_stats
 
     # Render y PDF
