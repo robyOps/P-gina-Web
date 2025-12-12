@@ -87,7 +87,7 @@ y reportes. Incluye catálogos, FAQs, reglas y usuarios de todos los roles.
    ```bash
    cd mvp-tickets
    python manage.py migrate
-   python manage.py load_demo_dataset --purge --tickets 500
+   python manage.py load_demo_dataset --purge --tickets 1000
    ```
 
    - `--purge` elimina tickets, catálogos demo, FAQs y usuarios de prueba previos
