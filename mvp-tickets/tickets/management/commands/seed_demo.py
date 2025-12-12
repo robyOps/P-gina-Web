@@ -718,7 +718,7 @@ class Command(BaseCommand):
         assigned_to,
         end_dt: datetime,
     ):
-        status_labels = dict(Ticket.STATUS_CHOICES)
+        status_labels = dict(ticket.__class__.STATUS_CHOICES)
         # Acción: creación
         AuditLog.objects.create(
             ticket=ticket,
