@@ -2446,26 +2446,50 @@ def reports_export_pdf(request):
 
     status_map = dict(Ticket.STATUS_CHOICES)
     by_status_raw = dict(qs.values_list("status").annotate(c=Count("id")))
-    base_by_status = {
-        status_map.get(key, key): by_status_raw.get(key, 0) for key, _ in Ticket.STATUS_CHOICES
-    }
+    total = qs.count()
+
+    status_rows = [
+        {
+            "label": status_map.get(key, key),
+            "total": by_status_raw.get(key, 0),
+            "pct": round((by_status_raw.get(key, 0) / total) * 100, 2) if total else 0,
+        }
+        for key, _ in Ticket.STATUS_CHOICES
+    ]
+
+    priority_rows = [
+        {"name": row["priority__name"] or "Sin prioridad", "total": row["count"]}
+        for row in qs.values("priority__name").annotate(count=Count("id")).order_by("-count")
+    ]
+    category_rows = [
+        {"name": row["category__name"] or "Sin categoría", "total": row["count"]}
+        for row in qs.values("category__name").annotate(count=Count("id")).order_by("-count")
+    ]
+    tech_rows = [
+        {"name": row["assigned_to__username"] or "Sin asignar", "total": row["count"]}
+        for row in qs.exclude(assigned_to__isnull=True)
+        .values("assigned_to__username")
+        .annotate(count=Count("id"))
+        .order_by("-count")
+    ]
+
+    kpi_open = by_status_raw.get(Ticket.OPEN, 0) + by_status_raw.get(Ticket.IN_PROGRESS, 0)
+    kpi_closed = by_status_raw.get(Ticket.CLOSED, 0)
+    kpi_closed_pct = round((kpi_closed / total) * 100, 2) if total else 0
 
     ctx = {
-        "generated_at": timezone.now(),
-        "from": dfrom.isoformat() if dfrom else "",
-        "to": dto.isoformat() if dto else "",
-        "total": qs.count(),
-        "type": report_type,
-        "avg_hours": avg_hours,
-        "by_status": base_by_status,
-        "by_priority": list(
-            qs.values("priority__name").annotate(count=Count("id")).order_by("-count")
-        ),
-        "by_category": list(
-            qs.values("category__name").annotate(count=Count("id")).order_by("-count")
-        ),
-        "by_subcategory": [],
-        "type_label": {
+        "generated_at": timezone.localtime(timezone.now()).strftime("%d/%m/%Y %H:%M"),
+        "date_from": dfrom.isoformat() if dfrom else "—",
+        "date_to": dto.isoformat() if dto else "—",
+        "total": total,
+        "status_rows": status_rows,
+        "priority_rows": priority_rows,
+        "category_rows": category_rows,
+        "tech_rows": tech_rows,
+        "kpi_open": kpi_open,
+        "kpi_closed": kpi_closed,
+        "kpi_closed_pct": kpi_closed_pct,
+        "report_type_label": {
             "total": "Resumen general",
             "categoria": "Desglose por categoría",
             "promedio": "Tiempo promedio de resolución",
@@ -2473,7 +2497,7 @@ def reports_export_pdf(request):
             "urgencia": "Tickets urgentes",
             "productividad": "Productividad de técnicos",
         }.get(report_type, "Resumen"),
-        "tech_filter": tech_username,
+        "tech_username": tech_username,
         "filters_applied": filters_applied,
     }
 
