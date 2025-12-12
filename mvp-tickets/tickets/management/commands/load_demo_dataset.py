@@ -837,7 +837,13 @@ class Command(BaseCommand):
             ticket=ticket,
             actor=actor or to_user,
             action="ASSIGN",
-            meta={"to": to_user.username, "reason": reason},
+            meta={
+                "to": to_user.id,
+                "to_username": to_user.username,
+                "from": previous.id if previous else None,
+                "from_username": previous.username if previous else None,
+                "reason": reason,
+            },
         )
         AuditLog.objects.filter(pk=audit.pk).update(created_at=created_at)
 
