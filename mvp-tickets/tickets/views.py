@@ -1696,7 +1696,7 @@ def reports_dashboard(request):
     dur = ExpressionWrapper(
         F("resolved_at") - F("created_at"), output_field=DurationField()
     )
-    resolved = qs.exclude(resolved_at__isnull=True)
+    resolved = qs.filter(resolved_at__isnull=False, resolved_at__gte=F("created_at"))
     avg_resolve = resolved.aggregate(avg=Avg(dur))["avg"]
     avg_hours = round(avg_resolve.total_seconds() / 3600, 2) if avg_resolve else None
 
@@ -1990,7 +1990,7 @@ def reports_pdf(request):
     )
 
     dur = ExpressionWrapper(F("resolved_at") - F("created_at"), output_field=DurationField())
-    resolved = qs.exclude(resolved_at__isnull=True)
+    resolved = qs.filter(resolved_at__isnull=False, resolved_at__gte=F("created_at"))
     avg_resolve = resolved.aggregate(avg=Avg(dur))["avg"]
     avg_hours = round(avg_resolve.total_seconds()/3600, 2) if avg_resolve else None
 
@@ -2383,7 +2383,7 @@ def reports_export_pdf(request):
         qs = qs.filter(priority__sla_hours__lte=24)
 
     dur = ExpressionWrapper(F("resolved_at") - F("created_at"), output_field=DurationField())
-    resolved = qs.exclude(resolved_at__isnull=True)
+    resolved = qs.filter(resolved_at__isnull=False, resolved_at__gte=F("created_at"))
     avg_resolve = resolved.aggregate(avg=Avg(dur))["avg"]
     avg_hours = round(avg_resolve.total_seconds()/3600, 2) if avg_resolve else None
 
