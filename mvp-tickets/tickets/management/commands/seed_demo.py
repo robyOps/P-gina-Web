@@ -620,6 +620,7 @@ class Command(BaseCommand):
         assigned_to,
         end_dt: datetime,
     ):
+        status_labels = dict(Ticket.STATUS_CHOICES)
         # Acción: creación
         AuditLog.objects.create(
             ticket=ticket,
@@ -722,7 +723,7 @@ class Command(BaseCommand):
                     model="tickets.ticket",
                     obj_id=ticket.id,
                     action="STATUS",
-                    message="Estado cambiado a En progreso",
+                    message=f"Estado cambiado a {status_labels.get(STATUS_IN_PROGRESS, STATUS_IN_PROGRESS)}",
                     resource_id=ticket.id,
                     actor=assigned_to or rng.choice(techs),
                     created_at=clamp_dt(t + timedelta(minutes=rng.randint(1, 20)), end_dt),
@@ -751,7 +752,7 @@ class Command(BaseCommand):
                 model="tickets.ticket",
                 obj_id=ticket.id,
                 action="STATUS",
-                message=f"Estado cambiado a {status}",
+                message=f"Estado cambiado a {status_labels.get(status, status)}",
                 resource_id=ticket.id,
                 actor=assigned_to or rng.choice(techs),
                 created_at=clamp_dt(t + timedelta(minutes=rng.randint(1, 20)), end_dt),
