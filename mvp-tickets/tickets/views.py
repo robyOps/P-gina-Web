@@ -186,6 +186,49 @@ def _done_at_expression():
     return Coalesce("closed_at", "resolved_at")
 
 
+def _average_resolution_hours(qs):
+    """Promedio de resolución usando cierre o resolución, nunca negativo."""
+
+    done_at_expr = _done_at_expression()
+    duration_expr = ExpressionWrapper(done_at_expr - F("created_at"), output_field=DurationField())
+    resolved = qs.annotate(done_at=done_at_expr).filter(done_at__isnull=False, done_at__gte=F("created_at"))
+    avg_resolve = resolved.aggregate(avg=Avg(duration_expr))["avg"]
+    return round(avg_resolve.total_seconds() / 3600, 2) if avg_resolve else None
+
+
+def _assignments_today_metrics(qs):
+    """Cuenta asignaciones del día usando ``TicketAssignment`` o ``AuditLog``."""
+
+    today = timezone.localdate()
+    if TicketAssignment.objects.exists():
+        assignments_today_qs = TicketAssignment.objects.filter(
+            ticket__in=qs,
+            created_at__date=today,
+        )
+        total = assignments_today_qs.count()
+        auto_assigned_today = assignments_today_qs.filter(from_user=F("to_user")).count()
+        reassigned_today = assignments_today_qs.annotate(
+            has_previous=Exists(
+                TicketAssignment.objects.filter(
+                    ticket=OuterRef("ticket"),
+                    created_at__lt=OuterRef("created_at"),
+                )
+            )
+        ).filter(has_previous=True).count()
+    else:
+        audit_qs = AuditLog.objects.filter(
+            ticket__in=qs,
+            action="ASSIGN",
+            created_at__date=today,
+        )
+        total = audit_qs.count()
+        auto_assigned_today = audit_qs.filter(meta__reason="auto-assign").count()
+        reassigned_today = audit_qs.filter(meta__from__isnull=False).count()
+
+    assigned_today = max(total - auto_assigned_today - reassigned_today, 0)
+    return total, assigned_today, auto_assigned_today, reassigned_today
+
+
 def build_productivity_stats(qs, *, date_from=None, date_to=None):
     """Calcula métricas de productividad por técnico usando cierres o resoluciones."""
 
@@ -574,25 +617,12 @@ def dashboard(request):
             {"priority": row.get("priority__name") or "Sin prioridad", "total": row.get("total", 0)}
         )
 
-    assignments_today = TicketAssignment.objects.filter(
-        ticket__in=qs,
-        created_at__date=timezone.localdate(),
-    ).count()
-
-    assignments_today_qs = TicketAssignment.objects.filter(
-        ticket__in=qs,
-        created_at__date=timezone.localdate(),
-    )
-    auto_assigned_today = assignments_today_qs.filter(from_user=F("to_user")).count()
-    reassigned_today = assignments_today_qs.annotate(
-        has_previous=Exists(
-            TicketAssignment.objects.filter(
-                ticket=OuterRef("ticket"),
-                created_at__lt=OuterRef("created_at"),
-            )
-        )
-    ).filter(has_previous=True).count()
-    assigned_today = max(assignments_today - auto_assigned_today - reassigned_today, 0)
+    (
+        assignments_today,
+        assigned_today,
+        auto_assigned_today,
+        reassigned_today,
+    ) = _assignments_today_metrics(qs)
 
     assignments_today_breakdown = json.dumps(
         {
@@ -1693,12 +1723,7 @@ def reports_dashboard(request):
     )
 
     # TPR (horas)
-    dur = ExpressionWrapper(
-        F("resolved_at") - F("created_at"), output_field=DurationField()
-    )
-    resolved = qs.filter(resolved_at__isnull=False, resolved_at__gte=F("created_at"))
-    avg_resolve = resolved.aggregate(avg=Avg(dur))["avg"]
-    avg_hours = round(avg_resolve.total_seconds() / 3600, 2) if avg_resolve else None
+    avg_hours = _average_resolution_hours(qs)
 
     # Datos para Chart.js
     chart_cat = {
@@ -1989,10 +2014,7 @@ def reports_pdf(request):
           .order_by("-count")
     )
 
-    dur = ExpressionWrapper(F("resolved_at") - F("created_at"), output_field=DurationField())
-    resolved = qs.filter(resolved_at__isnull=False, resolved_at__gte=F("created_at"))
-    avg_resolve = resolved.aggregate(avg=Avg(dur))["avg"]
-    avg_hours = round(avg_resolve.total_seconds()/3600, 2) if avg_resolve else None
+    avg_hours = _average_resolution_hours(qs)
 
     ctx = {
         "total": qs.count(),
@@ -2382,10 +2404,7 @@ def reports_export_pdf(request):
     if report_type == "urgencia":
         qs = qs.filter(priority__sla_hours__lte=24)
 
-    dur = ExpressionWrapper(F("resolved_at") - F("created_at"), output_field=DurationField())
-    resolved = qs.filter(resolved_at__isnull=False, resolved_at__gte=F("created_at"))
-    avg_resolve = resolved.aggregate(avg=Avg(dur))["avg"]
-    avg_hours = round(avg_resolve.total_seconds()/3600, 2) if avg_resolve else None
+    avg_hours = _average_resolution_hours(qs)
 
     status_map = dict(Ticket.STATUS_CHOICES)
     tech_username = ""

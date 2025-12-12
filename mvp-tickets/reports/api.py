@@ -252,7 +252,17 @@ class ReportHeatmapView(APIView):
 
     def get(self, request):
         qs = base_queryset(request)
-        payload = build_ticket_heatmap(qs, since=None, auto_range=False)
+        raw_from = request.query_params.get("from")
+        raw_to = request.query_params.get("to")
+        dfrom, dto = resolve_range(raw_from, raw_to)
+
+        payload = build_ticket_heatmap(
+            qs,
+            since=None,
+            auto_range=False,
+            date_from=dfrom,
+            date_to=dto,
+        )
 
         return Response(
             {

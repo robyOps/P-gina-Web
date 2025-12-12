@@ -1,8 +1,9 @@
 import time
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, tag
+from django.urls import reverse
 from django.utils import timezone
 
 from catalog.models import Category, Priority, Subcategory
@@ -83,6 +84,32 @@ class DashboardAnalyticsTests(TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["subcategory"], self.subcategory.name)
 
+    @tag("unitaria")
+    def test_build_ticket_heatmap_respects_date_range(self):
+        """El heatmap principal aplica correctamente los parámetros from/to locales."""
+
+        now = timezone.now()
+        earlier = now - timedelta(days=2)
+
+        t1 = self._create_ticket(title="Hoy 10h")
+        t2 = self._create_ticket(title="Ayer tarde")
+        t3 = self._create_ticket(title="Fuera de rango")
+
+        Ticket.objects.filter(pk=t1.pk).update(created_at=now.replace(hour=10, minute=0, second=0, microsecond=0))
+        Ticket.objects.filter(pk=t2.pk).update(created_at=now - timedelta(hours=20))
+        Ticket.objects.filter(pk=t3.pk).update(created_at=earlier)
+
+        payload = build_ticket_heatmap(
+            Ticket.objects.all(),
+            date_from=date.today() - timedelta(days=1),
+            date_to=date.today(),
+            auto_range=False,
+        )
+
+        self.assertEqual(payload.overall_total, 2)
+        flattened = [count for row in payload.matrix for count in row]
+        self.assertGreaterEqual(sum(1 for value in flattened if value > 0), 2)
+
 
 class DashboardAnalyticsPerformanceTests(TestCase):
     def setUp(self):
@@ -118,6 +145,67 @@ class DashboardAnalyticsPerformanceTests(TestCase):
         _ = build_ticket_heatmap(Ticket.objects.all(), since=since)
         dt = time.perf_counter() - t0
         self.assertLessEqual(dt, 1.0)
+
+
+class HeatmapApiTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_superuser(
+            username="admin", email="admin@example.com", password="pass1234"
+        )
+        self.client.force_login(self.user)
+
+        self.category = Category.objects.create(name="Soporte")
+        self.subcategory = Subcategory.objects.create(category=self.category, name="VPN")
+        self.priority = Priority.objects.create(name="Alta", sla_hours=24)
+
+    def _create_ticket(self, created_at):
+        ticket = Ticket.objects.create(
+            title="Heatmap API",
+            description="",
+            requester=self.user,
+            category=self.category,
+            subcategory=self.subcategory,
+            priority=self.priority,
+            status=Ticket.OPEN,
+        )
+        Ticket.objects.filter(pk=ticket.pk).update(created_at=created_at)
+        return Ticket.objects.get(pk=ticket.pk)
+
+    def test_heatmap_endpoint_respects_range_and_shape(self):
+        now = timezone.now()
+        early = now - timedelta(hours=6)
+        outside = now - timedelta(days=10)
+
+        self._create_ticket(created_at=now)
+        self._create_ticket(created_at=early)
+        self._create_ticket(created_at=outside)
+
+        params = {
+            "from": (timezone.localdate() - timedelta(days=1)).isoformat(),
+            "to": timezone.localdate().isoformat(),
+        }
+        response = self.client.get(reverse("reports_heatmap"), params)
+        payload = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["hours"], list(range(24)))
+        self.assertEqual(payload["weekdays"], [
+            "Lunes",
+            "Martes",
+            "Miércoles",
+            "Jueves",
+            "Viernes",
+            "Sábado",
+            "Domingo",
+        ])
+        self.assertEqual(len(payload["matrix"]), 7)
+        self.assertTrue(all(len(row) == 24 for row in payload["matrix"]))
+        self.assertEqual(payload["totals"]["overall"], 2)
+        self.assertGreaterEqual(payload["max_value"], 1)
+        self.assertGreaterEqual(
+            sum(1 for row in payload["matrix"] for value in row if value),
+            2,
+        )
 
 
 DashboardAnalyticsTests.test_build_ticket_heatmap_counts_by_hour.__django_test_tags__ = {"unitaria"}
