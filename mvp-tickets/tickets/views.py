@@ -45,7 +45,17 @@ except ImportError:  # pragma: no cover - dependencia opcional
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
-from django.db.models import Count, Avg, DurationField, ExpressionWrapper, F, Max, Min
+from django.db.models import (
+    Count,
+    Avg,
+    DurationField,
+    ExpressionWrapper,
+    Exists,
+    F,
+    Max,
+    Min,
+    OuterRef,
+)
 from django.db.models.functions import Coalesce
 
 # --- App local ---
@@ -549,10 +559,50 @@ def dashboard(request):
         .order_by("-total", "assigned_to__username")[:5]
     )
 
+    priorities_by_tech = (
+        recent_done_qs.values("assigned_to__username", "priority__name")
+        .annotate(total=Count("id"))
+        .order_by("assigned_to__username", "priority__name")
+    )
+    top_weekly_techs_priorities: dict[str, list[dict[str, str | int]]] = {}
+    for row in priorities_by_tech:
+        tech = row.get("assigned_to__username") or "Sin técnico"
+        if tech not in top_weekly_techs_priorities:
+            top_weekly_techs_priorities[tech] = []
+        top_weekly_techs_priorities[tech].append(
+            {"priority": row.get("priority__name") or "Sin prioridad", "total": row.get("total", 0)}
+        )
+
     assignments_today = TicketAssignment.objects.filter(
         ticket__in=qs,
         created_at__date=timezone.localdate(),
     ).count()
+
+    assignments_today_qs = TicketAssignment.objects.filter(
+        ticket__in=qs,
+        created_at__date=timezone.localdate(),
+    )
+    auto_assigned_today = assignments_today_qs.filter(from_user=F("to_user")).count()
+    reassigned_today = assignments_today_qs.annotate(
+        has_previous=Exists(
+            TicketAssignment.objects.filter(
+                ticket=OuterRef("ticket"),
+                created_at__lt=OuterRef("created_at"),
+            )
+        )
+    ).filter(has_previous=True).count()
+    assigned_today = max(assignments_today - auto_assigned_today - reassigned_today, 0)
+
+    assignments_today_breakdown = json.dumps(
+        {
+            "total": assignments_today,
+            "assigned": assigned_today,
+            "auto_assigned": auto_assigned_today,
+            "reassigned": reassigned_today,
+        }
+    )
+
+    tech_priority_payload = json.dumps(top_weekly_techs_priorities)
 
     ctx = {
         "counts": counts,
@@ -574,6 +624,8 @@ def dashboard(request):
         "heatmap_query": heatmap_query,
         "top_weekly_techs": top_weekly_techs,
         "assignments_today": assignments_today,
+        "assignments_today_breakdown": assignments_today_breakdown,
+        "top_weekly_techs_priorities": tech_priority_payload,
     }
     return render(request, "dashboard.html", ctx)
 

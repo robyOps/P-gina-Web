@@ -119,6 +119,53 @@
     padding-left: 0.9rem;
     white-space: nowrap;
   }
+  .tech-row {
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.15s ease;
+  }
+  .tech-row:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+    border-color: #6366f1;
+  }
+  .tech-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px -16px rgba(79, 70, 229, 0.35);
+  }
+  .priority-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    background-color: #eef2ff;
+    color: #4338ca;
+  }
+  .assignment-flip {
+    perspective: 1400px;
+  }
+  .assignment-flip__inner {
+    position: relative;
+    width: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.65s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  .assignment-flip.is-flipped .assignment-flip__inner {
+    transform: rotateY(180deg);
+  }
+  .assignment-flip__face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 1.5rem;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    box-shadow: 0 18px 40px -28px rgba(16, 185, 129, 0.65);
+  }
+  .assignment-flip__face--back {
+    transform: rotateY(180deg);
+  }
   .heatmap-corner {
     background-color: transparent;
   }
@@ -254,38 +301,6 @@
           </article>
         </section>
 
-        <section class="grid gap-5 lg:grid-cols-[1fr_0.6fr]">
-          <article class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50 to-sky-50 p-5 shadow-sm sm:p-6">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <h2 class="text-lg font-semibold text-slate-900">Top 5 técnicos (cerrados última semana)</h2>
-                <p class="text-sm text-slate-600">Basado en cierres o resoluciones de los últimos 7 días.</p>
-              </div>
-              <span class="rounded-full bg-indigo-600/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-indigo-700">7 días</span>
-            </div>
-            <ul class="mt-4 space-y-3">
-              {% for entry in top_weekly_techs %}
-              <li class="flex items-center justify-between rounded-2xl border border-indigo-100 bg-white px-3 py-2 shadow-sm">
-                <span class="text-sm font-semibold text-slate-900">{{ entry.assigned_to__username|default:"Sin técnico" }}</span>
-                <span class="text-sm font-semibold text-indigo-700">{{ entry.total }} tickets</span>
-              </li>
-              {% empty %}
-              <li class="rounded-2xl border border-dashed border-indigo-100 bg-white px-3 py-3 text-sm text-slate-500">Aún no hay cierres recientes para mostrar un ranking.</li>
-              {% endfor %}
-            </ul>
-          </article>
-          <article class="flex flex-col gap-3 rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-5 shadow-sm sm:p-6">
-            <div class="space-y-1">
-              <h2 class="text-lg font-semibold text-slate-900">Tickets asignados hoy</h2>
-              <p class="text-sm text-slate-600">Reasignaciones creadas durante la fecha actual.</p>
-            </div>
-            <div class="flex items-end gap-3">
-              <span class="text-4xl font-bold leading-none text-emerald-700">{{ assignments_today }}</span>
-              <span class="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-600">asignaciones</span>
-            </div>
-          </article>
-        </section>
-
         <section class="grid gap-5 lg:grid-cols-[1.05fr_1fr]">
           <article class="rounded-3xl border border-rose-100 bg-white p-6 shadow-sm">
             <div class="flex flex-col gap-3">
@@ -405,6 +420,51 @@
           </article>
         </section>
 
+        <section class="grid gap-5 lg:grid-cols-[1fr_0.85fr]">
+          <article class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50 to-sky-50 p-5 shadow-sm sm:p-6">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-semibold text-slate-900">Top 5 técnicos (cerrados última semana)</h2>
+                <p class="text-sm text-slate-600">Basado en cierres o resoluciones de los últimos 7 días.</p>
+              </div>
+              <span class="rounded-full bg-indigo-600/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-indigo-700">7 días</span>
+            </div>
+            <ul class="mt-4 space-y-3">
+              {% for entry in top_weekly_techs %}
+              <li
+                class="tech-row flex items-center justify-between rounded-2xl border border-indigo-100 bg-white px-3 py-2 shadow-sm focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                data-tech-row
+                data-tech="{{ entry.assigned_to__username|default:'Sin técnico' }}"
+                tabindex="0"
+                role="button"
+                aria-pressed="false"
+              >
+                <span class="text-sm font-semibold text-slate-900">{{ entry.assigned_to__username|default:"Sin técnico" }}</span>
+                <span class="text-sm font-semibold text-indigo-700">{{ entry.total }} tickets</span>
+              </li>
+              {% empty %}
+              <li class="rounded-2xl border border-dashed border-indigo-100 bg-white px-3 py-3 text-sm text-slate-500">Aún no hay cierres recientes para mostrar un ranking.</li>
+              {% endfor %}
+            </ul>
+          </article>
+
+          <article class="rounded-3xl border border-indigo-100 bg-white p-5 shadow-sm sm:p-6">
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <h2 class="text-lg font-semibold text-slate-900" id="techPriorityTitle">Prioridades cerradas por técnico</h2>
+                  <p class="text-sm text-slate-600">Selecciona un técnico para desglosar las prioridades de sus cierres.</p>
+                </div>
+                <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-indigo-600">Detalle</span>
+              </div>
+              <div class="mt-4 space-y-3" id="techPriorityContent">
+                <p id="techPriorityEmpty" class="rounded-2xl border border-dashed border-indigo-100 bg-indigo-50/70 px-4 py-3 text-sm text-indigo-700">Haz clic en un técnico de la izquierda para ver su mezcla de prioridades.</p>
+                <div id="techPriorityList" class="hidden space-y-2" aria-live="polite"></div>
+              </div>
+            </div>
+          </article>
+        </section>
+
         <section id="tendencias" class="grid gap-5 xl:grid-cols-[2fr_1fr]">
           <article class="rounded-3xl border border-sky-100 bg-white p-6 shadow-sm">
             <div class="flex flex-col gap-3">
@@ -466,7 +526,7 @@
           </article>
         </section>
 
-        <section class="grid gap-5 xl:grid-cols-[1.1fr_0.95fr]">
+        <section class="grid gap-5">
           <article class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -540,7 +600,9 @@
               {% endif %}
             </div>
           </article>
+        </section>
 
+        <section class="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
           <article class="rounded-3xl border border-indigo-100 bg-white p-5 shadow-sm sm:p-6">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -570,6 +632,44 @@
             {% else %}
             <p class="mt-4 rounded-2xl border border-dashed border-slate-200 bg-white/70 px-4 py-3 text-sm text-slate-500">Aún no hay tickets suficientes para evaluar el cumplimiento de plazos en este período.</p>
             {% endif %}
+          </article>
+
+          <article class="assignment-flip rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-5 shadow-sm sm:p-6" id="assignmentsFlipCard" role="button" tabindex="0" aria-pressed="false" aria-label="Ver desglose de asignaciones de hoy">
+            <div class="assignment-flip__inner">
+              <div class="assignment-flip__face flex h-full flex-col justify-between bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-4">
+                <div class="space-y-1">
+                  <h2 class="text-lg font-semibold text-slate-900">Tickets asignados hoy</h2>
+                  <p class="text-sm text-slate-600">Reasignaciones creadas durante la fecha actual.</p>
+                </div>
+                <div class="flex items-end gap-3">
+                  <span class="text-4xl font-bold leading-none text-emerald-700">{{ assignments_today }}</span>
+                  <span class="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-600">asignaciones</span>
+                </div>
+              </div>
+              <div class="assignment-flip__face assignment-flip__face--back flex h-full flex-col justify-between bg-white p-4">
+                <div class="flex items-center justify-between">
+                  <div class="space-y-1">
+                    <h2 class="text-lg font-semibold text-emerald-700">Detalle de hoy</h2>
+                    <p class="text-sm text-slate-600">Toca nuevamente para volver al total.</p>
+                  </div>
+                  <i class="bi bi-arrow-repeat text-emerald-600 text-xl" aria-hidden="true"></i>
+                </div>
+                <dl class="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div class="rounded-xl bg-emerald-50 px-3 py-2">
+                    <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-emerald-600">Asignados</dt>
+                    <dd class="mt-1 text-lg font-semibold text-emerald-800" id="assignmentsAssignedCount">0</dd>
+                  </div>
+                  <div class="rounded-xl bg-emerald-50 px-3 py-2">
+                    <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-emerald-600">Autoasignados</dt>
+                    <dd class="mt-1 text-lg font-semibold text-emerald-800" id="assignmentsAutoCount">0</dd>
+                  </div>
+                  <div class="rounded-xl bg-emerald-50 px-3 py-2 sm:col-span-2">
+                    <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-emerald-600">Reasignados</dt>
+                    <dd class="mt-1 text-lg font-semibold text-emerald-800" id="assignmentsReassignedCount">0</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
           </article>
         </section>
 
@@ -603,6 +703,8 @@
 {% endblock %}
 
 {% block body_extra %}
+<script id="assignmentsTodayData" type="application/json">{{ assignments_today_breakdown|safe }}</script>
+<script id="topTechPriorityData" type="application/json">{{ top_weekly_techs_priorities|safe }}</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
@@ -879,6 +981,100 @@
 
           statusChart.update();
         });
+      });
+    }
+
+    const techPriorityDataElement = document.getElementById('topTechPriorityData');
+    const techPriorityData = techPriorityDataElement ? JSON.parse(techPriorityDataElement.textContent || '{}') : {};
+    const techRows = document.querySelectorAll('[data-tech-row]');
+    const techPriorityList = document.getElementById('techPriorityList');
+    const techPriorityEmpty = document.getElementById('techPriorityEmpty');
+
+    const renderTechPriorities = (username) => {
+      if (!techPriorityList || !techPriorityEmpty) {
+        return;
+      }
+
+      const priorities = techPriorityData?.[username];
+      techPriorityList.innerHTML = '';
+
+      if (!priorities || !priorities.length) {
+        techPriorityList.classList.add('hidden');
+        techPriorityEmpty.classList.remove('hidden');
+        techPriorityEmpty.textContent = 'Sin prioridades registradas para este técnico en los últimos 7 días.';
+        return;
+      }
+
+      techPriorityEmpty.classList.add('hidden');
+      techPriorityList.classList.remove('hidden');
+
+      priorities.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between rounded-xl border border-indigo-50 bg-indigo-50/60 px-3 py-2';
+
+        const label = document.createElement('span');
+        label.className = 'priority-chip';
+        label.textContent = item.priority;
+
+        const value = document.createElement('span');
+        value.className = 'text-sm font-semibold text-indigo-700';
+        value.textContent = `${item.total} tickets`;
+
+        row.append(label, value);
+        techPriorityList.appendChild(row);
+      });
+    };
+
+    techRows.forEach((row) => {
+      row.addEventListener('click', () => {
+        const username = row.dataset.tech;
+        if (!username) {
+          return;
+        }
+
+        techRows.forEach((item) => item.setAttribute('aria-pressed', 'false'));
+        row.setAttribute('aria-pressed', 'true');
+        renderTechPriorities(username);
+      });
+
+      row.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          row.click();
+        }
+      });
+    });
+
+    const assignmentsDataElement = document.getElementById('assignmentsTodayData');
+    const assignmentsData = assignmentsDataElement ? JSON.parse(assignmentsDataElement.textContent || '{}') : {};
+    const assignmentsCard = document.getElementById('assignmentsFlipCard');
+    const assignmentsAssignedCount = document.getElementById('assignmentsAssignedCount');
+    const assignmentsAutoCount = document.getElementById('assignmentsAutoCount');
+    const assignmentsReassignedCount = document.getElementById('assignmentsReassignedCount');
+
+    if (assignmentsAssignedCount) {
+      assignmentsAssignedCount.textContent = assignmentsData.assigned ?? 0;
+    }
+    if (assignmentsAutoCount) {
+      assignmentsAutoCount.textContent = assignmentsData.auto_assigned ?? 0;
+    }
+    if (assignmentsReassignedCount) {
+      assignmentsReassignedCount.textContent = assignmentsData.reassigned ?? 0;
+    }
+
+    if (assignmentsCard) {
+      const toggleFlip = () => {
+        assignmentsCard.classList.toggle('is-flipped');
+        const isFlipped = assignmentsCard.classList.contains('is-flipped');
+        assignmentsCard.setAttribute('aria-pressed', String(isFlipped));
+      };
+
+      assignmentsCard.addEventListener('click', toggleFlip);
+      assignmentsCard.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggleFlip();
+        }
       });
     }
 
