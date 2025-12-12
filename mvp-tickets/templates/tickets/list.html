@@ -285,7 +285,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-2.5 py-2 text-left sm:px-3 sm:py-2 lg:min-w-[9.5rem] xl:min-w-[11rem]">
+                <th scope="col" class="px-2 py-2 text-left sm:px-2.5 sm:py-2 lg:min-w-[8.5rem] xl:min-w-[9.5rem]">
                   <div class="flex items-center gap-1">
                     <span>Título</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -294,7 +294,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-2.5 py-2 text-left sm:px-3 sm:py-2.5">
+                <th scope="col" class="px-2 py-2 text-left sm:px-2.5 sm:py-2">
                   <div class="flex items-center gap-1">
                     <span>Estado</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -303,7 +303,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-2.5 py-2 text-left sm:px-3 sm:py-2.5">
+                <th scope="col" class="px-2 py-2 text-left sm:px-2.5 sm:py-2">
                   <div class="flex items-center gap-1">
                     <span>Tipo</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -312,7 +312,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-2.5 py-2 text-left sm:px-3 sm:py-2.5">
+                <th scope="col" class="px-2 py-2 text-left sm:px-2.5 sm:py-2">
                   <div class="flex items-center gap-1">
                     <span>Categoría</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -330,7 +330,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-2.5 py-2 text-left sm:w-20 sm:px-3 sm:py-2.5">
+                <th scope="col" class="px-2 py-2 text-left sm:w-16 sm:px-2.5 sm:py-2">
                   <div class="flex items-center gap-1">
                     <span>Prioridad</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -339,7 +339,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-2.5 py-2 text-left sm:w-28 sm:px-2.5 sm:py-2">
+                <th scope="col" class="px-2 py-2 text-left sm:w-24 sm:px-2.5 sm:py-2">
                   <div class="flex items-center gap-1">
                     <span>Asignado</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -348,7 +348,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-2.5 py-2 text-left sm:min-w-[9rem] sm:px-3 sm:py-2">
+                <th scope="col" class="px-2 py-2 text-left sm:min-w-[8rem] sm:px-2.5 sm:py-2 whitespace-nowrap">
                   <div class="flex items-center gap-1">
                     <span>Creado</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -357,7 +357,7 @@
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="px-2.5 py-2 text-left sm:min-w-[9.5rem] sm:px-3 sm:py-2.5">
+                <th scope="col" class="px-2 py-2 text-left sm:min-w-[9rem] sm:px-2.5 sm:py-2.5 whitespace-nowrap">
                   <div class="flex items-center gap-1">
                     <span>SLA</span>
                     <span class="inline-flex overflow-hidden rounded-full border border-slate-200">
@@ -384,16 +384,16 @@
                     {{ t.code }}
                   </a>
                 </td>
-                <td data-label="Título" class="px-2.5 py-2 text-slate-700 sm:px-3 sm:py-2 lg:min-w-[9.5rem] xl:min-w-[11rem]">
-                  <span class="block max-w-[12rem] truncate text-slate-700 sm:max-w-[14rem] lg:max-w-[16rem]" title="{{ t.title }}">{{ t.title }}</span>
+                <td data-label="Título" class="px-2 py-2 text-slate-700 sm:px-2.5 sm:py-2 lg:min-w-[8.5rem] xl:min-w-[9.5rem]">
+                  <span class="block max-w-[11rem] truncate text-slate-700 sm:max-w-[12rem] lg:max-w-[13rem]" title="{{ t.title }}">{{ t.title }}</span>
                 </td>
-                <td data-label="Estado" class="px-2.5 py-2 sm:px-3 sm:py-2.5">
+                <td data-label="Estado" class="px-2 py-2 sm:px-2.5 sm:py-2">
                   <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold {% if t.status == 'OPEN' %}bg-sky-100 text-sky-700{% elif t.status == 'IN_PROGRESS' %}bg-amber-100 text-amber-700{% elif t.status == 'RESOLVED' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-100 text-slate-600{% endif %}">
                     <i class="bi bi-circle-fill text-[8px]"></i>
                     {{ t.get_status_display }}
                   </span>
                 </td>
-                <td data-label="Tipo" class="px-2.5 py-2 sm:px-3 sm:py-2.5">
+                <td data-label="Tipo" class="px-2 py-2 sm:px-2.5 sm:py-2">
                   <span class="inline-flex items-center gap-1 text-slate-600">
                     {{ t.get_kind_display }}
                     {% if t.kind == 'INCIDENT' %}
@@ -405,23 +405,23 @@
                     {% endif %}
                   </span>
                 </td>
-                <td data-label="Categoría" class="px-2.5 py-2 text-slate-600 sm:px-3 sm:py-2.5">{{ t.category.name }}</td>
-                <td data-label="Área" class="px-2.5 py-2 text-slate-600 sm:px-3 sm:py-2.5">{% if t.area %}{{ t.area.name }}{% else %}<span class="text-slate-400">Sin área</span>{% endif %}</td>
-                <td data-label="Prioridad" class="px-2.5 py-2 text-slate-600 sm:w-20 sm:px-3 sm:py-2.5">{{ t.priority.name }}</td>
-                <td data-label="Asignado" class="px-2.5 py-2 text-slate-600 sm:w-28 sm:px-2.5 sm:py-2">
+                <td data-label="Categoría" class="px-2 py-2 text-slate-600 sm:px-2.5 sm:py-2">{{ t.category.name }}</td>
+                <td data-label="Área" class="px-2 py-2 text-slate-600 sm:px-2.5 sm:py-2">{% if t.area %}{{ t.area.name }}{% else %}<span class="text-slate-400">Sin área</span>{% endif %}</td>
+                <td data-label="Prioridad" class="px-2 py-2 text-slate-600 sm:w-16 sm:px-2.5 sm:py-2">{{ t.priority.name }}</td>
+                <td data-label="Asignado" class="px-2 py-2 text-slate-600 sm:w-24 sm:px-2.5 sm:py-2">
                   {% if t.assigned_to %}
-                    <span class="block text-slate-600 sm:max-w-[7rem] sm:truncate" title="{{ t.assigned_to.username }}">{{ t.assigned_to.username }}</span>
+                    <span class="block text-slate-600 sm:max-w-[6.5rem] sm:truncate" title="{{ t.assigned_to.username }}">{{ t.assigned_to.username }}</span>
                   {% else %}
                     <span class="text-slate-400">Sin asignar</span>
                   {% endif %}
                 </td>
-                <td data-label="Creado" class="px-2.5 py-2 text-[11px] text-slate-500 sm:min-w-[9rem] sm:px-3 sm:py-2 sm:whitespace-nowrap" title="{{ t.created_at|date:'d/M/Y H:i' }}">
+                <td data-label="Creado" class="px-2 py-2 text-[11px] text-slate-500 sm:min-w-[8rem] sm:px-2.5 sm:py-2 whitespace-nowrap" title="{{ t.created_at|date:'d/M/Y H:i' }}">
                   <div class="leading-tight text-slate-600">
                     <span class="block font-semibold text-slate-700">{{ t.created_at|date:"d/M/Y" }}</span>
                     <span class="text-slate-400">{{ t.created_at|time:"H:i" }}</span>
                   </div>
                 </td>
-                <td data-label="SLA" class="px-2.5 py-2 space-y-1 sm:px-3 sm:py-2.5">
+                <td data-label="SLA" class="px-2 py-2 space-y-1 sm:px-2.5 sm:py-2.5">
                   {% if t.is_overdue %}
                     <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-600"><i class="bi bi-alarm"></i> SLA vencido</span>
                   {% elif t.is_warning %}

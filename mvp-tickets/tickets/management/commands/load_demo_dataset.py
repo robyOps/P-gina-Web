@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import random
 from collections import Counter
+from itertools import cycle
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
@@ -22,7 +23,7 @@ from django.utils import timezone
 
 from accounts.roles import ROLE_ADMIN, ROLE_REQUESTER, ROLE_TECH
 from catalog.models import Area, Category, Priority, Subcategory
-from tickets.models import AutoAssignRule, FAQ, Ticket
+from tickets.models import AutoAssignRule, FAQ, Ticket, TicketAssignment
 from tickets.services import apply_auto_assign
 
 User = get_user_model()
@@ -68,12 +69,15 @@ class Command(BaseCommand):
         featured_specs = self._featured_ticket_templates(categories, areas, priorities, requesters)
         base_total = max(total_tickets - len(featured_specs), 0)
         status_plan = self._build_status_plan(base_total)
+        tech_cycle = cycle(techs)
+
         tickets = self._create_tickets(
             status_plan=status_plan,
             priorities=priorities,
             areas=areas,
             categories=categories,
             requesters=requesters,
+            tech_cycle=tech_cycle,
         )
         tickets.extend(
             self._create_featured_tickets(
@@ -82,6 +86,7 @@ class Command(BaseCommand):
                 categories=categories,
                 priorities=priorities,
                 requesters=requesters,
+                tech_cycle=tech_cycle,
             )
         )
         counts = Counter([t.status for t in tickets])
@@ -194,6 +199,10 @@ class Command(BaseCommand):
             "EXPERIENCIA CLIENTE": None,
             "RIESGO Y CONTINUIDAD": None,
             "RECURSOS HUMANOS": None,
+            "INFRAESTRUCTURA": None,
+            "SEGURIDAD": None,
+            "DATOS Y ANALÍTICA": None,
+            "SOPORTE AL CLIENTE": None,
         }
         for area in areas:
             if area.name in area_lookup:
@@ -244,6 +253,48 @@ class Command(BaseCommand):
                 "Silva",
                 tech_group,
                 area=area_lookup.get("TECNOLOGÍA") or areas[1],
+            ),
+            build_user(
+                "tech_eli",
+                "Elisa",
+                "Naranjo",
+                tech_group,
+                area=area_lookup["DATOS Y ANALÍTICA"] or areas[4],
+            ),
+            build_user(
+                "tech_fede",
+                "Federico",
+                "Lagos",
+                tech_group,
+                area=area_lookup["RECURSOS HUMANOS"] or areas[6],
+            ),
+            build_user(
+                "tech_gabi",
+                "Gabriela",
+                "Fuentes",
+                tech_group,
+                area=area_lookup["FINANZAS"] or areas[3],
+            ),
+            build_user(
+                "tech_hugo",
+                "Hugo",
+                "Sanhueza",
+                tech_group,
+                area=area_lookup["INFRAESTRUCTURA"] or areas[1],
+            ),
+            build_user(
+                "tech_isa",
+                "Isabel",
+                "Araya",
+                tech_group,
+                area=area_lookup["SEGURIDAD"] or areas[2],
+            ),
+            build_user(
+                "tech_juan",
+                "Juan",
+                "Contreras",
+                tech_group,
+                area=area_lookup["SOPORTE AL CLIENTE"] or areas[5],
             ),
         ]
         requesters = [
@@ -373,7 +424,7 @@ class Command(BaseCommand):
             plan.append(Ticket.IN_PROGRESS if len(plan) % 2 else Ticket.OPEN)
         return plan[:total]
 
-    def _create_tickets(self, *, status_plan, priorities, areas, categories, requesters):
+    def _create_tickets(self, *, status_plan, priorities, areas, categories, requesters, tech_cycle):
         tickets = []
         now = timezone.now()
         start_of_year = now.replace(month=1, day=1, hour=9, minute=0, second=0, microsecond=0)
@@ -399,7 +450,7 @@ class Command(BaseCommand):
                 created_at = now - timedelta(hours=random.uniform(priority.sla_hours * 0.5, priority.sla_hours * 4))
             if created_at > now:
                 created_at = now - timedelta(hours=random.uniform(0.5, 6))
-            title = f"Incidencia {idx:03d} en {category.name.title()}"
+            title = f"Ticket demo {idx:03d} en {category.name.title()}"
             description = (
                 f"Ticket demo #{idx} para probar reportes y autoasignación. "
                 f"Área {area.name.title()}, subcategoría {subcategory.name}."
@@ -419,6 +470,11 @@ class Command(BaseCommand):
             )
 
             apply_auto_assign(ticket, actor=requester)
+
+            chosen_tech = next(tech_cycle)
+            self._assign_ticket(ticket, to_user=chosen_tech, created_at=created_at, actor=requester)
+
+            ticket.assignments.update(created_at=created_at)
 
             resolved_at = None
             closed_at = None
@@ -469,7 +525,7 @@ class Command(BaseCommand):
                 "created_offset_hours": 4,
             },
             {
-                "title": "Incidente en modelo de datos financiero",
+                "title": "Caso en modelo de datos financiero",
                 "category": cat_index.get("DATOS Y ANALÍTICA"),
                 "subcategory": Subcategory.objects.filter(name="REPORTING").first(),
                 "priority": priority_index.get("MEDIA"),
@@ -480,7 +536,7 @@ class Command(BaseCommand):
             },
         ]
 
-    def _create_featured_tickets(self, *, templates, areas, categories, priorities, requesters):
+    def _create_featured_tickets(self, *, templates, areas, categories, priorities, requesters, tech_cycle):
         now = timezone.now()
         tickets = []
         for spec in templates:
@@ -498,9 +554,31 @@ class Command(BaseCommand):
                 kind=Ticket.INCIDENT,
             )
             apply_auto_assign(ticket, actor=spec["requester"])
+            self._assign_ticket(
+                ticket,
+                to_user=next(tech_cycle),
+                created_at=created_at,
+                actor=spec["requester"],
+                reason="distribución destacada",
+            )
+            ticket.assignments.update(created_at=created_at)
             Ticket.objects.filter(pk=ticket.pk).update(created_at=created_at)
             tickets.append(ticket)
         return tickets
+
+    def _assign_ticket(self, ticket, *, to_user, created_at, actor=None, reason="distribución demo"):
+        previous = ticket.assigned_to
+        if ticket.assigned_to_id != to_user.id:
+            ticket.assigned_to = to_user
+            ticket.save(update_fields=["assigned_to", "updated_at"])
+
+        assignment = TicketAssignment.objects.create(
+            ticket=ticket,
+            from_user=actor or previous,
+            to_user=to_user,
+            reason=reason,
+        )
+        TicketAssignment.objects.filter(pk=assignment.pk).update(created_at=created_at)
 
     # ------------------------------------------------------------------
     # Purga
@@ -525,6 +603,12 @@ class Command(BaseCommand):
             "tech_beto",
             "tech_cata",
             "tech_dante",
+            "tech_eli",
+            "tech_fede",
+            "tech_gabi",
+            "tech_hugo",
+            "tech_isa",
+            "tech_juan",
             "req_camila",
             "req_diego",
             "req_elena",

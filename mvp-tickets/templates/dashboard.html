@@ -323,8 +323,8 @@
                       </div>
                       <div class="flex flex-wrap gap-2" aria-label="Razones de urgencia">
                         {% for reason in entry.reasons %}
-                        <button type="button" class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold {% if reason.tone == 'danger' %}bg-rose-100 text-rose-700{% elif reason.tone == 'warning' %}bg-amber-100 text-amber-700{% else %}bg-slate-100 text-slate-700{% endif %}" disabled>
-                          <i class="bi {% if reason.tone == 'danger' %}bi-alarm{% elif reason.tone == 'warning' %}bi-hourglass{% else %}bi-info-circle{% endif %}"></i>
+                        <button type="button" class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold {% if reason.tone == 'danger' %}bg-rose-100 text-rose-700{% elif reason.tone == 'warning' %}bg-amber-100 text-amber-700{% elif reason.tone == 'critical-user' %}bg-cyan-100 text-cyan-700{% elif reason.tone == 'critical-area' %}bg-indigo-100 text-indigo-700{% else %}bg-slate-100 text-slate-700{% endif %}" disabled>
+                          <i class="bi {% if reason.tone == 'danger' %}bi-alarm{% elif reason.tone == 'warning' %}bi-hourglass{% elif reason.tone == 'critical-user' %}bi-person-fill-exclamation{% elif reason.tone == 'critical-area' %}bi-buildings{% else %}bi-info-circle{% endif %}"></i>
                           {{ reason.label }}
                         </button>
                         {% endfor %}
@@ -440,7 +440,7 @@
                 <p class="text-sm text-slate-600">Top 15 categorías con mayor volumen reportado {% if is_historical %}en el histórico disponible{% else %}durante el mes en curso{% endif %}.</p>
               </div>
               {% if failure_breakdown %}
-              <ul class="space-y-3 overflow-y-auto pr-2" role="list">
+              <ul class="space-y-3 overflow-y-auto pr-2 max-h-[24rem]" role="list">
                 {% for failure in failure_breakdown %}
                 <li class="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 shadow-sm">
                   <div class="flex items-center justify-between">
@@ -507,7 +507,8 @@
               <h3 class="text-base font-semibold text-slate-900">Áreas con más incidencias por subcategoría</h3>
               {% if area_by_subcategory %}
               <div class="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
-                <div class="overflow-hidden rounded-2xl border border-emerald-100">
+                <div class="overflow-hidden rounded-2xl border border-emerald-100 max-h-[19rem]">
+                  <div class="max-h-[19rem] overflow-y-auto">
                   <table class="min-w-full divide-y divide-emerald-100 text-sm">
                     <thead class="bg-emerald-50 text-xs uppercase tracking-[0.25em] text-emerald-700">
                       <tr>
@@ -531,6 +532,7 @@
                       {% endfor %}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </div>
               {% else %}
