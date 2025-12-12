@@ -10,6 +10,7 @@ Crea un dataset de demostración rico en tickets, catálogos, usuarios y reglas.
 from __future__ import annotations
 
 import random
+from calendar import monthrange
 from collections import Counter
 from itertools import cycle
 from datetime import timedelta
@@ -511,9 +512,7 @@ class Command(BaseCommand):
     def _create_tickets(self, *, status_plan, priorities, areas, categories, requesters, tech_cycle):
         tickets = []
         now = timezone.now()
-        start_of_year = now.replace(month=1, day=1, hour=9, minute=0, second=0, microsecond=0)
-        total_hours = max((now - start_of_year).total_seconds() / 3600.0, 1.0)
-        cadence_hours = total_hours / max(len(status_plan), 1)
+        created_schedule = self._build_created_at_schedule(len(status_plan), now)
 
         priority_cycle = priorities * ((len(status_plan) // len(priorities)) + 1)
         area_cycle = areas * ((len(status_plan) // len(areas)) + 1)
@@ -526,14 +525,7 @@ class Command(BaseCommand):
             priority = priority_cycle[idx % len(priority_cycle)]
             area = area_cycle[idx % len(area_cycle)]
 
-            created_at = start_of_year + timedelta(hours=idx * cadence_hours)
-            created_at += timedelta(hours=random.uniform(-6, 12))
-            if status in (Ticket.OPEN, Ticket.IN_PROGRESS) and created_at < now - timedelta(days=90):
-                created_at = now - timedelta(days=random.uniform(2, 90))
-            if priority.name == "CRÍTICA" and created_at < now - timedelta(days=10):
-                created_at = now - timedelta(hours=random.uniform(priority.sla_hours * 0.5, priority.sla_hours * 4))
-            if created_at > now:
-                created_at = now - timedelta(hours=random.uniform(0.5, 6))
+            created_at = created_schedule[idx - 1]
             title = f"Ticket demo {idx:03d} en {category.name.title()}"
             description = (
                 f"Ticket demo #{idx} para probar reportes y autoasignación. "
@@ -563,10 +555,13 @@ class Command(BaseCommand):
             resolved_at = None
             closed_at = None
             if status in (Ticket.RESOLVED, Ticket.CLOSED):
-                sla_factor = random.uniform(0.6, 1.45)
+                # Forzar una mezcla de tickets con y sin incumplimientos de SLA.
+                breach_factor = random.uniform(1.2, 1.8)
+                on_time_factor = random.uniform(0.4, 0.95)
+                sla_factor = breach_factor if random.random() < 0.3 else on_time_factor
                 resolved_at = created_at + timedelta(hours=priority.sla_hours * sla_factor)
                 if resolved_at > now:
-                    resolved_at = now - timedelta(hours=random.uniform(1, 8))
+                    resolved_at = now - timedelta(hours=random.uniform(1, 12))
             if status == Ticket.CLOSED:
                 closed_at = (resolved_at or created_at) + timedelta(hours=random.uniform(2, 10))
                 if closed_at > now:
@@ -579,6 +574,48 @@ class Command(BaseCommand):
             )
             tickets.append(ticket)
         return tickets
+
+    def _build_created_at_schedule(self, total: int, now):
+        """Genera fechas distribuidas en los últimos meses para evitar picos horarios."""
+
+        months_back = 6
+        month_specs = []
+        for offset in range(months_back - 1, -1, -1):
+            year = now.year
+            month = now.month - offset
+            while month <= 0:
+                month += 12
+                year -= 1
+            days = monthrange(year, month)[1]
+            month_specs.append((year, month, days))
+
+        allocations = [total // months_back for _ in range(months_back)]
+        remainder = total % months_back
+        for idx in range(remainder):
+            allocations[months_back - 1 - idx] += 1  # Sesgo hacia meses recientes.
+
+        schedule = []
+        for month_idx, count in enumerate(allocations):
+            year, month, days = month_specs[month_idx]
+            for _ in range(count):
+                day = random.randint(1, days)
+                hour = random.randint(0, 23)
+                minute = random.randint(0, 59)
+                created_at = timezone.datetime(
+                    year,
+                    month,
+                    day,
+                    hour,
+                    minute,
+                    random.randint(0, 59),
+                    tzinfo=now.tzinfo,
+                )
+                if created_at > now:
+                    created_at = now - timedelta(hours=random.uniform(1, 24))
+                schedule.append(created_at)
+
+        random.shuffle(schedule)
+        return schedule[:total]
 
     def _featured_ticket_templates(self, categories, areas, priorities, requesters):
         cat_index = {c.name: c for c in categories}
