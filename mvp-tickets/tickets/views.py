@@ -397,15 +397,58 @@ def dashboard(request):
 
     urgent_candidates = (
         qs.filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
-        .select_related("priority")
+        .select_related("priority", "requester__profile", "area", "assigned_to")
         .order_by("-critical_score", "-priority__sla_hours", "created_at")
     )
-    urgent_tickets = []
+    urgent_items: list[dict] = []
     for ticket in urgent_candidates:
-        sla_hours = getattr(ticket.priority, "sla_hours", 72) or 72
-        if ticket.is_overdue or ticket.is_warning or sla_hours <= 24:
-            urgent_tickets.append(ticket)
-    urgent_tickets.sort(key=lambda t: t.remaining_hours)
+        reasons = []
+        if ticket.is_overdue:
+            reasons.append({"label": "SLA vencido", "tone": "danger"})
+        elif ticket.is_warning:
+            reasons.append({"label": "SLA por vencer", "tone": "warning"})
+
+        if getattr(ticket.requester, "is_critical_actor", False):
+            reasons.append({"label": "Usuario crítico", "tone": "info"})
+        if getattr(ticket.area, "is_critical", False):
+            reasons.append({"label": "Área crítica", "tone": "info"})
+
+        if not reasons:
+            continue
+
+        urgency_score = 0
+        if ticket.is_overdue:
+            urgency_score += 3
+        elif ticket.is_warning:
+            urgency_score += 2
+
+        if getattr(ticket.requester, "is_critical_actor", False):
+            urgency_score += 1.5
+        if getattr(ticket.area, "is_critical", False):
+            urgency_score += 1.2
+        if getattr(ticket.priority, "sla_hours", 0) and ticket.priority.sla_hours <= 12:
+            urgency_score += 0.5
+
+        urgent_items.append(
+            {
+                "ticket": ticket,
+                "reasons": reasons,
+                "urgency_score": urgency_score,
+            }
+        )
+
+    urgent_items.sort(key=lambda item: (-item["urgency_score"], item["ticket"].remaining_hours))
+
+    urgent_tickets = []
+    overdue_limit = 3
+    for item in urgent_items:
+        if item["ticket"].is_overdue and overdue_limit <= 0:
+            continue
+        if item["ticket"].is_overdue:
+            overdue_limit -= 1
+        urgent_tickets.append(item)
+        if len(urgent_tickets) >= 8:
+            break
 
     failure_qs = period_qs
     failure_rows = (

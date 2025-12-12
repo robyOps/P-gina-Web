@@ -298,7 +298,11 @@ class Command(BaseCommand):
 
     def _create_tickets(self, *, status_plan, priorities, areas, categories, requesters):
         tickets = []
-        base_created = timezone.now() - timedelta(days=120)
+        now = timezone.now()
+        span_days = 45
+        base_created = now - timedelta(days=span_days)
+        cadence_hours = max(1.0, (span_days * 24) / max(len(status_plan), 1))
+
         priority_cycle = priorities * ((len(status_plan) // len(priorities)) + 1)
         area_cycle = areas * ((len(status_plan) // len(areas)) + 1)
 
@@ -310,7 +314,9 @@ class Command(BaseCommand):
             priority = priority_cycle[idx % len(priority_cycle)]
             area = area_cycle[idx % len(area_cycle)]
 
-            created_at = base_created + timedelta(hours=idx * 4)
+            created_at = base_created + timedelta(hours=idx * cadence_hours)
+            if created_at > now:
+                created_at = now - timedelta(hours=random.uniform(0.5, 6))
             title = f"Incidencia {idx:03d} en {category.name.title()}"
             description = (
                 f"Ticket demo #{idx} para probar reportes y autoasignación. "
@@ -336,8 +342,12 @@ class Command(BaseCommand):
             closed_at = None
             if status in (Ticket.RESOLVED, Ticket.CLOSED):
                 resolved_at = created_at + timedelta(hours=12 + (idx % 48))
+                if resolved_at > now:
+                    resolved_at = now - timedelta(hours=random.uniform(0.5, 3))
             if status == Ticket.CLOSED:
                 closed_at = (resolved_at or created_at) + timedelta(hours=4)
+                if closed_at > now:
+                    closed_at = now - timedelta(hours=random.uniform(0.25, 2))
 
             Ticket.objects.filter(pk=ticket.pk).update(
                 created_at=created_at,
