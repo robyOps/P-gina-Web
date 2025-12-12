@@ -90,7 +90,7 @@ autoasignaciones y notificaciones para áreas o actores críticos.
    ```bash
    cd mvp-tickets
    python manage.py migrate
-   python manage.py seed_demo --reset
+   python manage.py load_demo_dataset --purge
    ```
 
    - `--reset` limpia datos de tickets/FAQs/reglas previos sin eliminar
