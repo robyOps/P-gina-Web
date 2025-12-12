@@ -395,6 +395,90 @@ class Command(BaseCommand):
                 "INFRAESTRUCTURA",
                 "VPN",
             ),
+            (
+                "Recuperar credenciales olvidadas",
+                "Ingresa a la página de autoservicio, responde tus preguntas de seguridad y restablece la contraseña.",
+                "SEGURIDAD",
+                "CREDENCIALES",
+            ),
+            (
+                "Correo corporativo sin espacio",
+                "Limpia la carpeta de enviados, vacía la papelera y solicita ampliación temporal de buzón si sigues al límite.",
+                "INFRAESTRUCTURA",
+                "ALMACENAMIENTO",
+            ),
+            (
+                "Conexión Wi-Fi inestable",
+                "Prioriza la red 5GHz, ubícate cerca del access point y reinicia el cliente para renovar tu lease DHCP.",
+                "INFRAESTRUCTURA",
+                "WIFI",
+            ),
+            (
+                "Alta en el CRM",
+                "Crea la solicitud indicando rol comercial y segmento; el equipo validará permisos antes de habilitar el acceso.",
+                "SOPORTE APLICACIONES",
+                "CRM",
+            ),
+            (
+                "Error en conciliación de pagos",
+                "Verifica que el archivo del procesador tenga el formato actualizado y vuelve a ejecutar el batch.",
+                "SOPORTE APLICACIONES",
+                "PAGOS",
+            ),
+            (
+                "Integración con socio vía API",
+                "Genera una nueva API key en el portal de partners y comparte el endpoint sandbox para pruebas.",
+                "SOPORTE APLICACIONES",
+                "API PARTNERS",
+            ),
+            (
+                "Laptop requiere reemplazo",
+                "Documenta el diagnóstico en el ticket y coordina retiro con mesa de servicio para recibir el equipo de backup.",
+                "DISPOSITIVOS",
+                "LAPTOP",
+            ),
+            (
+                "Sin datos móviles en el teléfono corporativo",
+                "Comprueba el perfil APN empresarial y reinicia el dispositivo; si persiste, solicita un eSIM de reemplazo.",
+                "DISPOSITIVOS",
+                "MÓVILES",
+            ),
+            (
+                "Alerta de fraude reportada",
+                "Escala de inmediato al equipo de respuesta a incidentes y aísla el endpoint sospechoso de la red.",
+                "SEGURIDAD",
+                "RESPUESTA INCIDENTES",
+            ),
+            (
+                "Dashboard no carga datos",
+                "Verifica que el dataset esté actualizado y limpia la caché del navegador antes de recargar el panel.",
+                "DATOS Y ANALÍTICA",
+                "DASHBOARDS",
+            ),
+            (
+                "Ejecución ETL fallida",
+                "Revisa los logs en el orquestador, valida credenciales del data lake y relanza el job manualmente.",
+                "DATOS Y ANALÍTICA",
+                "ETL",
+            ),
+            (
+                "Chat con clientes fuera de línea",
+                "Confirma que los agentes estén logueados en la herramienta y revisa el estado del conector de mensajería.",
+                "SOPORTE AL CLIENTE",
+                "CHAT",
+            ),
+            (
+                "Llamadas sin audio en telefonía",
+                "Verifica el enrutamiento en el SBC y realiza una prueba loopback para descartar fallas de headset.",
+                "SOPORTE AL CLIENTE",
+                "TELEFONÍA",
+            ),
+            (
+                "App de campo no sincroniza",
+                "Pide a los técnicos actualizar la app, habilitar datos en segundo plano y sincronizar cuando tengan señal estable.",
+                "SOPORTE AL CLIENTE",
+                "HERRAMIENTAS DE CAMPO",
+            ),
         ]
         cat_index = {c.name: c for c in categories}
         for question, answer, cat_name, sub_name in payload:
