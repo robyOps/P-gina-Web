@@ -287,8 +287,8 @@
         </section>
 
         <section class="grid gap-5 lg:grid-cols-[1.05fr_1fr]">
-          <article class="rounded-3xl border border-rose-100 bg-white p-6 shadow-sm lg:mt-4">
-            <div class="flex flex-col gap-3">
+          <article class="flex h-full flex-col rounded-3xl border border-rose-100 bg-white p-6 shadow-sm lg:mt-4">
+            <div class="flex h-full flex-col gap-3">
               <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 class="text-2xl font-semibold text-slate-900">Tickets urgentes</h2>
@@ -297,8 +297,8 @@
                 <span class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-rose-500"><i class="bi bi-lightning-charge"></i> Prioridad</span>
               </div>
               {% if urgent_tickets %}
-              <div class="relative">
-                <div class="max-h-[26rem] space-y-3 overflow-y-auto pr-1 sm:pr-2" role="list">
+              <div class="relative flex-1">
+                <div class="h-full min-h-0 space-y-3 overflow-y-auto pr-1 sm:pr-2" role="list">
                   {% for entry in urgent_tickets %}
                   {% with ticket=entry.ticket %}
                   <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300" role="listitem">
@@ -344,7 +344,7 @@
             </div>
           </article>
 
-          <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <article class="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div class="flex flex-col gap-3">
               <div>
                 <h2 class="text-2xl font-semibold text-slate-900">Distribución {% if is_historical %}histórica{% else %}del mes en curso{% endif %}</h2>
