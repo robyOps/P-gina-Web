@@ -2565,9 +2565,6 @@ def logs_list(request):
     action = request.GET.get("action")
     if action:
         qs = qs.filter(action__icontains=action)
-    resource = request.GET.get("resource")
-    if resource:
-        qs = qs.filter(resource_id=resource)
     dfrom = request.GET.get("from")
     if dfrom:
         qs = qs.filter(created_at__date__gte=dfrom)
@@ -2595,12 +2592,6 @@ def logs_list(request):
         {"value": key, "label": label}
         for key, label in sorted(action_labels.items(), key=lambda pair: pair[1])
     ]
-    resource_options = list(
-        EventLog.objects.exclude(resource_id__isnull=True)
-        .values_list("resource_id", flat=True)
-        .distinct()
-        .order_by("resource_id")
-    )
     User = get_user_model()
     actor_suggestions = list(
         User.objects.filter(eventlog__isnull=False)
@@ -2632,7 +2623,6 @@ def logs_list(request):
         "querystring": params.urlencode(),
         "filters": request.GET,
         "action_options": action_options,
-        "resource_options": resource_options,
         "actor_suggestions": actor_suggestions,
     }
     return TemplateResponse(request, "logs/list.html", ctx)
