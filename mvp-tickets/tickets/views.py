@@ -842,7 +842,9 @@ def tickets_home(request):
         "kind",
     }
     sort_key = sort_param.lstrip("-")
-    if sort_key in allowed_sorts:
+    if sort_key == "due_at":
+        active_sort = sort_param or "due_at"
+    elif sort_key in allowed_sorts:
         qs = qs.order_by(sort_param)
         active_sort = sort_param
     else:
@@ -899,6 +901,8 @@ def tickets_home(request):
             tickets_list.sort(key=cmp_to_key(comparator_desc))
         else:
             tickets_list.sort(key=cmp_to_key(comparator))
+    elif sort_key == "due_at":
+        tickets_list.sort(key=lambda ticket: ticket.due_at, reverse=sort_descending)
     elif sort_key == "title":
         tickets_list.sort(
             key=lambda ticket: (ticket.title or "").casefold(),

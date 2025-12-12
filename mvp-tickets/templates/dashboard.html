@@ -139,6 +139,18 @@
     border-radius: 9999px;
     background: linear-gradient(90deg, #bbf7d0 0%, #bef264 30%, #fde68a 55%, #fb923c 78%, #ef4444 100%);
   }
+  .dashboard-top-subcategories__list {
+    max-height: 22rem;
+    overflow-y: auto;
+    padding-right: 0.35rem;
+  }
+  .dashboard-top-subcategories__list::-webkit-scrollbar {
+    width: 0.5rem;
+  }
+  .dashboard-top-subcategories__list::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #22c55e, #0ea5e9);
+    border-radius: 9999px;
+  }
   @media (max-width: 640px) {
     .heatmap-cell {
       padding: 0.35rem;
@@ -464,7 +476,7 @@
               <span class="dashboard-top-subcategories__badge inline-flex items-center gap-2 self-start rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600 sm:self-auto"><i class="bi bi-calendar3"></i> {% if is_historical %}Histórico{% else %}Mes en curso{% endif %}</span>
             </div>
             {% if top_subcategories %}
-            <ol class="mt-4 space-y-3" role="list">
+            <ol class="dashboard-top-subcategories__list mt-4 space-y-3" role="list">
               {% for item in top_subcategories %}
               <li class="space-y-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 shadow-inner">
                 <div class="dashboard-top-subcategories__item-header flex flex-col gap-3 text-sm font-semibold text-slate-700 sm:flex-row sm:items-center sm:justify-between">
@@ -539,11 +551,7 @@
             <div class="mt-4 h-60">
               <canvas id="slaOverviewChart" aria-label="Gráfico de cumplimiento de plazos"></canvas>
             </div>
-            <dl class="mt-4 grid gap-3 text-xs text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
-              <div class="rounded-xl bg-slate-50 px-3 py-2 shadow-sm">
-                <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">Abiertos al día</dt>
-                <dd class="mt-1 text-lg font-semibold text-slate-900">{{ sla_summary.open_on_time }}</dd>
-              </div>
+            <dl class="mt-4 grid gap-3 text-xs text-slate-600 sm:grid-cols-2 lg:grid-cols-3">
               <div class="rounded-xl bg-slate-50 px-3 py-2 shadow-sm">
                 <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">Cerrados en plazo</dt>
                 <dd class="mt-1 text-lg font-semibold text-slate-900">{{ sla_summary.closed_on_time }}</dd>
