@@ -7,82 +7,120 @@
     * { box-sizing: border-box; }
     body {
       font-family: "DejaVu Sans", Arial, Helvetica, sans-serif;
-      background: #f5f7fb;
-      color: #0f172a;
+      background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+      color: #0b1330;
       font-size: 12px;
       margin: 0;
-      padding: 24px;
+      padding: 26px;
     }
     .page {
-      background: #ffffff;
-      border-radius: 16px;
-      border: 1px solid #e2e8f0;
-      overflow: hidden;
-      box-shadow: 0 22px 60px rgba(15, 23, 42, 0.12);
-      max-width: 1100px;
+      max-width: 1120px;
       margin: 0 auto;
+      background: #ffffff;
+      border-radius: 18px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 20px 70px rgba(15, 23, 42, 0.16);
+      overflow: hidden;
     }
     header {
-      padding: 24px 26px;
-      color: #0b1330;
-      background: linear-gradient(135deg, #e0e7ff, #eef2ff 45%, #ffffff);
-      border-bottom: 1px solid #cbd5e1;
+      padding: 26px 28px 24px;
+      background: radial-gradient(circle at 20% 20%, rgba(96, 165, 250, 0.18), transparent 32%),
+                  radial-gradient(circle at 80% 0%, rgba(139, 92, 246, 0.16), transparent 38%),
+                  linear-gradient(120deg, #0f172a 0%, #111827 22%, #0f172a 100%);
+      color: #e2e8f0;
+      position: relative;
+      isolation: isolate;
     }
-    .eyebrow { display: inline-flex; padding: 6px 10px; border-radius: 999px; background: #1d4ed8; color: #eef2ff; letter-spacing: 0.28em; font-weight: 800; font-size: 10px; text-transform: uppercase; margin-bottom: 10px; }
-    h1 { margin: 0 0 8px; font-size: 24px; letter-spacing: -0.02em; color: #0b1330; }
-    .subtitle { margin: 0; font-size: 13px; color: #334155; }
-    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .meta span { background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 7px 11px; font-weight: 600; font-size: 11px; }
-    main { padding: 24px 24px 26px; }
-    h2 { margin: 0 0 10px; font-size: 15px; color: #0f172a; }
+    header::after {
+      content: "";
+      position: absolute;
+      inset: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      pointer-events: none;
+    }
+    .header-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: center; }
+    .eyebrow { display: inline-flex; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,0.12); color: #c7d2fe; letter-spacing: 0.26em; font-weight: 800; font-size: 10px; text-transform: uppercase; margin-bottom: 10px; backdrop-filter: blur(6px); }
+    h1 { margin: 0 0 10px; font-size: 26px; letter-spacing: -0.02em; color: #f8fafc; }
+    .subtitle { margin: 0; font-size: 13px; color: #cbd5e1; }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .chip { background: rgba(255,255,255,0.08); color: #e2e8f0; border-radius: 10px; padding: 7px 11px; font-weight: 600; font-size: 11px; border: 1px solid rgba(255,255,255,0.12); }
+    .summary-box { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 12px 14px; backdrop-filter: blur(4px); }
+    .summary-box h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #cbd5e1; }
+    .summary-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+    .summary-list li { display: flex; justify-content: space-between; font-size: 12px; color: #e5e7eb; border-bottom: 1px dashed rgba(226,232,240,0.24); padding-bottom: 4px; }
+    .summary-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    main { padding: 22px 24px 26px; }
+
+    /* Sección filtros */
+    .section { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05); margin-bottom: 14px; }
+    .section-title { margin: 0 0 8px; font-size: 14px; color: #0f172a; display: flex; align-items: center; gap: 6px; letter-spacing: -0.01em; }
+    .section-title span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #22c55e); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12); }
     .muted { color: #475569; font-size: 11px; }
     .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-    .pill { background: #ecfeff; color: #0f172a; border: 1px solid #bae6fd; border-radius: 10px; padding: 6px 9px; font-weight:700; font-size: 11px; }
-    .pill.dark { background: #eef2ff; color: #312e81; border-color: #c7d2fe; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 10px 0 14px; }
-    .kpi { background: linear-gradient(180deg, #ffffff, #f8fafc); border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06); }
-    .kpi-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #475569; }
-    .kpi-value { font-size: 22px; font-weight: 800; margin: 6px 0 2px; color: #111827; }
+    .pill { background: #eef2ff; color: #312e81; border: 1px solid #c7d2fe; border-radius: 10px; padding: 6px 10px; font-weight: 700; font-size: 11px; }
+    .pill.dark { background: #ecfeff; color: #0f172a; border-color: #bae6fd; }
+
+    /* KPI Cards */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 10px 0 14px; }
+    .kpi { position: relative; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px; box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08); overflow: hidden; }
+    .kpi::after { content: ""; position: absolute; right: -18px; top: -18px; width: 90px; height: 90px; background: radial-gradient(circle, rgba(99, 102, 241, 0.16), transparent 60%); transform: rotate(25deg); }
+    .kpi-label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #475569; margin-bottom: 6px; }
+    .kpi-value { font-size: 24px; font-weight: 800; margin: 2px 0 6px; color: #0f172a; }
     .kpi-note { font-size: 11px; color: #475569; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
-    th { text-align: left; background: #e5e7eb; color: #111827; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; padding: 8px 9px; border: 1px solid #d1d5db; }
+
+    /* Tablas y tarjetas */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06); }
+    .card h3 { margin: 0 0 8px; font-size: 13px; color: #0f172a; letter-spacing: -0.01em; }
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12px; }
+    th { text-align: left; background: #0f172a; color: #e2e8f0; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; padding: 8px 9px; border: 1px solid #0f172a; }
     td { padding: 8px 9px; border: 1px solid #e2e8f0; color: #0f172a; }
     tr:nth-child(even) td { background: #f8fafc; }
     .empty { text-align: center; color: #94a3b8; padding: 12px 8px; }
-    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
-    .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06); }
-    .card h3 { margin: 0 0 8px; font-size: 13px; color: #0f172a; }
-    .note { border-left: 3px solid #22c55e; padding-left: 10px; font-size: 12px; color: #15803d; margin: 12px 0 0; }
-    .filters-card { border: 1px dashed #cbd5e1; background: #f8fafc; }
-    .filters-card h2 { margin-bottom: 6px; }
-    .bar-row { display: grid; grid-template-columns: 1fr 80px; gap: 8px; align-items: center; margin-bottom: 6px; }
-    .bar-label { font-weight: 600; color: #0f172a; font-size: 11px; }
-    .bar { position: relative; width: 100%; height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+
+    /* Barras de progreso */
+    .bar-row { display: grid; grid-template-columns: 1fr 70px; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .bar-label { font-weight: 700; color: #0f172a; font-size: 11px; }
+    .bar { position: relative; width: 100%; height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden; border: 1px solid #e2e8f0; }
     .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #6366f1, #22c55e); }
-    .bar-fill.secondary { background: linear-gradient(90deg, #0ea5e9, #3b82f6); }
-    .chart-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; background: #ffffff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); }
-    .chart-card h3 { margin-bottom: 6px; }
-    .grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-    .tag { display: inline-block; padding: 4px 8px; border-radius: 10px; background: #eef2ff; color: #312e81; font-weight: 700; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .bar-fill.secondary { background: linear-gradient(90deg, #0ea5e9, #2563eb); }
+    .tag { display: inline-block; padding: 4px 8px; border-radius: 10px; background: #eef2ff; color: #312e81; font-weight: 700; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; text-align: center; }
+
+    /* Notas */
+    .note { border-left: 3px solid #22c55e; padding-left: 10px; font-size: 12px; color: #15803d; margin: 12px 0 0; background: #f0fdf4; border-radius: 8px; }
   </style>
 </head>
 <body>
   <div class="page">
     <header>
-      <div class="eyebrow">Reporte de tickets</div>
-      <h1>{{ type_label }}</h1>
-      <p class="subtitle">Visión ordenada y lista para compartir con tu equipo.</p>
-      <div class="meta">
-        <span>Generado el {{ generated_at|date:"d/m/Y H:i" }}</span>
-        <span>Total: {{ total }}</span>
-        {% if from or to %}<span>Rango: {{ from|default:"—" }} → {{ to|default:"—" }}</span>{% endif %}
-        {% if tech_filter %}<span>Técnico: {{ tech_filter }}</span>{% endif %}
+      <div class="header-grid">
+        <div>
+          <div class="eyebrow">Reporte de tickets</div>
+          <h1>{{ type_label }}</h1>
+          <p class="subtitle">Informe listo para compartir con tu equipo y tomar decisiones.</p>
+          <div class="meta">
+            <span class="chip">Generado el {{ generated_at|date:"d/m/Y H:i" }}</span>
+            <span class="chip">Total: {{ total }}</span>
+            {% if from or to %}<span class="chip">Rango: {{ from|default:"—" }} → {{ to|default:"—" }}</span>{% endif %}
+            {% if tech_filter %}<span class="chip">Técnico: {{ tech_filter }}</span>{% endif %}
+          </div>
+        </div>
+        <div class="summary-box">
+          <h3>Resumen ejecutivo</h3>
+          <ul class="summary-list">
+            <li><span>Tipo de reporte</span><strong>{{ type_label }}</strong></li>
+            <li><span>Tickets analizados</span><strong>{{ total }}</strong></li>
+            <li><span>Promedio resolución</span><strong>{{ avg_hours|default_if_none:"—" }} h</strong></li>
+            {% if from or to %}<li><span>Periodo</span><strong>{{ from|default:"—" }} → {{ to|default:"—" }}</strong></li>{% endif %}
+          </ul>
+        </div>
       </div>
     </header>
 
     <main>
-      <section class="card filters-card">
-        <h2>Filtros aplicados</h2>
+      <section class="section">
+        <h2 class="section-title"><span></span>Filtros aplicados</h2>
         <div class="pill-row">
           {% for f in filters_applied %}
             <span class="pill dark"><strong>{{ f.label }}:</strong> {{ f.value }}</span>
@@ -113,9 +151,9 @@
       </section>
 
       {% with status_data=by_status priority_data=by_priority %}
-      <section class="grid-auto" style="margin-bottom:12px;">
-        <article class="chart-card">
-          <h3>Vista rápida de estado</h3>
+      <section class="card-grid" style="margin-bottom:12px;">
+        <article class="card">
+          <h3>Estado de tickets</h3>
           {% for name, count in status_data.items %}
             <div class="bar-row">
               <div class="bar-label">{{ name }}</div>
@@ -128,8 +166,8 @@
             <p class="muted">Sin datos disponibles para el rango seleccionado.</p>
           {% endfor %}
         </article>
-        <article class="chart-card">
-          <h3>Prioridades</h3>
+        <article class="card">
+          <h3>Distribución de prioridades</h3>
           {% for row in priority_data %}
             <div class="bar-row">
               <div class="bar-label">{{ row.priority__name|default:"Sin prioridad" }}</div>
@@ -146,14 +184,14 @@
       {% endwith %}
 
       {% if type == 'promedio' %}
-        <section class="card" style="margin-bottom:14px;">
-          <h2 style="margin-bottom:6px;">Tiempo promedio</h2>
+        <section class="section">
+          <h2 class="section-title"><span></span>Tiempo promedio</h2>
           <p class="muted">{{ avg_hours|default_if_none:"—" }} horas en promedio considerando solo tickets resueltos en el periodo.</p>
         </section>
       {% elif type == 'productividad' %}
         <section class="card-grid">
           <article class="card">
-            <h3>Resumen ejecutivo</h3>
+            <h3>Resumen de productividad</h3>
             <table>
               <tbody>
                 <tr><td class="muted">Tickets cerrados</td><td><strong>{{ productivity_summary.total_closed|default:"0" }}</strong></td></tr>
