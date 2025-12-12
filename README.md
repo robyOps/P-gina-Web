@@ -77,45 +77,46 @@ python manage.py createsuperuser  # opcional para acceder al admin
 python manage.py runserver
 ```
 
-## Carga rápida de datos demo (500 tickets)
+## Carga rápida de datos demo (seed realista)
 
-El comando `load_demo_dataset` genera un set completo para probar KPIs, autoasignación
-y reportes. Incluye catálogos, FAQs, reglas y usuarios de todos los roles.
+El comando `seed_demo_data` genera un set reproducible con volúmenes, fechas y
+asignaciones realistas para probar autoasignación, notificaciones y KPIs del
+dashboard. Incluye creación de catálogos, FAQs, reglas, usuarios (admins,
+técnicos y solicitantes) y tickets con comentarios/adjuntos/logs.
 
-1. Vacía los datos actuales y regenera la demo:
+1. Preparar entorno y ejecutar el seed con los valores por defecto (1500 tickets
+   desde `2025-01-01` hasta hoy):
 
    ```bash
    cd mvp-tickets
    python manage.py migrate
-   python manage.py load_demo_dataset --purge --tickets 1000
+   python manage.py seed_demo_data --flush
    ```
 
-   - `--purge` elimina tickets, catálogos demo, FAQs y usuarios de prueba previos
-     (no toca superusuarios).
-   - El comando ejecuta `init_rbac` automáticamente para refrescar grupos y permisos.
+   - `--flush` limpia los datos generados previamente (sin borrar superusuarios
+     reales si existen).
+   - Usa `--seed 42` (por defecto) para obtener siempre la misma distribución.
 
-2. Usuarios listos para probar (clave: `Demo1234!`):
-   - Administradores: `admin_ana`, `admin_bruno`
-   - Técnicos: `tech_ale`, `tech_beto`
-   - Solicitantes: `req_camila` (crítica), `req_diego`
+2. Personaliza fechas y volúmenes según la prueba que necesites:
 
-3. Catálogos y reglas incluidas:
-   - Categorías: Soporte Aplicaciones, Infraestructura, Seguridad, Dispositivos
-   - Subcategorías por categoría (ERP, CRM, Pagos, VPN, WiFi, Correo, MFA, etc.)
-   - Áreas: Operaciones, Tecnología, Finanzas, Dirección Ejecutiva y Experiencia Cliente
-     (las dos últimas marcadas como críticas)
-   - Reglas de autoasignación cruzando categoría, subcategoría y área (ej.: Seguridad/MFA → tech_ale;
-     Dispositivos → tech_beto; Dirección Ejecutiva → tech_beto)
-   - FAQs base ligadas a las categorías anteriores
+   ```bash
+   python manage.py seed_demo_data \
+     --from-date 2025-03-01 \
+     --to-date 2025-12-31 \
+     --tickets 800 \
+     --requesters 120 \
+     --techs 8 \
+     --admins 3 \
+     --seed 99
+   ```
 
-4. KPIs después de la carga demo (500 tickets):
-   - Abiertos: **160**
-   - En progreso: **140**
-   - Resueltos: **110**
-   - Cerrados: **90**
-   - Total: **500** tickets distribuidos en todas las categorías, áreas y prioridades
+   - Ajusta `--tickets` para simular mayor carga en KPIs.
+   - Reduce `--from-date` para ver tickets históricos ya cerrados y una ventana
+     reciente con tickets abiertos/en progreso.
 
-Re-ejecuta el comando cuando necesites regenerar datos frescos para validar reportes.
+3. Usuarios demo creados (clave: `Demo1234!`) incluyen perfiles críticos y roles
+   asignados a grupos existentes. Revisa el resumen final que imprime el comando
+   para validar conteos de usuarios, tickets por estado y top técnicos.
 
 ## Pruebas de humo recomendadas
 
