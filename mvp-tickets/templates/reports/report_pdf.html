@@ -1,279 +1,282 @@
 <!doctype html>
-{% load static %}
 <html lang="es">
 <head>
   <meta charset="utf-8" />
   <title>Reporte de tickets</title>
-  <link rel="stylesheet" href="{% static 'css/report_pdf.css' %}">
+  <style>
+    /* ===== Base ===== */
+    @page { margin: 18mm 14mm; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #111827;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .muted { color: #6B7280; }
+    .small { font-size: 11px; }
+    h1 { font-size: 18px; margin: 0; }
+    h2 { font-size: 13px; margin: 0 0 8px 0; }
+    .divider { border: 0; border-top: 1px solid #E5E7EB; margin: 14px 0; }
+
+    /* ===== Header ===== */
+    .header {
+      border: 1px solid #E5E7EB;
+      border-left: 5px solid #1D4ED8; /* Azul profesional */
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      background: #FFFFFF;
+    }
+    .brand {
+      font-weight: 700;
+      letter-spacing: .2px;
+      color: #0F172A;
+    }
+    .subtitle { margin-top: 4px; color: #334155; }
+
+    /* ===== Meta strip ===== */
+    .meta {
+      display: table;
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 8px;
+      margin-top: 8px;
+    }
+    .meta .cell {
+      display: table-cell;
+      border: 1px solid #E5E7EB;
+      background: #F8FAFC;
+      padding: 8px 10px;
+      border-radius: 10px;
+      vertical-align: top;
+    }
+    .meta .label { font-size: 10px; color: #6B7280; text-transform: uppercase; }
+    .meta .value { font-weight: 600; margin-top: 2px; }
+
+    /* ===== KPI cards ===== */
+    .kpis { display: table; width: 100%; border-spacing: 10px; border-collapse: separate; margin-top: 10px; }
+    .kpi {
+      display: table-cell;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #FFFFFF;
+      vertical-align: top;
+    }
+    .kpi .k-label { color: #6B7280; font-size: 10px; text-transform: uppercase; }
+    .kpi .k-value { font-size: 18px; font-weight: 800; margin-top: 4px; }
+    .kpi .k-note { color: #6B7280; font-size: 11px; margin-top: 2px; }
+
+    /* ===== Section card ===== */
+    .card {
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      background: #FFFFFF;
+      padding: 12px 14px;
+      margin-top: 10px;
+    }
+    .card-title {
+      font-weight: 800;
+      color: #0F172A;
+      margin-bottom: 8px;
+    }
+
+    /* ===== Tables ===== */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left;
+      font-size: 10px;
+      color: #374151;
+      background: #F1F5F9;
+      border-bottom: 1px solid #E5E7EB;
+      padding: 8px;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+    td {
+      padding: 8px;
+      border-bottom: 1px solid #F1F5F9;
+    }
+    tbody tr:nth-child(even) td { background: #FAFAFB; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* ===== Simple bars (no charts lib) ===== */
+    .bar-row { margin: 6px 0; }
+    .bar-label { display: inline-block; width: 120px; color: #111827; }
+    .bar-track {
+      display: inline-block;
+      width: 260px;
+      height: 10px;
+      background: #E5E7EB;
+      border-radius: 999px;
+      vertical-align: middle;
+      overflow: hidden;
+      margin: 0 8px;
+    }
+    .bar-fill { height: 100%; background: #1D4ED8; } /* azul */
+    .bar-val { color: #6B7280; }
+
+    /* ===== Two columns ===== */
+    .grid2 { display: table; width: 100%; border-spacing: 10px; border-collapse: separate; }
+    .col { display: table-cell; width: 50%; vertical-align: top; }
+
+    /* ===== Footer ===== */
+    .footer {
+      margin-top: 14px;
+      color: #6B7280;
+      font-size: 10px;
+      text-align: center;
+    }
+  </style>
 </head>
+
 <body>
+
   <div class="header">
-    <div>
-      <h1>Reporte de tickets</h1>
-      <div class="muted">{{ type_label }}</div>
-      <div class="filters">
-        <span><strong>Rango:</strong> {{ from|default:"—" }} → {{ to|default:"—" }}</span>
-        {% if tech_filter %}<span><strong>Técnico:</strong> {{ tech_filter }}</span>{% endif %}
-      </div>
-      <div class="badge-row" style="margin-top: 3mm;">
-        {% for item in filters_applied %}
-          <span class="badge">{{ item.label }}: {{ item.value }}</span>
-        {% empty %}
-          <span class="filters-empty">Sin filtros adicionales.</span>
-        {% endfor %}
-      </div>
-    </div>
+    <div class="brand">Coyahue · Soporte TI</div>
+    <h1>Reporte de tickets</h1>
+    <div class="subtitle">Rendimiento por técnico</div>
+
     <div class="meta">
-      <div><strong>Emisión:</strong> {{ generated_at|date:"d/m/Y H:i" }}</div>
-      <div><strong>Total:</strong> {{ total }}</div>
-      <div><strong>Tipo:</strong> {{ type|default:"general" }}</div>
+      <div class="cell">
+        <div class="label">Periodo</div>
+        <div class="value">{{ date_from }} → {{ date_to }}</div>
+      </div>
+      <div class="cell">
+        <div class="label">Tipo de reporte</div>
+        <div class="value">{{ report_type_label }}</div>
+      </div>
+      <div class="cell">
+        <div class="label">Técnico</div>
+        <div class="value">{{ tech_username|default:"—" }}</div>
+      </div>
+      <div class="cell">
+        <div class="label">Emisión</div>
+        <div class="value">{{ generated_at }}</div>
+      </div>
     </div>
   </div>
 
-  <div class="hr"></div>
-
+  <!-- KPIs -->
   <div class="kpis">
     <div class="kpi">
-      <div class="label">Total de tickets</div>
-      <div class="value">{{ total }}</div>
-      <div class="small">Resultados del período seleccionado</div>
+      <div class="k-label">Total tickets</div>
+      <div class="k-value">{{ total }}</div>
+      <div class="k-note muted">En el periodo seleccionado</div>
     </div>
-    {% for name, count in by_status.items %}
-      {% if forloop.counter0 < 3 %}
-        <div class="kpi">
-          <div class="label">{{ name }}</div>
-          <div class="value">{{ count|default:"0" }}</div>
-          <div class="small">{% if total %}{% widthratio count total 100 %}% del total{% else %}0% del total{% endif %}</div>
-        </div>
-      {% endif %}
+    <div class="kpi">
+      <div class="k-label">Abiertos</div>
+      <div class="k-value">{{ kpi_open }}</div>
+      <div class="k-note muted">Pendientes de avance</div>
+    </div>
+    <div class="kpi">
+      <div class="k-label">Cerrados</div>
+      <div class="k-value">{{ kpi_closed }}</div>
+      <div class="k-note muted">Finalizados</div>
+    </div>
+    <div class="kpi">
+      <div class="k-label">% Cerrados</div>
+      <div class="k-value">{{ kpi_closed_pct }}%</div>
+      <div class="k-note muted">Efectividad del periodo</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Distribución por estado</div>
+
+    <!-- Barras simples (si ya tienes porcentajes) -->
+    {% for row in status_rows %}
+      <div class="bar-row">
+        <span class="bar-label">{{ row.label }}</span>
+        <span class="bar-track">
+          <span class="bar-fill" style="width: {{ row.pct }}%;"></span>
+        </span>
+        <span class="bar-val">{{ row.total }} ({{ row.pct }}%)</span>
+      </div>
+    {% empty %}
+      <p class="muted">No hay datos para el rango seleccionado.</p>
     {% endfor %}
-  </div>
 
-  <div class="section">
-    <div class="table-title">
-      <h2>Distribución por estado</h2>
-      <span class="small">Total: {{ total }}</span>
-    </div>
-    <div class="table-wrapper">
-      <table>
-        <thead>
+    <hr class="divider" />
+
+    <table>
+      <thead>
+        <tr>
+          <th>Estado</th>
+          <th class="num">Tickets</th>
+          <th class="num">% del total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in status_rows %}
           <tr>
-            <th>Estado</th>
-            <th class="num">Tickets</th>
-            <th class="num">% del total</th>
+            <td>{{ row.label }}</td>
+            <td class="num">{{ row.total }}</td>
+            <td class="num">{{ row.pct }}%</td>
           </tr>
-        </thead>
-        <tbody>
-          {% for name, count in by_status.items %}
-            <tr>
-              <td>{{ name }}</td>
-              <td class="num">{{ count|default:"0" }}</td>
-              <td class="num">{% if total %}{% widthratio count total 100 %}%{% else %}0%{% endif %}</td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="3" class="center muted">No hay datos para los filtros seleccionados.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        {% empty %}
+          <tr><td colspan="3" class="muted">No hay datos para mostrar.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid2">
+    <div class="col">
+      <div class="card">
+        <div class="card-title">Prioridades principales</div>
+        <table>
+          <thead>
+            <tr><th>Prioridad</th><th class="num">Tickets</th></tr>
+          </thead>
+          <tbody>
+            {% for row in priority_rows %}
+              <tr><td>{{ row.name }}</td><td class="num">{{ row.total }}</td></tr>
+            {% empty %}
+              <tr><td colspan="2" class="muted">Sin datos de prioridad.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="card-title">Categorías principales</div>
+        <table>
+          <thead>
+            <tr><th>Categoría</th><th class="num">Tickets</th></tr>
+          </thead>
+          <tbody>
+            {% for row in category_rows %}
+              <tr><td>{{ row.name }}</td><td class="num">{{ row.total }}</td></tr>
+            {% empty %}
+              <tr><td colspan="2" class="muted">Sin datos de categoría.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  {% if by_priority %}
-    <div class="section">
-      <div class="table-title">
-        <h2>Prioridades principales</h2>
-        <span class="small">Ordenadas por volumen</span>
-      </div>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Prioridad</th>
-              <th class="num">Tickets</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in by_priority %}
-              <tr>
-                <td>{{ row.priority__name|default:"Sin prioridad" }}</td>
-                <td class="num">{{ row.count }}</td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="2" class="center muted">Sin datos de prioridad.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  {% endif %}
+  <div class="card">
+    <div class="card-title">Resumen de asignaciones</div>
+    <table>
+      <thead>
+        <tr><th>Técnico</th><th class="num">Tickets</th></tr>
+      </thead>
+      <tbody>
+        {% for row in tech_rows %}
+          <tr><td>{{ row.name }}</td><td class="num">{{ row.total }}</td></tr>
+        {% empty %}
+          <tr><td colspan="2" class="muted">Sin técnicos en el período.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-  {% if by_category %}
-    <div class="section">
-      <div class="table-title">
-        <h2>Categorías principales</h2>
-        <span class="small">Ordenado por cantidad</span>
-      </div>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Categoría</th>
-              <th class="num">Tickets</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in by_category %}
-              <tr>
-                <td>{{ row.category__name|default:"Sin categoría" }}</td>
-                <td class="num">{{ row.count }}</td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="2" class="center muted">Sin datos de categoría.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  {% endif %}
+  <div class="footer">
+    Reporte generado automáticamente. Si detectas datos inesperados, revisa filtros y vuelve a exportar.
+  </div>
 
-  {% if type == 'categoria' and by_subcategory %}
-    <div class="section">
-      <div class="table-title">
-        <h2>Detalle por subcategoría</h2>
-        <span class="small">Desglose dentro de cada categoría</span>
-      </div>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Categoría</th>
-              <th>Subcategoría</th>
-              <th class="num">Tickets</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in by_subcategory %}
-              <tr>
-                <td>{{ row.category__name|default:"Sin categoría" }}</td>
-                <td>{% if row.subcategory__name %}{{ row.subcategory__name }}{% else %}<span class="muted">Sin subcategoría</span>{% endif %}</td>
-                <td class="num">{{ row.count }}</td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="3" class="center muted">Sin datos de subcategorías.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  {% endif %}
-
-  {% if type == 'tecnico' and by_tech %}
-    <div class="section">
-      <div class="table-title">
-        <h2>Tickets por técnico</h2>
-        <span class="small">Asignaciones y cierres</span>
-      </div>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Técnico</th>
-              <th class="num">Tickets</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in by_tech %}
-              <tr>
-                <td>{{ row.assigned_to__username|default:"Sin asignar" }}</td>
-                <td class="num">{{ row.count }}</td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="2" class="center muted">Sin datos disponibles.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  {% endif %}
-
-  {% if type == 'urgencia' and urgent_tickets %}
-    <div class="section">
-      <div class="table-title">
-        <h2>Tickets urgentes</h2>
-        <span class="small">Ordenados del más reciente</span>
-      </div>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Título</th>
-              <th class="center">Estado</th>
-              <th class="center">Prioridad</th>
-              <th>Asignado a</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in urgent_tickets %}
-              <tr>
-                <td class="small">{{ row.code }}</td>
-                <td>{{ row.title }}</td>
-                <td class="center"><span class="badge">{{ row.status }}</span></td>
-                <td class="center"><span class="badge">{{ row.priority__name|default:"—" }}</span></td>
-                <td>{{ row.assigned_to__username|default:"Sin asignar" }}</td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="5" class="center muted">No se encontraron tickets urgentes.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  {% endif %}
-
-  {% if type == 'promedio' %}
-    <div class="section">
-      <h2>Tiempo promedio</h2>
-      <p class="muted">{{ avg_hours|default_if_none:"—" }} horas en promedio considerando solo tickets resueltos en el período.</p>
-    </div>
-  {% endif %}
-
-  {% if type == 'productividad' %}
-    <div class="section">
-      <h2>Resumen de productividad</h2>
-      <div class="table-wrapper">
-        <table>
-          <tbody>
-            <tr><td class="muted">Tickets cerrados</td><td class="num"><strong>{{ productivity_summary.total_closed|default:"0" }}</strong></td></tr>
-            <tr><td class="muted">Promedio de resolución</td><td class="num">{{ productivity_summary.avg_hours|default:"—" }} h</td></tr>
-            <tr><td class="muted">Técnico con más cierres</td><td>{{ productivity_summary.top_tech|default:"—" }}</td></tr>
-            <tr><td class="muted">Promedio más rápido</td><td>{% if productivity_summary.fastest_tech %}{{ productivity_summary.fastest_tech }} · {{ productivity_summary.fastest_avg }} h{% else %}—{% endif %}</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="section">
-      <h2>Top técnicos (cerrados)</h2>
-      <div class="table-wrapper">
-        <table>
-          <thead><tr><th>Técnico</th><th class="num">Cerrados</th><th class="num">Promedio (h)</th><th class="center">Último cierre</th></tr></thead>
-          <tbody>
-            {% for row in productivity_rows %}
-              <tr>
-                <td>{{ row.tech }}</td>
-                <td class="num">{{ row.closed }}</td>
-                <td class="num">{{ row.avg_hours|default:"—" }}</td>
-                <td class="center small">{% if row.last_closed %}{{ row.last_closed|date:"d/m/Y H:i" }}{% else %}<span class="muted">—</span>{% endif %}</td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="4" class="center muted">Sin técnicos con cierres en el rango filtrado.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  {% endif %}
-
-  <p class="muted note">Reporte generado automáticamente. Si detectas datos inesperados, revisa los filtros y vuelve a exportar.</p>
 </body>
 </html>
