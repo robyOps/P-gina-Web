@@ -10,6 +10,7 @@ Crea un dataset de demostración rico en tickets, catálogos, usuarios y reglas.
 from __future__ import annotations
 
 import random
+from calendar import monthrange
 from collections import Counter
 from itertools import cycle
 from datetime import datetime, timedelta
