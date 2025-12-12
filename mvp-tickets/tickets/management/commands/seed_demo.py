@@ -90,9 +90,73 @@ def aware(dt: datetime) -> datetime:
     return timezone.make_aware(dt, timezone.get_current_timezone())
 
 
+def _pick_weighted_hour(weekday: int, rng: random.Random) -> int:
+    """Selecciona una hora con más peso en horario hábil y algo de actividad fuera de él."""
+
+    hours = list(range(24))
+
+    if weekday < 5:
+        weights = [
+            0.05,  # 00:00
+            0.03,  # 01:00
+            0.03,  # 02:00
+            0.05,  # 03:00
+            0.08,  # 04:00
+            0.12,  # 05:00
+            0.25,  # 06:00
+            0.6,   # 07:00
+            6.5,   # 08:00
+            8.5,   # 09:00
+            9.5,   # 10:00
+            9.0,   # 11:00
+            7.8,   # 12:00
+            6.8,   # 13:00
+            7.2,   # 14:00
+            7.5,   # 15:00
+            7.0,   # 16:00
+            6.5,   # 17:00
+            4.2,   # 18:00
+            3.2,   # 19:00
+            1.4,   # 20:00
+            0.9,   # 21:00
+            0.55,  # 22:00
+            0.35,  # 23:00
+        ]
+    else:
+        weights = [
+            0.08,  # 00:00
+            0.05,  # 01:00
+            0.05,  # 02:00
+            0.05,  # 03:00
+            0.06,  # 04:00
+            0.08,  # 05:00
+            0.12,  # 06:00
+            0.3,   # 07:00
+            2.2,   # 08:00
+            3.2,   # 09:00
+            3.4,   # 10:00
+            3.0,   # 11:00
+            2.6,   # 12:00
+            2.2,   # 13:00
+            2.0,   # 14:00
+            1.7,   # 15:00
+            1.4,   # 16:00
+            1.1,   # 17:00
+            0.9,   # 18:00
+            0.7,   # 19:00
+            0.5,   # 20:00
+            0.4,   # 21:00
+            0.3,   # 22:00
+            0.25,  # 23:00
+        ]
+
+    return rng.choices(hours, weights=weights, k=1)[0]
+
+
 def rand_time_on_day(d: date, rng: random.Random) -> datetime:
-    """Hora aleatoria (distinta) dentro del día."""
-    hour = rng.randint(8, 19)          # horario típico de oficina
+    """Hora aleatoria con sesgo laboral (08–19h) y presencia menor fuera de horario."""
+
+    hour = _pick_weighted_hour(d.weekday(), rng)
     minute = rng.randint(0, 59)
     second = rng.randint(0, 59)
     return aware(datetime(d.year, d.month, d.day, hour, minute, second))
@@ -287,11 +351,14 @@ class Command(BaseCommand):
 
         # Creamos tickets
         self.stdout.write(self.style.SUCCESS(f"Generando {total_tickets} tickets (2025-01-01 a 2025-12-12) ..."))
-        breach_target_rate = rng.uniform(0.03, 0.06)  # 3% a 6%
-        breach_budget = int(total_tickets * breach_target_rate)
+        on_time_budget = int(total_tickets * rng.uniform(0.85, 0.95))
+        breach_budget = int(total_tickets * rng.uniform(0.05, 0.15))
+        overdue_open_budget = int(total_tickets * rng.uniform(0.0, 0.03))
 
         tickets_created = 0
+        on_time_used = 0
         breaches_used = 0
+        overdue_open_used = 0
 
         for i, day in enumerate(created_dates, start=1):
             created_at = rand_time_on_day(day, rng)
@@ -330,16 +397,21 @@ class Command(BaseCommand):
             updated_at = created_at
 
             if status in {STATUS_RESOLVED, STATUS_CLOSED}:
-                will_breach = (breaches_used < breach_budget) and (rng.random() < 0.5)
+                will_breach = breaches_used < breach_budget and (
+                    rng.random() < (breach_budget / max(total_tickets, 1))
+                )
+                if not will_breach and on_time_used >= on_time_budget and breaches_used < breach_budget:
+                    # Forzamos algunos fuera de SLA para quedar en rango.
+                    will_breach = True
                 if will_breach:
                     breaches_used += 1
-                    # se vence “por poco” la mayoría
-                    over = timedelta(hours=max(1, int(sla_hours * rng.uniform(0.10, 0.35))))
+                    over = timedelta(hours=max(1, sla_hours * rng.uniform(0.08, 0.4)))
                     resolved_at = clamp_dt(due_at + over, end_dt)
                 else:
-                    # resuelve antes del SLA
-                    under = timedelta(hours=max(1, int(sla_hours * rng.uniform(0.25, 0.85))))
+                    under = timedelta(hours=max(0.5, sla_hours * rng.uniform(0.18, 0.75)))
                     resolved_at = clamp_dt(created_at + under, end_dt)
+                    resolved_at = max(resolved_at, created_at + timedelta(minutes=20))
+                    on_time_used += 1
 
                 updated_at = resolved_at
 
@@ -353,11 +425,17 @@ class Command(BaseCommand):
                 # en progreso: actualizado recientemente
                 move_delay = timedelta(hours=rng.randint(2, 72))
                 updated_at = clamp_dt(created_at + move_delay, end_dt)
+                if overdue_open_used < overdue_open_budget and due_at < end_dt and rng.random() < 0.4:
+                    overdue_open_used += 1
+                    updated_at = clamp_dt(due_at + timedelta(hours=rng.uniform(1, 24)), end_dt)
 
             else:
                 # abierto: actualizado cercano
                 move_delay = timedelta(hours=rng.randint(1, 24))
                 updated_at = clamp_dt(created_at + move_delay, end_dt)
+                if overdue_open_used < overdue_open_budget and due_at < end_dt and rng.random() < 0.3:
+                    overdue_open_used += 1
+                    updated_at = clamp_dt(due_at + timedelta(hours=rng.uniform(0.5, 12)), end_dt)
 
             # Code secuencial claro para demo
             code = f"TCK-2025-{i:05d}"
@@ -438,7 +516,18 @@ class Command(BaseCommand):
                 t.updated_at = t.closed_at or t.resolved_at or t.updated_at
                 t.save()
 
-        self.stdout.write(self.style.SUCCESS(f"OK. Tickets creados: {tickets_created}. SLA vencidos objetivo ~{int(breach_target_rate*100)}%."))
+        done_total = max(1, on_time_used + breaches_used)
+        on_time_rate = round(on_time_used / done_total * 100, 1)
+        breach_rate = round(breaches_used / done_total * 100, 1)
+        overdue_rate = round(overdue_open_used / max(1, tickets_created) * 100, 1)
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                "OK. Tickets creados: "
+                f"{tickets_created}. Dentro de SLA: ~{on_time_rate}%, "
+                f"fuera de SLA: ~{breach_rate}%, vencidos abiertos: ~{overdue_rate}%"
+            )
+        )
 
     # -----------------------------
     # Helpers internos
@@ -518,6 +607,15 @@ class Command(BaseCommand):
             for _ in range(counts[month - 1]):
                 delta_days = (hi - lo).days
                 d = lo + timedelta(days=rng.randint(0, max(0, delta_days)))
+
+                # Favorecemos días hábiles, pero dejamos presencia en fines de semana
+                if d.weekday() >= 5 and rng.random() < 0.7:
+                    shift_back = d.weekday() - 4
+                    shift_forward = 7 - d.weekday()
+                    if rng.random() < 0.55:
+                        d = max(lo, d - timedelta(days=shift_back))
+                    else:
+                        d = min(hi, d + timedelta(days=shift_forward))
                 out.append(d)
 
         # si por recortes quedaron más/menos (raro), corregimos
@@ -740,7 +838,8 @@ class Command(BaseCommand):
 
         # Cierre / resolución (si aplica)
         if status in {STATUS_RESOLVED, STATUS_CLOSED}:
-            t = clamp_dt(updated_at - timedelta(hours=rng.randint(1, 6)), end_dt)
+            t = updated_at - timedelta(hours=rng.randint(1, 6))
+            t = clamp_dt(max(created_at + timedelta(minutes=10), t), end_dt)
             AuditLog.objects.create(
                 ticket=ticket,
                 actor=assigned_to or rng.choice(techs),
