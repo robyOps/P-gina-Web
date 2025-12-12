@@ -79,44 +79,41 @@ python manage.py runserver
 
 ## Carga rápida de datos demo (seed realista)
 
-El comando `seed_demo_data` genera un set reproducible con volúmenes, fechas y
-asignaciones realistas para probar autoasignación, notificaciones y KPIs del
-dashboard. Incluye creación de catálogos, FAQs, reglas, usuarios (admins,
-técnicos y solicitantes) y tickets con comentarios/adjuntos/logs.
+El comando `seed_demo` genera un set reproducible de tickets entre
+`2025-01-01` y `2025-12-12`, con logs distribuidos a lo largo del día, SLA con
+vencimientos bajos (3–6% y casi siempre por poco), FAQs con multimedia,
+autoasignaciones y notificaciones para áreas o actores críticos.
 
-1. Preparar entorno y ejecutar el seed con los valores por defecto (1500 tickets
-   desde `2025-01-01` hasta hoy):
+1. Preparar entorno y ejecutar el seed con los valores por defecto (600 tickets,
+   fechas 2025-01-01 → 2025-12-12):
 
    ```bash
    cd mvp-tickets
    python manage.py migrate
-   python manage.py seed_demo_data --flush
+   python manage.py seed_demo --reset
    ```
 
-   - `--flush` limpia los datos generados previamente (sin borrar superusuarios
-     reales si existen).
+   - `--reset` limpia datos de tickets/FAQs/reglas previos sin eliminar
+     usuarios ni catálogos.
    - Usa `--seed 42` (por defecto) para obtener siempre la misma distribución.
 
 2. Personaliza fechas y volúmenes según la prueba que necesites:
 
    ```bash
-   python manage.py seed_demo_data \
-     --from-date 2025-03-01 \
-     --to-date 2025-12-31 \
+   python manage.py seed_demo \
+     --start 2025-03-01 \
+     --end 2025-12-12 \
      --tickets 800 \
-     --requesters 120 \
-     --techs 8 \
-     --admins 3 \
      --seed 99
    ```
 
    - Ajusta `--tickets` para simular mayor carga en KPIs.
-   - Reduce `--from-date` para ver tickets históricos ya cerrados y una ventana
-     reciente con tickets abiertos/en progreso.
+   - Cambia `--start`/`--end` para acotar la ventana temporal y generar más
+     tickets recientes en progreso/abiertos.
 
-3. Usuarios demo creados (clave: `Demo1234!`) incluyen perfiles críticos y roles
-   asignados a grupos existentes. Revisa el resumen final que imprime el comando
-   para validar conteos de usuarios, tickets por estado y top técnicos.
+3. Usuarios demo creados (clave: `Demo12345!`) incluyen perfiles críticos y
+   roles asignados a grupos existentes. El comando asegura tickets RESUELTOS y
+   CERRADOS en diciembre para dar contexto a los gráficos del dashboard.
 
 ## Pruebas de humo recomendadas
 
