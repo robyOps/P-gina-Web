@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime, timedelta, time, timezone as dt_timezone
+from datetime import date, datetime, timedelta, time, timezone as dt_timezone
 from typing import Sequence
 
 from django.db.models import Count, QuerySet
@@ -221,6 +221,8 @@ def build_ticket_heatmap(
     queryset: QuerySet[Ticket],
     *,
     since: timezone.datetime | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     auto_range: bool = True,
 ) -> HeatmapPayload:
     """Genera la matriz Semana × Hora para el heatmap principal.
@@ -235,7 +237,7 @@ def build_ticket_heatmap(
         ``HeatmapPayload`` con totales por hora y día además de la matriz normalizada.
     """
 
-    if auto_range and since is None:
+    if auto_range and since is None and date_from is None and date_to is None:
         since = timezone.now() - timedelta(days=13)
     tz = get_local_timezone()
 
@@ -273,6 +275,12 @@ def build_ticket_heatmap(
         if timezone.is_naive(local_created):
             local_created = timezone.make_aware(local_created, timezone.utc)
         local_created = timezone.localtime(local_created, tz)
+
+        local_date = local_created.date()
+        if date_from and local_date < date_from:
+            continue
+        if date_to and local_date > date_to:
+            continue
 
         weekday_index = local_created.weekday()
         hour = local_created.hour
