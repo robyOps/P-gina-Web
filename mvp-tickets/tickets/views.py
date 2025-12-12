@@ -4,6 +4,7 @@ from __future__ import annotations
 # --- Django core ---
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, Prefetch
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods, require_POST
 from django.contrib import messages
@@ -2595,6 +2596,23 @@ def logs_list(request):
         "SLA_WARN": "Alerta SLA",
         "SLA_BREACH": "SLA vencido",
     }
+    action_options = [
+        {"value": key, "label": label}
+        for key, label in sorted(action_labels.items(), key=lambda pair: pair[1])
+    ]
+    resource_options = list(
+        EventLog.objects.exclude(resource_id__isnull=True)
+        .values_list("resource_id", flat=True)
+        .distinct()
+        .order_by("resource_id")
+    )
+    User = get_user_model()
+    actor_suggestions = list(
+        User.objects.filter(eventlog__isnull=False)
+        .values_list("username", flat=True)
+        .distinct()
+        .order_by("username")
+    )
     model_labels = {"ticket": "Ticket"}
     rows = []
     for item in page_obj:
@@ -2618,5 +2636,8 @@ def logs_list(request):
         "page_obj": page_obj,
         "querystring": params.urlencode(),
         "filters": request.GET,
+        "action_options": action_options,
+        "resource_options": resource_options,
+        "actor_suggestions": actor_suggestions,
     }
     return TemplateResponse(request, "logs/list.html", ctx)
