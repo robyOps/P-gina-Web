@@ -663,7 +663,10 @@ class Command(BaseCommand):
                 ticket=ticket,
                 actor=admin if rng.random() < 0.35 else assigned_to,
                 action="ASSIGN",
-                meta={"to": getattr(assigned_to, "username", "")},
+                meta={
+                    "to": getattr(assigned_to, "id", None),
+                    "to_username": getattr(assigned_to, "username", ""),
+                },
                 created_at=t,
             )
             EventLog.objects.create(
