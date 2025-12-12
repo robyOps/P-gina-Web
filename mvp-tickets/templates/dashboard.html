@@ -187,8 +187,9 @@
     background: linear-gradient(90deg, #bbf7d0 0%, #bef264 30%, #fde68a 55%, #fb923c 78%, #ef4444 100%);
   }
   .dashboard-top-subcategories__list {
-    max-height: 22rem;
-    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0.75rem;
     padding-right: 0.35rem;
   }
   .dashboard-top-subcategories__list::-webkit-scrollbar {
@@ -197,6 +198,28 @@
   .dashboard-top-subcategories__list::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, #22c55e, #0ea5e9);
     border-radius: 9999px;
+  }
+  .assignment-flip {
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .assignment-flip__face {
+    text-align: center;
+    padding: 1.25rem;
+  }
+  .assignment-flip__hint {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    background: rgba(16, 185, 129, 0.08);
+    color: #047857;
   }
   @media (max-width: 640px) {
     .heatmap-cell {
@@ -533,12 +556,11 @@
                 <h2 class="text-2xl font-semibold text-slate-900">Top subcategorías del {% if is_historical %}histórico{% else %}mes{% endif %}</h2>
                 <p class="text-sm text-slate-600">Clasificación detallada de tickets que concentra la mayor actividad en el {% if is_historical %}histórico disponible{% else %}período actual{% endif %}.</p>
               </div>
-              <span class="dashboard-top-subcategories__badge inline-flex items-center gap-2 self-start rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600 sm:self-auto"><i class="bi bi-calendar3"></i> {% if is_historical %}Histórico{% else %}Mes en curso{% endif %}</span>
             </div>
             {% if top_subcategories %}
-            <ol class="dashboard-top-subcategories__list mt-4 space-y-3" role="list">
+            <ol class="dashboard-top-subcategories__list mt-4" role="list">
               {% for item in top_subcategories %}
-              <li class="space-y-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 shadow-inner">
+              <li class="space-y-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 shadow-inner h-full">
                 <div class="dashboard-top-subcategories__item-header flex flex-col gap-3 text-sm font-semibold text-slate-700 sm:flex-row sm:items-center sm:justify-between">
                   <div class="flex w-full items-center gap-3 sm:w-auto sm:min-w-0">
                     <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white text-emerald-600 shadow">{{ forloop.counter }}</span>
@@ -634,27 +656,30 @@
             {% endif %}
           </article>
 
-          <article class="assignment-flip rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-5 shadow-sm sm:p-6" id="assignmentsFlipCard" role="button" tabindex="0" aria-pressed="false" aria-label="Ver desglose de asignaciones de hoy">
+          <article class="assignment-flip relative rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-4 shadow-sm sm:p-5" id="assignmentsFlipCard" role="button" tabindex="0" aria-pressed="false" aria-label="Ver desglose de asignaciones de hoy">
             <div class="assignment-flip__inner">
-              <div class="assignment-flip__face flex h-full flex-col justify-between bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-4">
+              <div class="assignment-flip__face flex h-full flex-col items-center justify-center gap-4 bg-gradient-to-br from-emerald-50 via-white to-emerald-100">
+                <div class="assignment-flip__hint" aria-hidden="true">
+                  <i class="bi bi-arrow-repeat text-lg"></i>
+                </div>
                 <div class="space-y-1">
                   <h2 class="text-lg font-semibold text-slate-900">Tickets asignados hoy</h2>
                   <p class="text-sm text-slate-600">Reasignaciones creadas durante la fecha actual.</p>
                 </div>
-                <div class="flex items-end gap-3">
+                <div class="flex flex-col items-center gap-1">
                   <span class="text-4xl font-bold leading-none text-emerald-700">{{ assignments_today }}</span>
-                  <span class="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-600">asignaciones</span>
+                  <span class="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600">asignaciones</span>
                 </div>
               </div>
-              <div class="assignment-flip__face assignment-flip__face--back flex h-full flex-col justify-between bg-white p-4">
-                <div class="flex items-center justify-between">
-                  <div class="space-y-1">
-                    <h2 class="text-lg font-semibold text-emerald-700">Detalle de hoy</h2>
-                    <p class="text-sm text-slate-600">Toca nuevamente para volver al total.</p>
-                  </div>
-                  <i class="bi bi-arrow-repeat text-emerald-600 text-xl" aria-hidden="true"></i>
+              <div class="assignment-flip__face assignment-flip__face--back flex h-full flex-col items-center justify-center gap-4 bg-white">
+                <div class="assignment-flip__hint" aria-hidden="true">
+                  <i class="bi bi-arrow-repeat text-lg"></i>
                 </div>
-                <dl class="mt-4 grid gap-3 sm:grid-cols-2">
+                <div class="space-y-1">
+                  <h2 class="text-lg font-semibold text-emerald-700">Detalle de hoy</h2>
+                  <p class="text-sm text-slate-600">Toca nuevamente para volver al total.</p>
+                </div>
+                <dl class="grid w-full gap-3 sm:grid-cols-2">
                   <div class="rounded-xl bg-emerald-50 px-3 py-2">
                     <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-emerald-600">Asignados</dt>
                     <dd class="mt-1 text-lg font-semibold text-emerald-800" id="assignmentsAssignedCount">0</dd>
