@@ -1,0 +1,171 @@
+/* CSS base minimalista para reportes PDF */
+
+@page {
+  size: A4;
+  margin: 22mm;
+}
+
+/* Para WeasyPrint: numeración */
+@page {
+  @bottom-right {
+    content: "Página " counter(page) " de " counter(pages);
+    font-size: 9pt;
+    color: #444;
+  }
+}
+
+html, body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11pt;
+  color: #111;
+}
+
+h1 {
+  font-size: 18pt;
+  margin: 0 0 6mm 0;
+}
+
+h2 {
+  font-size: 13pt;
+  margin: 8mm 0 3mm 0;
+}
+
+.muted {
+  color: #555;
+  font-size: 10pt;
+}
+
+.hr {
+  border-top: 1px solid #ddd;
+  margin: 6mm 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12mm;
+}
+
+.header .meta {
+  text-align: right;
+  font-size: 10pt;
+  color: #444;
+}
+
+.header .meta div + div { margin-top: 1.5mm; }
+
+.header .filters {
+  margin-top: 3mm;
+  display: flex;
+  gap: 3mm;
+  flex-wrap: wrap;
+  font-size: 10pt;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4mm;
+  margin: 4mm 0 8mm 0;
+}
+
+.kpi {
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  padding: 4mm;
+}
+
+.kpi .label {
+  font-size: 9.5pt;
+  color: #555;
+  margin-bottom: 2mm;
+}
+
+.kpi .value {
+  font-size: 16pt;
+  font-weight: 700;
+  color: #111;
+}
+
+.badge {
+  display: inline-block;
+  padding: 1.2mm 2.5mm;
+  border-radius: 10px;
+  font-size: 9pt;
+  border: 1px solid #d0d0d0;
+  background: #f7f7f7;
+  color: #222;
+}
+
+.table-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6mm;
+}
+
+.table-title .small { margin-left: auto; }
+
+.table-wrapper { page-break-inside: avoid; }
+
+.table-wrapper + .table-wrapper { margin-top: 6mm; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 2mm;
+}
+
+thead th {
+  background: #f2f2f2;
+  font-weight: 700;
+  font-size: 10pt;
+  padding: 2.5mm 2.5mm;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+tbody td {
+  font-size: 10pt;
+  padding: 2.5mm 2.5mm;
+  border: 1px solid #e1e1e1;
+  vertical-align: top;
+}
+
+tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+td.num, th.num { text-align: right; }
+td.center, th.center { text-align: center; }
+
+.small {
+  font-size: 9pt;
+  color: #444;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2mm;
+}
+
+.section {
+  page-break-inside: avoid;
+  margin-bottom: 8mm;
+}
+
+.note { margin-top: 2mm; }
+
+.filters-empty {
+  color: #666;
+}
+
+/* Evita cortes feos */
+table, tr, td, th {
+  page-break-inside: avoid;
+}
+.section {
+  page-break-inside: avoid;
+}
