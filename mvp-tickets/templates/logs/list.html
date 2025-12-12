@@ -28,15 +28,31 @@
       <div class="mt-4 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="f-actor">Actor</label>
-          <input id="f-actor" type="text" name="actor" value="{{ filters.actor }}" placeholder="Usuario" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+          <input id="f-actor" type="text" name="actor" list="actors-list" value="{{ filters.actor }}" placeholder="Usuario" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" aria-describedby="actor-help" />
+          <p id="actor-help" class="text-[11px] text-slate-400">Empieza a escribir y selecciona un usuario sugerido.</p>
+          <datalist id="actors-list">
+            {% for actor_username in actor_suggestions %}
+            <option value="{{ actor_username }}">{{ actor_username }}</option>
+            {% endfor %}
+          </datalist>
         </div>
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="f-action">Acción</label>
-          <input id="f-action" type="text" name="action" value="{{ filters.action }}" placeholder="Creación, actualización" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+          <select id="f-action" name="action" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+            <option value="">Todas</option>
+            {% for option in action_options %}
+              <option value="{{ option.value }}" {% if filters.action == option.value %}selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
+          </select>
         </div>
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="f-resource">Recurso</label>
-          <input id="f-resource" type="text" name="resource" value="{{ filters.resource }}" placeholder="Ticket, usuario" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+          <select id="f-resource" name="resource" class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+            <option value="" {% if not filters.resource %}selected{% endif %}>Todos</option>
+            {% for resource_id in resource_options %}
+              <option value="{{ resource_id }}" {% if filters.resource|stringformat:"s" == resource_id|stringformat:"s" %}selected{% endif %}>Recurso #{{ resource_id }}</option>
+            {% endfor %}
+          </select>
         </div>
         <div class="space-y-1">
           <label class="text-xs font-semibold uppercase text-slate-500" for="f-from">Desde</label>
