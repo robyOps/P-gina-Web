@@ -409,9 +409,9 @@ def dashboard(request):
             reasons.append({"label": "SLA por vencer", "tone": "warning"})
 
         if getattr(ticket.requester, "is_critical_actor", False):
-            reasons.append({"label": "Usuario crítico", "tone": "info"})
+            reasons.append({"label": "Usuario crítico", "tone": "critical-user"})
         if getattr(ticket.area, "is_critical", False):
-            reasons.append({"label": "Área crítica", "tone": "info"})
+            reasons.append({"label": "Área crítica", "tone": "critical-area"})
 
         if not reasons:
             continue
