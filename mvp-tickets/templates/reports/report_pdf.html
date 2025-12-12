@@ -6,96 +6,84 @@
   <style>
     * { box-sizing: border-box; }
     body {
-      font-family: "DejaVu Sans", Arial, Helvetica, sans-serif;
-      background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
-      color: #0b1330;
+      font-family: "DejaVu Sans", "Inter", Arial, Helvetica, sans-serif;
+      background: #f5f7fb;
+      color: #111827;
       font-size: 12px;
       margin: 0;
-      padding: 26px;
-      line-height: 1.5;
+      padding: 28px 26px;
+      line-height: 1.6;
     }
     .page {
-      max-width: 1120px;
+      max-width: 1060px;
       margin: 0 auto;
       background: #ffffff;
-      border-radius: 18px;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 20px 70px rgba(15, 23, 42, 0.16);
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
       overflow: hidden;
+      box-shadow: 0 16px 60px rgba(17, 24, 39, 0.08);
     }
     header {
-      padding: 26px 28px 24px;
-      background: radial-gradient(circle at 20% 20%, rgba(96, 165, 250, 0.24), transparent 32%),
-                  radial-gradient(circle at 80% 0%, rgba(139, 92, 246, 0.2), transparent 38%),
-                  linear-gradient(120deg, #0b1024 0%, #0d1229 22%, #0b1024 100%);
-      color: #f8fafc;
-      position: relative;
-      isolation: isolate;
+      padding: 24px 26px 18px;
+      background: linear-gradient(120deg, #f8fafc 0%, #eef2ff 100%);
+      border-bottom: 1px solid #e2e8f0;
     }
-    header::after {
-      content: "";
-      position: absolute;
-      inset: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 14px;
-      pointer-events: none;
-    }
-    .header-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: center; }
-    .eyebrow { display: inline-flex; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,0.16); color: #e0e7ff; letter-spacing: 0.26em; font-weight: 800; font-size: 10px; text-transform: uppercase; margin-bottom: 10px; backdrop-filter: blur(6px); }
-    h1 { margin: 0 0 10px; font-size: 26px; letter-spacing: -0.02em; color: #f8fafc; text-shadow: 0 1px 8px rgba(0,0,0,0.2); }
-    .subtitle { margin: 0; font-size: 13px; color: #e2e8f0; max-width: 520px; }
-    .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; color: #e5e7eb; }
-    .chip { background: rgba(255,255,255,0.12); color: #f8fafc; border-radius: 10px; padding: 7px 11px; font-weight: 600; font-size: 11px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 10px 30px rgba(15,23,42,0.28); }
-    .summary-box { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 14px; padding: 12px 14px; backdrop-filter: blur(6px); }
-    .summary-box h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #e5e7eb; }
-    .summary-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
-    .summary-list li { display: flex; justify-content: space-between; font-size: 12px; color: #f1f5f9; border-bottom: 1px dashed rgba(226,232,240,0.26); padding-bottom: 4px; }
+    .header-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px; align-items: start; }
+    .eyebrow { display: inline-flex; padding: 6px 12px; border-radius: 10px; background: #111827; color: #f9fafb; letter-spacing: 0.18em; font-weight: 800; font-size: 10px; text-transform: uppercase; margin-bottom: 10px; }
+    h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.02em; color: #0f172a; }
+    .subtitle { margin: 0 0 10px; font-size: 13px; color: #475569; max-width: 540px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; color: #0f172a; }
+    .chip { background: #ffffff; color: #0f172a; border-radius: 10px; padding: 7px 11px; font-weight: 700; font-size: 11px; border: 1px solid #e2e8f0; box-shadow: 0 6px 16px rgba(15,23,42,0.06); }
+    .summary-box { background: #0f172a; border-radius: 12px; padding: 14px 16px; color: #e5e7eb; box-shadow: 0 10px 30px rgba(17, 24, 39, 0.18); }
+    .summary-box h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #cbd5e1; }
+    .summary-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    .summary-list li { display: flex; justify-content: space-between; font-size: 12px; color: #e5e7eb; border-bottom: 1px solid rgba(226,232,240,0.16); padding-bottom: 6px; }
     .summary-list li:last-child { border-bottom: none; padding-bottom: 0; }
-    main { padding: 22px 24px 26px; }
+    main { padding: 22px 24px 24px; background: #ffffff; }
 
     /* Sección filtros */
-    .section { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05); margin-bottom: 14px; }
-    .section-title { margin: 0 0 8px; font-size: 14px; color: #0f172a; display: flex; align-items: center; gap: 6px; letter-spacing: -0.01em; }
-    .section-title span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #22c55e); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12); }
-    .muted { color: #475569; font-size: 11px; }
+    .section { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04); margin-bottom: 14px; }
+    .section-title { margin: 0 0 8px; font-size: 14px; color: #0f172a; display: flex; align-items: center; gap: 8px; letter-spacing: -0.01em; font-weight: 800; }
+    .section-title span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #111827; box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.08); }
+    .muted { color: #6b7280; font-size: 11px; }
     .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-    .pill { background: #eef2ff; color: #312e81; border: 1px solid #c7d2fe; border-radius: 10px; padding: 6px 10px; font-weight: 700; font-size: 11px; }
-    .pill.dark { background: #ecfeff; color: #0f172a; border-color: #bae6fd; }
+    .pill { background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 10px; padding: 6px 10px; font-weight: 700; font-size: 11px; }
+    .pill.dark { background: #eef2ff; color: #1f2937; border-color: #cbd5e1; }
 
     /* KPI Cards */
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 10px 0 14px; }
-    .kpi { position: relative; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px; box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08); overflow: hidden; }
-    .kpi::after { content: ""; position: absolute; right: -18px; top: -18px; width: 90px; height: 90px; background: radial-gradient(circle, rgba(99, 102, 241, 0.16), transparent 60%); transform: rotate(25deg); }
-    .kpi-label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #475569; margin-bottom: 6px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 10px 0 14px; }
+    .kpi { position: relative; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08); overflow: hidden; }
+    .kpi::after { content: ""; position: absolute; right: -30px; top: -30px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(17, 24, 39, 0.06), transparent 62%); }
+    .kpi-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; }
     .kpi-value { font-size: 24px; font-weight: 800; margin: 2px 0 6px; color: #0f172a; }
-    .kpi-note { font-size: 11px; color: #475569; }
+    .kpi-note { font-size: 11px; color: #6b7280; }
 
     .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 4px 0 12px; }
-    .status-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; background: #f8fafc; box-shadow: inset 0 1px 0 rgba(255,255,255,0.8); }
-    .status-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: #475569; margin-bottom: 4px; }
-    .status-value { font-size: 18px; font-weight: 800; color: #0f172a; }
-    .status-note { font-size: 11px; color: #64748b; }
+    .status-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; background: #f9fafb; }
+    .status-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: #6b7280; margin-bottom: 6px; font-weight: 700; }
+    .status-value { font-size: 20px; font-weight: 800; color: #0f172a; }
+    .status-note { font-size: 11px; color: #6b7280; }
 
     /* Tablas y tarjetas */
     .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
-    .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06); }
+    .card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06); }
     .card h3 { margin: 0 0 8px; font-size: 13px; color: #0f172a; letter-spacing: -0.01em; }
     table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12px; }
-    th { text-align: left; background: #0f172a; color: #e2e8f0; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; padding: 8px 9px; border: 1px solid #0f172a; }
-    td { padding: 8px 9px; border: 1px solid #e2e8f0; color: #0f172a; }
-    tr:nth-child(even) td { background: #f8fafc; }
-    .empty { text-align: center; color: #94a3b8; padding: 12px 8px; }
+    th { text-align: left; background: #0f172a; color: #f8fafc; letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; padding: 9px 10px; border: 1px solid #0f172a; }
+    td { padding: 8px 10px; border: 1px solid #e5e7eb; color: #111827; }
+    tr:nth-child(even) td { background: #f9fafb; }
+    .empty { text-align: center; color: #9ca3af; padding: 12px 8px; }
 
     /* Barras de progreso */
     .bar-row { display: grid; grid-template-columns: 1fr 70px; gap: 10px; align-items: center; margin-bottom: 8px; }
     .bar-label { font-weight: 700; color: #0f172a; font-size: 11px; }
-    .bar { position: relative; width: 100%; height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden; border: 1px solid #e2e8f0; }
-    .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #6366f1, #22c55e); }
-    .bar-fill.secondary { background: linear-gradient(90deg, #0ea5e9, #2563eb); }
-    .tag { display: inline-block; padding: 4px 8px; border-radius: 10px; background: #eef2ff; color: #312e81; font-weight: 700; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; text-align: center; }
+    .bar { position: relative; width: 100%; height: 10px; background: #eef2f7; border-radius: 999px; overflow: hidden; border: 1px solid #e5e7eb; }
+    .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #111827, #1f2937); }
+    .bar-fill.secondary { background: linear-gradient(90deg, #4b5563, #111827); }
+    .tag { display: inline-block; padding: 4px 8px; border-radius: 10px; background: #f3f4f6; color: #111827; font-weight: 700; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; text-align: center; }
 
     /* Notas */
-    .note { border-left: 3px solid #22c55e; padding-left: 10px; font-size: 12px; color: #15803d; margin: 12px 0 0; background: #f0fdf4; border-radius: 8px; }
+    .note { border-left: 3px solid #0f172a; padding-left: 10px; font-size: 12px; color: #111827; margin: 12px 0 0; background: #f8fafc; border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -105,7 +93,7 @@
         <div>
           <div class="eyebrow">Reporte de tickets</div>
           <h1>{{ type_label }}</h1>
-          <p class="subtitle">Informe listo para compartir con tu equipo y tomar decisiones.</p>
+          <p class="subtitle">Resumen ejecutivo listo para compartir con tu equipo y accionar mejoras.</p>
           <div class="meta">
             <span class="chip">Generado el {{ generated_at|date:"d/m/Y H:i" }}</span>
             <span class="chip">Total: {{ total }}</span>
