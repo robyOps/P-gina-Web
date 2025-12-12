@@ -251,15 +251,6 @@
           <input type="text" id="techSearch" value="{{ tech_selected_label }}" autocomplete="off" placeholder="Busca por nombre" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
           <div id="techSuggestions" class="tech-suggestions is-hidden" aria-live="polite"></div>
         </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">SLA</label>
-          <select name="sla" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-            <option value="" {% if not sla_selected %}selected{% endif %}>(Todos)</option>
-            {% for p in priorities %}
-            <option value="{{ p.id }}" {% if sla_selected == p.id|stringformat:'s' %}selected{% endif %}>{{ p.name }} · {{ p.sla_hours }}h</option>
-            {% endfor %}
-          </select>
-        </div>
         <div class="flex flex-col gap-1 {% if report_type != 'productividad' %}report-filter-hidden{% endif %}" data-report-type="productividad">
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Área</label>
           <select name="area" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
@@ -278,7 +269,7 @@
             {% endfor %}
           </select>
         </div>
-        <div class="flex flex-col gap-1 {% if report_type != 'productividad' %}report-filter-hidden{% endif %}" data-report-type="productividad">
+        <div class="flex flex-col gap-1">
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Prioridad</label>
           <select name="priority" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
             <option value="" {% if not priority_selected %}selected{% endif %}>(Todas)</option>

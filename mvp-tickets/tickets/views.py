@@ -1651,15 +1651,14 @@ def reports_dashboard(request):
     if tech_selected:
         qs = qs.filter(assigned_to_id=tech_selected)
 
-    sla_selected = (request.GET.get("sla") or "").strip()
-    if sla_selected:
-        qs = qs.filter(priority_id=sla_selected)
-
     report_type = request.GET.get("type", "total")
     area_selected = (request.GET.get("area") or "").strip()
     category_selected = (request.GET.get("category") or "").strip()
     priority_selected = (request.GET.get("priority") or "").strip()
     status_selected = (request.GET.get("status") or "").strip()
+
+    if priority_selected:
+        qs = qs.filter(priority_id=priority_selected)
 
     if report_type == "urgencia":
         qs = qs.filter(priority__sla_hours__lte=24)
@@ -1668,8 +1667,6 @@ def reports_dashboard(request):
             qs = qs.filter(area_id=area_selected)
         if category_selected:
             qs = qs.filter(category_id=category_selected)
-        if priority_selected:
-            qs = qs.filter(priority_id=priority_selected)
         if status_selected:
             qs = qs.filter(status=status_selected)
 
@@ -1816,7 +1813,6 @@ def reports_dashboard(request):
         "to": raw_to or "",
         "type": report_type or "",
         "tech": tech_selected or "",
-        "sla": sla_selected or "",
         "area": area_selected or "",
         "category": category_selected or "",
         "priority": priority_selected or "",
@@ -1860,7 +1856,6 @@ def reports_dashboard(request):
             "tech_selected_label": tech_selected_label,
             "tech_options": tech_options,
             "priorities": priorities,
-            "sla_selected": sla_selected,
             "categories": categories,
             "areas": areas,
             "status_choices": status_choices,
