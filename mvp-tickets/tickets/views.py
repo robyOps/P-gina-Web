@@ -187,11 +187,10 @@ def _done_at_expression():
 
 
 def _average_resolution_hours(qs):
-    """Promedio de resolución usando cierre o resolución, nunca negativo."""
+    """Promedio de resolución usando resolved_at y created_at, nunca negativo."""
 
-    done_at_expr = _done_at_expression()
-    duration_expr = ExpressionWrapper(done_at_expr - F("created_at"), output_field=DurationField())
-    resolved = qs.annotate(done_at=done_at_expr).filter(done_at__isnull=False, done_at__gte=F("created_at"))
+    duration_expr = ExpressionWrapper(F("resolved_at") - F("created_at"), output_field=DurationField())
+    resolved = qs.filter(resolved_at__isnull=False, resolved_at__gte=F("created_at"))
     avg_resolve = resolved.aggregate(avg=Avg(duration_expr))["avg"]
     return round(avg_resolve.total_seconds() / 3600, 2) if avg_resolve else None
 
