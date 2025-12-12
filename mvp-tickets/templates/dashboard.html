@@ -199,28 +199,6 @@
     background: linear-gradient(180deg, #22c55e, #0ea5e9);
     border-radius: 9999px;
   }
-  .assignment-flip {
-    max-width: 420px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .assignment-flip__face {
-    text-align: center;
-    padding: 1.25rem;
-  }
-  .assignment-flip__hint {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 9999px;
-    background: rgba(16, 185, 129, 0.08);
-    color: #047857;
-  }
   @media (max-width: 640px) {
     .heatmap-cell {
       padding: 0.35rem;
@@ -624,7 +602,7 @@
           </article>
         </section>
 
-        <section class="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+        <section class="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
           <article class="rounded-3xl border border-indigo-100 bg-white p-5 shadow-sm sm:p-6">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -656,30 +634,27 @@
             {% endif %}
           </article>
 
-          <article class="assignment-flip relative rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-4 shadow-sm sm:p-5" id="assignmentsFlipCard" role="button" tabindex="0" aria-pressed="false" aria-label="Ver desglose de asignaciones de hoy">
+          <article class="assignment-flip rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-5 shadow-sm sm:p-6" id="assignmentsFlipCard" role="button" tabindex="0" aria-pressed="false" aria-label="Ver desglose de asignaciones de hoy">
             <div class="assignment-flip__inner">
-              <div class="assignment-flip__face flex h-full flex-col items-center justify-center gap-4 bg-gradient-to-br from-emerald-50 via-white to-emerald-100">
-                <div class="assignment-flip__hint" aria-hidden="true">
-                  <i class="bi bi-arrow-repeat text-lg"></i>
-                </div>
+              <div class="assignment-flip__face flex h-full flex-col justify-between bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-4">
                 <div class="space-y-1">
                   <h2 class="text-lg font-semibold text-slate-900">Tickets asignados hoy</h2>
                   <p class="text-sm text-slate-600">Reasignaciones creadas durante la fecha actual.</p>
                 </div>
-                <div class="flex flex-col items-center gap-1">
+                <div class="flex items-end gap-3">
                   <span class="text-4xl font-bold leading-none text-emerald-700">{{ assignments_today }}</span>
-                  <span class="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600">asignaciones</span>
+                  <span class="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-600">asignaciones</span>
                 </div>
               </div>
-              <div class="assignment-flip__face assignment-flip__face--back flex h-full flex-col items-center justify-center gap-4 bg-white">
-                <div class="assignment-flip__hint" aria-hidden="true">
-                  <i class="bi bi-arrow-repeat text-lg"></i>
+              <div class="assignment-flip__face assignment-flip__face--back flex h-full flex-col justify-between bg-white p-4">
+                <div class="flex items-center justify-between">
+                  <div class="space-y-1">
+                    <h2 class="text-lg font-semibold text-emerald-700">Detalle de hoy</h2>
+                    <p class="text-sm text-slate-600">Toca nuevamente para volver al total.</p>
+                  </div>
+                  <i class="bi bi-arrow-repeat text-emerald-600 text-xl" aria-hidden="true"></i>
                 </div>
-                <div class="space-y-1">
-                  <h2 class="text-lg font-semibold text-emerald-700">Detalle de hoy</h2>
-                  <p class="text-sm text-slate-600">Toca nuevamente para volver al total.</p>
-                </div>
-                <dl class="grid w-full gap-3 sm:grid-cols-2">
+                <dl class="mt-4 grid gap-3 sm:grid-cols-2">
                   <div class="rounded-xl bg-emerald-50 px-3 py-2">
                     <dt class="text-[10px] font-semibold uppercase tracking-[0.25em] text-emerald-600">Asignados</dt>
                     <dd class="mt-1 text-lg font-semibold text-emerald-800" id="assignmentsAssignedCount">0</dd>
