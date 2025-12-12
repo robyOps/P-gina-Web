@@ -13,7 +13,7 @@ import random
 from calendar import monthrange
 from collections import Counter
 from itertools import cycle
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -24,7 +24,7 @@ from django.utils import timezone
 
 from accounts.roles import ROLE_ADMIN, ROLE_REQUESTER, ROLE_TECH
 from catalog.models import Area, Category, Priority, Subcategory
-from tickets.models import AutoAssignRule, FAQ, Ticket, TicketAssignment
+from tickets.models import AutoAssignRule, AuditLog, FAQ, Ticket, TicketAssignment
 from tickets.services import apply_auto_assign
 
 User = get_user_model()
@@ -111,10 +111,10 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
     def _create_priorities(self):
         data = [
-            ("BAJA", 144),
-            ("MEDIA", 96),
-            ("ALTA", 60),
-            ("CRÍTICA", 8),
+            ("BAJA", 72),
+            ("MEDIA", 24),
+            ("ALTA", 8),
+            ("CRÍTICA", 4),
         ]
         priorities = []
         for name, hours in data:
@@ -511,8 +511,8 @@ class Command(BaseCommand):
 
     def _create_tickets(self, *, status_plan, priorities, areas, categories, requesters, tech_cycle):
         tickets = []
-        now = timezone.now()
-        created_schedule = self._build_created_at_schedule(len(status_plan), now)
+        tz = timezone.get_current_timezone()
+        created_schedule = self._build_created_at_schedule(len(status_plan), tz)
 
         priority_cycle = priorities * ((len(status_plan) // len(priorities)) + 1)
         area_cycle = areas * ((len(status_plan) // len(areas)) + 1)
@@ -526,6 +526,11 @@ class Command(BaseCommand):
             area = area_cycle[idx % len(area_cycle)]
 
             created_at = created_schedule[idx - 1]
+            if status in (Ticket.OPEN, Ticket.IN_PROGRESS) and random.random() < random.uniform(0.0, 0.03):
+                created_at = max(
+                    created_at - timedelta(hours=priority.sla_hours * random.uniform(1.1, 2.0)),
+                    timezone.make_aware(datetime(2025, 1, 1, 0, 0), tz),
+                )
             title = f"Ticket demo {idx:03d} en {category.name.title()}"
             description = (
                 f"Ticket demo #{idx} para probar reportes y autoasignación. "
@@ -548,74 +553,177 @@ class Command(BaseCommand):
             apply_auto_assign(ticket, actor=requester)
 
             chosen_tech = next(tech_cycle)
-            self._assign_ticket(ticket, to_user=chosen_tech, created_at=created_at, actor=requester)
+            first_assignment_time = created_at + timedelta(minutes=random.randint(5, 45))
+            self._assign_ticket(ticket, to_user=chosen_tech, created_at=first_assignment_time, actor=requester)
 
-            ticket.assignments.update(created_at=created_at)
+            ticket.assignments.update(created_at=first_assignment_time)
 
-            resolved_at = None
-            closed_at = None
-            if status in (Ticket.RESOLVED, Ticket.CLOSED):
-                # Forzar una mezcla de tickets con y sin incumplimientos de SLA.
-                breach_factor = random.uniform(1.2, 1.8)
-                on_time_factor = random.uniform(0.4, 0.95)
-                sla_factor = breach_factor if random.random() < 0.3 else on_time_factor
-                resolved_at = created_at + timedelta(hours=priority.sla_hours * sla_factor)
-                if resolved_at > now:
-                    resolved_at = now - timedelta(hours=random.uniform(1, 12))
-            if status == Ticket.CLOSED:
-                closed_at = (resolved_at or created_at) + timedelta(hours=random.uniform(2, 10))
-                if closed_at > now:
-                    closed_at = now - timedelta(hours=random.uniform(0.5, 4))
+            resolved_at, closed_at = self._build_resolution_timestamps(
+                status=status,
+                created_at=created_at,
+                priority=priority,
+                tz=tz,
+            )
+
+            last_assignment_at = self._maybe_reassign(
+                ticket=ticket,
+                created_at=created_at,
+                resolved_at=resolved_at,
+                closed_at=closed_at,
+                tech_cycle=tech_cycle,
+                actor=requester,
+            )
+
+            audit_latest = self._create_audit_trail(
+                ticket=ticket,
+                created_at=created_at,
+                resolved_at=resolved_at,
+                closed_at=closed_at,
+                actor=requester,
+            )
+
+            updated_at_candidates = [created_at, resolved_at, closed_at, last_assignment_at, audit_latest]
+            updated_at = max([dt for dt in updated_at_candidates if dt]) if any(updated_at_candidates) else created_at
 
             Ticket.objects.filter(pk=ticket.pk).update(
                 created_at=created_at,
                 resolved_at=resolved_at,
                 closed_at=closed_at,
+                updated_at=updated_at,
             )
             tickets.append(ticket)
         return tickets
 
-    def _build_created_at_schedule(self, total: int, now):
-        """Genera fechas distribuidas en los últimos meses para evitar picos horarios."""
+    def _build_created_at_schedule(self, total: int, tz):
+        """Genera fechas realistas en 2025 priorizando horario laboral y días hábiles."""
 
-        months_back = 6
-        month_specs = []
-        for offset in range(months_back - 1, -1, -1):
-            year = now.year
-            month = now.month - offset
-            while month <= 0:
-                month += 12
-                year -= 1
-            days = monthrange(year, month)[1]
-            month_specs.append((year, month, days))
-
-        allocations = [total // months_back for _ in range(months_back)]
-        remainder = total % months_back
-        for idx in range(remainder):
-            allocations[months_back - 1 - idx] += 1  # Sesgo hacia meses recientes.
+        start = timezone.make_aware(datetime(2025, 1, 1, 0, 0), tz)
+        end = timezone.make_aware(datetime(2025, 12, 12, 23, 59, 59), tz)
+        day_span = (end.date() - start.date()).days
 
         schedule = []
-        for month_idx, count in enumerate(allocations):
-            year, month, days = month_specs[month_idx]
-            for _ in range(count):
-                day = random.randint(1, days)
+        for _ in range(total * 2):  # oversampling para seleccionar los mejores slots
+            day_offset = random.randint(0, day_span)
+            date_candidate = start + timedelta(days=day_offset)
+            weekday = date_candidate.weekday()
+            is_weekday = weekday < 5
+            if not is_weekday and random.random() < 0.2:
+                continue
+
+            if random.random() < 0.85:
+                hour = random.randint(8, 19)
+            else:
                 hour = random.randint(0, 23)
-                minute = random.randint(0, 59)
-                created_at = timezone.datetime(
-                    year,
-                    month,
-                    day,
+            minute = random.randint(0, 59)
+            second = random.randint(0, 59)
+            created_at = timezone.make_aware(
+                datetime(
+                    date_candidate.year,
+                    date_candidate.month,
+                    date_candidate.day,
                     hour,
                     minute,
-                    random.randint(0, 59),
-                    tzinfo=now.tzinfo,
-                )
-                if created_at > now:
-                    created_at = now - timedelta(hours=random.uniform(1, 24))
-                schedule.append(created_at)
+                    second,
+                ),
+                tz,
+            )
+            if created_at > end:
+                created_at = end - timedelta(hours=random.uniform(0.5, 6))
+            schedule.append(created_at)
 
-        random.shuffle(schedule)
-        return schedule[:total]
+        while len(schedule) < total:
+            schedule.append(start + timedelta(days=random.randint(0, day_span), hours=random.randint(6, 18)))
+
+        schedule = sorted(schedule)[:total]
+        return schedule
+
+    def _build_resolution_timestamps(self, *, status, created_at, priority, tz):
+        """Crea timestamps de resolución/cierre dentro o fuera de SLA según proporciones."""
+
+        if status not in (Ticket.RESOLVED, Ticket.CLOSED):
+            return None, None
+
+        end_cap = timezone.make_aware(datetime(2025, 12, 12, 23, 59, 59), tz)
+
+        within_sla_rate = random.uniform(0.85, 0.95)
+        breach_rate = random.uniform(0.05, 0.15)
+        out_of_sla = random.random() < breach_rate
+        on_time = random.random() < within_sla_rate and not out_of_sla
+
+        if on_time:
+            factor = random.uniform(0.6, 0.95)
+        elif out_of_sla:
+            factor = random.uniform(1.05, 1.8)
+        else:
+            factor = random.uniform(0.95, 1.2)
+
+        resolved_at = created_at + timedelta(hours=priority.sla_hours * factor)
+        if resolved_at < created_at:
+            resolved_at = created_at
+        if resolved_at > end_cap:
+            resolved_at = end_cap - timedelta(hours=random.uniform(0.2, 4))
+
+        closed_at = None
+        if status == Ticket.CLOSED:
+            closed_at = resolved_at + timedelta(hours=random.uniform(1.5, 12))
+            if closed_at > end_cap:
+                closed_at = end_cap
+
+        return resolved_at, closed_at
+
+    def _maybe_reassign(self, *, ticket, created_at, resolved_at, closed_at, tech_cycle, actor):
+        """Agrega re-asignaciones distribuidas en el tiempo."""
+
+        last_assignment = ticket.assignments.order_by("-created_at").first()
+        last_at = last_assignment.created_at if last_assignment else created_at
+
+        span_end = closed_at or resolved_at
+        if not span_end:
+            span_end = created_at + timedelta(hours=random.uniform(1, 12))
+
+        if random.random() < 0.25:
+            reassign_time = created_at + timedelta(hours=random.uniform(0.5, max((span_end - created_at).total_seconds() / 3600, 1)))
+            reassign_time = min(reassign_time, span_end)
+            self._assign_ticket(
+                ticket,
+                to_user=next(tech_cycle),
+                created_at=reassign_time,
+                actor=actor,
+                reason="re-asignación demo",
+            )
+            last_at = reassign_time
+
+        return last_at
+
+    def _create_audit_trail(self, *, ticket, created_at, resolved_at, closed_at, actor):
+        """Genera auditorías y comentarios en la línea de tiempo del ticket."""
+
+        events_end = closed_at or resolved_at or created_at + timedelta(hours=random.uniform(2, 24))
+        comment_count = random.randint(1, 3) if events_end != created_at else 1
+        latest = created_at
+        for _ in range(comment_count):
+            offset_hours = random.uniform(0.1, max((events_end - created_at).total_seconds() / 3600, 1))
+            event_time = created_at + timedelta(hours=offset_hours)
+            event_time = min(event_time, events_end)
+            log = AuditLog.objects.create(
+                ticket=ticket,
+                actor=actor,
+                action="COMMENT",
+                meta={"auto": True},
+            )
+            AuditLog.objects.filter(pk=log.pk).update(created_at=event_time)
+            latest = max(latest, event_time)
+
+        if closed_at:
+            status_log = AuditLog.objects.create(ticket=ticket, actor=actor, action="STATUS", meta={"to": Ticket.CLOSED})
+            AuditLog.objects.filter(pk=status_log.pk).update(created_at=closed_at)
+            latest = max(latest, closed_at)
+        elif resolved_at:
+            status_log = AuditLog.objects.create(ticket=ticket, actor=actor, action="STATUS", meta={"to": Ticket.RESOLVED})
+            AuditLog.objects.filter(pk=status_log.pk).update(created_at=resolved_at)
+            latest = max(latest, resolved_at)
+
+        return latest
 
     def _featured_ticket_templates(self, categories, areas, priorities, requesters):
         cat_index = {c.name: c for c in categories}
@@ -658,10 +766,11 @@ class Command(BaseCommand):
         ]
 
     def _create_featured_tickets(self, *, templates, areas, categories, priorities, requesters, tech_cycle):
-        now = timezone.now()
+        tz = timezone.get_current_timezone()
+        end_cap = timezone.make_aware(datetime(2025, 12, 12, 23, 59, 59), tz)
         tickets = []
         for spec in templates:
-            created_at = now - timedelta(hours=spec.get("created_offset_hours", 6))
+            created_at = end_cap - timedelta(hours=spec.get("created_offset_hours", 6))
             ticket = Ticket.objects.create(
                 code="",
                 title=spec["title"],
@@ -683,7 +792,30 @@ class Command(BaseCommand):
                 reason="distribución destacada",
             )
             ticket.assignments.update(created_at=created_at)
-            Ticket.objects.filter(pk=ticket.pk).update(created_at=created_at)
+
+            resolved_at, closed_at = self._build_resolution_timestamps(
+                status=spec.get("status", Ticket.OPEN),
+                created_at=created_at,
+                priority=spec.get("priority") or random.choice(priorities),
+                tz=tz,
+            )
+
+            audit_latest = self._create_audit_trail(
+                ticket=ticket,
+                created_at=created_at,
+                resolved_at=resolved_at,
+                closed_at=closed_at,
+                actor=spec["requester"],
+            )
+            updated_at_candidates = [created_at, resolved_at, closed_at, audit_latest]
+            updated_at = max([dt for dt in updated_at_candidates if dt]) if any(updated_at_candidates) else created_at
+
+            Ticket.objects.filter(pk=ticket.pk).update(
+                created_at=created_at,
+                resolved_at=resolved_at,
+                closed_at=closed_at,
+                updated_at=updated_at,
+            )
             tickets.append(ticket)
         return tickets
 
@@ -700,6 +832,14 @@ class Command(BaseCommand):
             reason=reason,
         )
         TicketAssignment.objects.filter(pk=assignment.pk).update(created_at=created_at)
+
+        audit = AuditLog.objects.create(
+            ticket=ticket,
+            actor=actor or to_user,
+            action="ASSIGN",
+            meta={"to": to_user.username, "reason": reason},
+        )
+        AuditLog.objects.filter(pk=audit.pk).update(created_at=created_at)
 
     # ------------------------------------------------------------------
     # Purga
