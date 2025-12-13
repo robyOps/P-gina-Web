@@ -69,11 +69,11 @@ helpdesk.urls --> views HTML (tickets/catalog)
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+.venv\Scripts\activate
 cd mvp-tickets
+pip install -r requirements.txt
 python manage.py migrate
-python manage.py createsuperuser  # opcional para acceder al admin
+python manage.py createsuperuser  # opcional para acceder al superadmin
 python manage.py runserver
 ```
 
