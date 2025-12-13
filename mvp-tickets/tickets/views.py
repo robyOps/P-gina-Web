@@ -1748,6 +1748,8 @@ def reports_dashboard(request):
         (72, 120, "72–120h"),
         (120, None, "120h+"),
     ]
+    dur = ExpressionWrapper(F("resolved_at") - F("created_at"), output_field=DurationField())
+    resolved = qs.filter(resolved_at__isnull=False, resolved_at__gte=F("created_at"))
     durations = [
         (t.resolved_at - t.created_at).total_seconds() / 3600.0
         for t in resolved.only("created_at", "resolved_at")
