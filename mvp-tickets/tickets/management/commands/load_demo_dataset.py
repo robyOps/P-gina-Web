@@ -3,8 +3,8 @@ Crea un dataset de demostración rico en tickets, catálogos, usuarios y reglas.
 
 - Ejecuta ``python manage.py load_demo_dataset --purge`` para borrar datos previos
   (tickets, catálogos demo y usuarios de prueba) y volver a generar todo.
-- Genera por defecto 1000 tickets variados con categorías, subcategorías,
-  prioridades, áreas, FAQs y reglas de autoasignación activas.
+ - Genera por defecto un escenario multi-sede con 6000 tickets variados,
+   categorías, subcategorías, prioridades, áreas, FAQs y reglas de autoasignación activas.
 """
 
 from __future__ import annotations
@@ -37,19 +37,56 @@ class Command(BaseCommand):
         parser.add_argument(
             "--tickets",
             type=int,
-            default=1000,
-            help="Cantidad de tickets a generar (por defecto: 1000).",
+            default=6000,
+            help="Cantidad de tickets a generar (por defecto: 6000).",
         )
         parser.add_argument(
             "--purge",
             action="store_true",
             help="Elimina tickets, catálogos demo, FAQs y usuarios de prueba antes de crear el dataset.",
         )
+        parser.add_argument(
+            "--requesters",
+            type=int,
+            default=500,
+            help="Cantidad de usuarios solicitantes a generar (por defecto: 500).",
+        )
+        parser.add_argument(
+            "--techs",
+            type=int,
+            default=10,
+            help="Cantidad de técnicos resolutores (por defecto: 10).",
+        )
+        parser.add_argument(
+            "--admins",
+            type=int,
+            default=3,
+            help="Cantidad de administradores (por defecto: 3).",
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
-        total_tickets = options["tickets"]
+        total_tickets = max(2050, min(options["tickets"], 9110))
         purge = options["purge"]
+        total_requesters = max(300, min(options["requesters"], 800))
+        total_techs = max(6, min(options["techs"], 15))
+        total_admins = max(2, min(options["admins"], 4))
+
+        self.auto_assign_rate = random.uniform(0.5, 0.6)
+        manual_target = random.uniform(0.25, 0.35)
+        self_target = random.uniform(0.05, 0.1)
+        remaining = max(1 - self.auto_assign_rate, 0.05)
+        manual_conditional = manual_target / remaining
+        self_conditional = self_target / remaining
+        normalization = manual_conditional + self_conditional
+        if normalization > 0.95:
+            factor = 0.95 / normalization
+            manual_conditional *= factor
+            self_conditional *= factor
+
+        self.manual_assign_rate = manual_conditional
+        self.self_assign_rate = self_conditional
+        self.reassign_rate = random.uniform(0.1, 0.2)
 
         random.seed(202501)
 
@@ -62,7 +99,14 @@ class Command(BaseCommand):
         priorities = self._create_priorities()
         areas = self._create_areas()
         categories = self._create_categories()
-        techs, requesters, admins = self._create_users(areas)
+        techs, requesters, admins = self._create_users(
+            areas,
+            total_requesters=total_requesters,
+            total_techs=total_techs,
+            total_admins=total_admins,
+        )
+
+        self.requester_weights = self._build_requester_weights(requesters)
 
         self._create_autoassign_rules(categories, areas, techs)
         self._create_faqs(categories, requesters[0])
@@ -311,7 +355,7 @@ class Command(BaseCommand):
         ]
         return base_requesters, extra_first_names, extra_last_names
 
-    def _create_users(self, areas):
+    def _create_users(self, areas, *, total_requesters: int, total_techs: int, total_admins: int):
         admin_group = Group.objects.get(name=ROLE_ADMIN)
         tech_group = Group.objects.get(name=ROLE_TECH)
         requester_group = Group.objects.get(name=ROLE_REQUESTER)
@@ -352,88 +396,62 @@ class Command(BaseCommand):
                 profile.save(update_fields=["area", "is_critical_actor"])
             return user
 
+        admin_specs = [
+            ("admin_ana", "Ana", "Pérez", "DIRECCIÓN EJECUTIVA"),
+            ("admin_bruno", "Bruno", "Salas", "TECNOLOGÍA"),
+            ("admin_carla", "Carla", "Mena", "RIESGO Y CONTINUIDAD"),
+        ]
+        if total_admins > len(admin_specs):
+            extra_admins = []
+            for idx in range(total_admins - len(admin_specs)):
+                first = extra_first_names[idx % len(extra_first_names)]
+                last = extra_last_names[(idx * 2) % len(extra_last_names)]
+                area_key = list(area_lookup.keys())[(idx + 3) % len(area_lookup)]
+                extra_admins.append((f"admin_ext_{idx+1:02d}", first, last, area_key))
+            admin_specs.extend(extra_admins)
         admins = [
-            build_user("admin_ana", "Ana", "Pérez", admin_group, is_staff=True, area=area_lookup["DIRECCIÓN EJECUTIVA"]),
-            build_user("admin_bruno", "Bruno", "Salas", admin_group, is_staff=True, area=area_lookup["TECNOLOGÍA"]),
-            build_user("admin_carla", "Carla", "Mena", admin_group, is_staff=True, area=area_lookup["RIESGO Y CONTINUIDAD"]),
+            build_user(username, first, last, admin_group, is_staff=True, area=area_lookup.get(area_key))
+            for username, first, last, area_key in admin_specs[:total_admins]
         ]
-        techs = [
-            build_user("tech_ale", "Ale", "Valdés", tech_group, area=area_lookup["TECNOLOGÍA"]),
-            build_user(
-                "tech_beto",
-                "Beto",
-                "Ramos",
-                tech_group,
-                area=area_lookup["OPERACIONES"] or areas[0],
-            ),
-            build_user(
-                "tech_cata",
-                "Catalina",
-                "Rivas",
-                tech_group,
-                area=area_lookup["EXPERIENCIA CLIENTE"],
-            ),
-            build_user(
-                "tech_dante",
-                "Dante",
-                "Silva",
-                tech_group,
-                area=area_lookup.get("TECNOLOGÍA") or areas[1],
-            ),
-            build_user(
-                "tech_eli",
-                "Elisa",
-                "Naranjo",
-                tech_group,
-                area=area_lookup["DATOS Y ANALÍTICA"] or areas[4],
-            ),
-            build_user(
-                "tech_fede",
-                "Federico",
-                "Lagos",
-                tech_group,
-                area=area_lookup["RECURSOS HUMANOS"] or areas[6],
-            ),
-            build_user(
-                "tech_gabi",
-                "Gabriela",
-                "Fuentes",
-                tech_group,
-                area=area_lookup["FINANZAS"] or areas[3],
-            ),
-            build_user(
-                "tech_hugo",
-                "Hugo",
-                "Sanhueza",
-                tech_group,
-                area=area_lookup["INFRAESTRUCTURA"] or areas[1],
-            ),
-            build_user(
-                "tech_isa",
-                "Isabel",
-                "Araya",
-                tech_group,
-                area=area_lookup["SEGURIDAD"] or areas[2],
-            ),
-            build_user(
-                "tech_juan",
-                "Juan",
-                "Contreras",
-                tech_group,
-                area=area_lookup["SOPORTE AL CLIENTE"] or areas[5],
-            ),
-        ]
-        base_requesters, extra_first_names, extra_last_names = self._requester_seed_data()
 
-        total_requesters = 60
-        critical_sample = set(random.sample(range(total_requesters), k=5))
+        tech_specs = [
+            ("tech_ale", "Ale", "Valdés", "TECNOLOGÍA"),
+            ("tech_beto", "Beto", "Ramos", "OPERACIONES"),
+            ("tech_cata", "Catalina", "Rivas", "EXPERIENCIA CLIENTE"),
+            ("tech_dante", "Dante", "Silva", "TECNOLOGÍA"),
+            ("tech_eli", "Elisa", "Naranjo", "DATOS Y ANALÍTICA"),
+            ("tech_fede", "Federico", "Lagos", "RECURSOS HUMANOS"),
+            ("tech_gabi", "Gabriela", "Fuentes", "FINANZAS"),
+            ("tech_hugo", "Hugo", "Sanhueza", "INFRAESTRUCTURA"),
+            ("tech_isa", "Isabel", "Araya", "SEGURIDAD"),
+            ("tech_juan", "Juan", "Contreras", "SOPORTE AL CLIENTE"),
+        ]
+        if total_techs > len(tech_specs):
+            for idx in range(total_techs - len(tech_specs)):
+                first = extra_first_names[(idx + 5) % len(extra_first_names)]
+                last = extra_last_names[(idx * 4) % len(extra_last_names)]
+                area_key = list(area_lookup.keys())[(idx + 5) % len(area_lookup)]
+                tech_specs.append((f"tech_ext_{idx+1:02d}", first, last, area_key))
+        techs = [
+            build_user(
+                username,
+                first,
+                last,
+                tech_group,
+                area=area_lookup.get(area_key) or random.choice(areas),
+            )
+            for username, first, last, area_key in tech_specs[:total_techs]
+        ]
+
+        base_requesters, extra_first_names, extra_last_names = self._requester_seed_data()
+        critical_sample = set(random.sample(range(total_requesters), k=max(8, int(total_requesters * 0.05))))
         area_keys = list(area_lookup.keys())
 
         generated_requesters = []
-        for idx in range(total_requesters - len(base_requesters)):
+        for idx in range(max(total_requesters - len(base_requesters), 0)):
             first = extra_first_names[idx % len(extra_first_names)]
             last = extra_last_names[(idx * 3) % len(extra_last_names)]
-            username = f"req_{first.lower()}_{idx + 1:02d}"
+            username = f"req_{first.lower()}_{idx + 1:03d}"
             area_key = area_keys[idx % len(area_keys)]
             generated_requesters.append(
                 (
@@ -445,7 +463,7 @@ class Command(BaseCommand):
                 )
             )
 
-        requester_specs = base_requesters + generated_requesters
+        requester_specs = (base_requesters + generated_requesters)[:total_requesters]
         requesters = []
         for username, first, last, area_key, is_critical in requester_specs:
             requesters.append(
@@ -627,7 +645,7 @@ class Command(BaseCommand):
 
         for idx, created_at in enumerate(created_schedule, start=1):
             status = self._choose_status_by_age(created_at=created_at, end_cap=end_cap)
-            requester = requesters[idx % len(requesters)]
+            requester = random.choices(requesters, weights=self.requester_weights, k=1)[0]
             category = categories[idx % len(categories)]
             sub_qs = list(category.subcategories.all()) or list(Subcategory.objects.filter(category=category))
             subcategory = sub_qs[idx % len(sub_qs)] if sub_qs else None
@@ -658,7 +676,8 @@ class Command(BaseCommand):
                 kind=Ticket.INCIDENT if idx % 3 == 0 else Ticket.REQUEST,
             )
 
-            auto_assigned, assignment_time = self._normalize_auto_assignment(ticket, created_at)
+            auto_flag = random.random() < self.auto_assign_rate
+            auto_assigned, assignment_time = self._normalize_auto_assignment(ticket, created_at, force=auto_flag)
 
             chosen_tech = next(tech_cycle)
             if not auto_assigned:
@@ -729,15 +748,21 @@ class Command(BaseCommand):
         day_span = (end.date() - start.date()).days
 
         schedule = []
+        december_forced = [
+            timezone.make_aware(datetime(2025, 12, 5, 10, 30), tz),
+            timezone.make_aware(datetime(2025, 12, 9, 15, 10), tz),
+            timezone.make_aware(datetime(2025, 12, 11, 11, 45), tz),
+        ]
+
         for _ in range(total * 2):  # oversampling para seleccionar los mejores slots
             day_offset = random.randint(0, day_span)
             date_candidate = start + timedelta(days=day_offset)
             weekday = date_candidate.weekday()
             is_weekday = weekday < 5
-            if not is_weekday and random.random() < 0.2:
+            if not is_weekday and random.random() < 0.8:
                 continue
 
-            if random.random() < 0.85:
+            if random.random() < 0.9:
                 hour = random.randint(8, 19)
             else:
                 hour = random.randint(0, 23)
@@ -758,10 +783,23 @@ class Command(BaseCommand):
                 created_at = end - timedelta(hours=random.uniform(0.5, 6))
             schedule.append(created_at)
 
+        schedule.extend(december_forced)
         while len(schedule) < total:
             schedule.append(start + timedelta(days=random.randint(0, day_span), hours=random.randint(6, 18)))
 
-        schedule = sorted(schedule)[:total]
+        schedule = sorted(schedule)
+        forced_set = set(december_forced)
+        while len(schedule) > total:
+            if schedule[0] in forced_set:
+                for idx, dt in enumerate(schedule[1:], start=1):
+                    if dt not in forced_set:
+                        schedule.pop(idx)
+                        break
+                else:
+                    schedule.pop()
+            else:
+                schedule.pop(0)
+        schedule = schedule[:total]
         return schedule
 
     def _choose_status_by_age(self, *, created_at, end_cap):
@@ -790,13 +828,18 @@ class Command(BaseCommand):
 
     def _pick_assignment_strategy(self):
         roll = random.random()
-        if roll < 0.65:
+        manual_cutoff = self.manual_assign_rate
+        self_cutoff = manual_cutoff + self.self_assign_rate
+        if roll < manual_cutoff:
             return "MANUAL_ASSIGN"
-        if roll < 0.8:
+        if roll < self_cutoff:
             return "TECH_SELF_ASSIGN"
         return "UNASSIGNED"
 
-    def _normalize_auto_assignment(self, ticket, created_at):
+    def _normalize_auto_assignment(self, ticket, created_at, *, force=True):
+        if not force:
+            return False, None
+
         auto_assigned = apply_auto_assign(ticket, actor=None)
         assignment = ticket.assignments.order_by("-created_at", "-pk").first()
         if ticket.assigned_to_id and assignment:
@@ -858,7 +901,7 @@ class Command(BaseCommand):
         if not span_end:
             span_end = created_at + timedelta(hours=random.uniform(1, 12))
 
-        if random.random() < 0.15:
+        if random.random() < self.reassign_rate:
             reassign_time = created_at + timedelta(hours=random.uniform(0.5, max((span_end - created_at).total_seconds() / 3600, 1)))
             reassign_time = min(reassign_time, span_end)
             self._assign_ticket(
@@ -961,6 +1004,26 @@ class Command(BaseCommand):
                 "requester": random.choice(requesters),
                 "created_offset_hours": 72,
             },
+            {
+                "title": "Mantenimiento de red multisede completado",
+                "category": cat_index.get("INFRAESTRUCTURA"),
+                "subcategory": Subcategory.objects.filter(name="WIFI").first(),
+                "priority": priority_index.get("BAJA"),
+                "area": area_index.get("OPERACIONES"),
+                "status": Ticket.RESOLVED,
+                "requester": random.choice(requesters),
+                "created_offset_hours": 60,
+            },
+            {
+                "title": "Cierre de incidente crítico en sede norte",
+                "category": cat_index.get("SEGURIDAD"),
+                "subcategory": Subcategory.objects.filter(name="RESPUESTA INCIDENTES").first(),
+                "priority": priority_index.get("CRÍTICA"),
+                "area": area_index.get("DIRECCIÓN EJECUTIVA"),
+                "status": Ticket.CLOSED,
+                "requester": random.choice(requesters),
+                "created_offset_hours": 36,
+            },
         ]
 
     def _create_featured_tickets(self, *, templates, areas, categories, priorities, requesters, tech_cycle, admins):
@@ -981,7 +1044,8 @@ class Command(BaseCommand):
                 status=spec.get("status", Ticket.OPEN),
                 kind=Ticket.INCIDENT,
             )
-            auto_assigned, assignment_time = self._normalize_auto_assignment(ticket, created_at)
+            auto_flag = random.random() < self.auto_assign_rate
+            auto_assigned, assignment_time = self._normalize_auto_assignment(ticket, created_at, force=auto_flag)
             if not auto_assigned:
                 strategy = self._pick_assignment_strategy()
                 if strategy == "MANUAL_ASSIGN":
@@ -1085,18 +1149,31 @@ class Command(BaseCommand):
         Area.objects.all().delete()
         User.objects.filter(username__in=self._demo_usernames()).delete()
 
+    def _build_requester_weights(self, requesters):
+        """Genera pesos para que ~20% de requesters concentren ~60% de los tickets."""
+
+        total = len(requesters)
+        heavy_count = max(1, int(total * 0.2))
+        heavy_weight = (0.6 * (total - heavy_count)) / (0.4 * heavy_count)
+        heavy_weight = max(3.5, min(heavy_weight, 8.0))
+
+        heavy_indexes = set(random.sample(range(total), k=heavy_count))
+        weights = [heavy_weight if idx in heavy_indexes else 1.0 for idx in range(total)]
+        return weights
+
     def _demo_usernames(self):
         base_requesters, extra_first_names, _ = self._requester_seed_data()
         requester_usernames = [username for username, *_ in base_requesters]
-        total_requesters = 60
+        total_requesters = 800
         for idx in range(total_requesters - len(base_requesters)):
             first = extra_first_names[idx % len(extra_first_names)]
-            requester_usernames.append(f"req_{first.lower()}_{idx + 1:02d}")
+            requester_usernames.append(f"req_{first.lower()}_{idx + 1:03d}")
 
         return [
             "admin_ana",
             "admin_bruno",
             "admin_carla",
+            *(f"admin_ext_{idx:02d}" for idx in range(1, 6)),
             "tech_ale",
             "tech_beto",
             "tech_cata",
@@ -1107,5 +1184,6 @@ class Command(BaseCommand):
             "tech_hugo",
             "tech_isa",
             "tech_juan",
+            *(f"tech_ext_{idx:02d}" for idx in range(1, 11)),
             *requester_usernames,
         ]
