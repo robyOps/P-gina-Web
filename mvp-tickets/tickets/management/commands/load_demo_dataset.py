@@ -3,14 +3,14 @@ Crea un dataset de demostración rico en tickets, catálogos, usuarios y reglas.
 
 - Ejecuta ``python manage.py load_demo_dataset --purge`` para borrar datos previos
   (tickets, catálogos demo y usuarios de prueba) y volver a generar todo.
- - Genera por defecto un escenario multi-sede con 6000 tickets variados,
-   categorías, subcategorías, prioridades, áreas, FAQs y reglas de autoasignación activas.
+- Por defecto genera un escenario 2025 con 2.200 tickets realistas, 300
+  solicitantes, 6 técnicos y 2 administradores, incluyendo reglas de autoasignación
+  y actividad reciente en diciembre.
 """
 
 from __future__ import annotations
 
 import random
-from calendar import monthrange
 from collections import Counter
 from itertools import cycle
 from datetime import datetime, timedelta
@@ -37,8 +37,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--tickets",
             type=int,
-            default=6000,
-            help="Cantidad de tickets a generar (por defecto: 6000).",
+            default=2200,
+            help="Cantidad de tickets a generar (por defecto: 2200).",
         )
         parser.add_argument(
             "--purge",
@@ -46,48 +46,67 @@ class Command(BaseCommand):
             help="Elimina tickets, catálogos demo, FAQs y usuarios de prueba antes de crear el dataset.",
         )
         parser.add_argument(
+            "--reset",
+            action="store_true",
+            help="Alias de --purge para limpiar datos previos antes de crear el dataset.",
+        )
+        parser.add_argument(
             "--requesters",
             type=int,
-            default=500,
-            help="Cantidad de usuarios solicitantes a generar (por defecto: 500).",
+            default=300,
+            help="Cantidad de usuarios solicitantes a generar (por defecto: 300).",
         )
         parser.add_argument(
             "--techs",
             type=int,
-            default=10,
-            help="Cantidad de técnicos resolutores (por defecto: 10).",
+            default=6,
+            help="Cantidad de técnicos resolutores (por defecto: 6).",
         )
         parser.add_argument(
             "--admins",
             type=int,
-            default=3,
-            help="Cantidad de administradores (por defecto: 3).",
+            default=2,
+            help="Cantidad de administradores (por defecto: 2).",
+        )
+        parser.add_argument(
+            "--start",
+            type=str,
+            default="2025-01-01",
+            help="Fecha inicial del dataset (YYYY-MM-DD).",
+        )
+        parser.add_argument(
+            "--end",
+            type=str,
+            default="2025-12-12",
+            help="Fecha final del dataset (YYYY-MM-DD).",
         )
 
     @transaction.atomic
     def handle(self, *args, **options):
-        total_tickets = max(2050, min(options["tickets"], 9110))
-        purge = options["purge"]
-        total_requesters = max(300, min(options["requesters"], 800))
-        total_techs = max(6, min(options["techs"], 15))
-        total_admins = max(2, min(options["admins"], 4))
+        start_date = datetime.fromisoformat(options["start"]).date()
+        end_date = datetime.fromisoformat(options["end"]).date()
+        total_tickets = max(200, min(options["tickets"], 9110))
+        purge = options["purge"] or options["reset"]
+        total_requesters = max(50, min(options["requesters"], 800))
+        total_techs = max(2, min(options["techs"], 20))
+        total_admins = max(1, min(options["admins"], 6))
 
-        self.auto_assign_rate = random.uniform(0.5, 0.6)
-        manual_target = random.uniform(0.25, 0.35)
-        self_target = random.uniform(0.05, 0.1)
-        remaining = max(1 - self.auto_assign_rate, 0.05)
-        manual_conditional = manual_target / remaining
-        self_conditional = self_target / remaining
-        normalization = manual_conditional + self_conditional
-        if normalization > 0.95:
-            factor = 0.95 / normalization
-            manual_conditional *= factor
-            self_conditional *= factor
-
-        self.manual_assign_rate = manual_conditional
-        self.self_assign_rate = self_conditional
+        # Distribución de asignación: mayoría autoasignada, pero con espacio para
+        # manual/self-assign y tickets sin asignar (especialmente recientes).
+        self.auto_assign_rate = 0.55
+        self.manual_assign_rate = 0.55
+        self.self_assign_rate = 0.25
         self.reassign_rate = random.uniform(0.1, 0.2)
 
+        # Control de SLA en tiempo real.
+        self.sla_counters = {
+            "closed_total": 0,
+            "closed_breach": 0,
+            "open_total": 0,
+            "open_breach": 0,
+        }
+        self.start_date = start_date
+        self.end_date = end_date
         random.seed(202501)
 
         self.stdout.write(self.style.WARNING("Inicializando grupos y permisos base (init_rbac)..."))
@@ -145,6 +164,21 @@ class Command(BaseCommand):
                 f"Cerrados: {counts[Ticket.CLOSED]}"
             )
         )
+        closed_total = max(self.sla_counters["closed_total"], 1)
+        open_total = max(self.sla_counters["open_total"], 1)
+        closed_breach_pct = (self.sla_counters["closed_breach"] / closed_total) * 100
+        open_breach_pct = (self.sla_counters["open_breach"] / open_total) * 100
+        unassigned_count = Ticket.objects.filter(assigned_to__isnull=True).count()
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                "Resumen SLA: "
+                f"Cerrados dentro SLA {(100 - closed_breach_pct):.1f}% | "
+                f"Fuera SLA {closed_breach_pct:.1f}% | "
+                f"Vencidos abiertos {open_breach_pct:.1f}%"
+            )
+        )
+        self.stdout.write(self.style.WARNING(f"Tickets sin asignar: {unassigned_count}"))
         self.stdout.write(
             self.style.WARNING(
                 "Usuarios demo creados (password: Demo1234!) para roles de administración, técnicos y solicitantes."
@@ -637,8 +671,13 @@ class Command(BaseCommand):
     def _create_tickets(self, *, total, priorities, areas, categories, requesters, tech_cycle, admins):
         tickets = []
         tz = timezone.get_current_timezone()
-        end_cap = timezone.make_aware(datetime(2025, 12, 12, 23, 59, 59), tz)
-        created_schedule = self._build_created_at_schedule(total, tz)
+        end_cap = timezone.make_aware(
+            datetime(self.end_date.year, self.end_date.month, self.end_date.day, 23, 59, 59), tz
+        )
+        created_schedule = self._build_created_at_schedule(total, tz, self.start_date, self.end_date)
+        start_cap = timezone.make_aware(
+            datetime(self.start_date.year, self.start_date.month, self.start_date.day, 0, 0, 0), tz
+        )
 
         priority_cycle = priorities * ((len(created_schedule) // len(priorities)) + 1)
         area_cycle = areas * ((len(created_schedule) // len(areas)) + 1)
@@ -652,10 +691,9 @@ class Command(BaseCommand):
             priority = priority_cycle[idx % len(priority_cycle)]
             area = area_cycle[idx % len(area_cycle)]
 
-            if status in (Ticket.OPEN, Ticket.IN_PROGRESS) and random.random() < random.uniform(0.0, 0.03):
-                created_at = max(
-                    created_at - timedelta(hours=priority.sla_hours * random.uniform(1.1, 2.0)),
-                    timezone.make_aware(datetime(2025, 1, 1, 0, 0), tz),
+            if status in (Ticket.OPEN, Ticket.IN_PROGRESS):
+                created_at = self._maybe_mark_open_overdue(
+                    created_at=created_at, priority=priority, end_cap=end_cap, start_cap=start_cap
                 )
             title = f"Ticket demo {idx:03d} en {category.name.title()}"
             description = (
@@ -676,12 +714,13 @@ class Command(BaseCommand):
                 kind=Ticket.INCIDENT if idx % 3 == 0 else Ticket.REQUEST,
             )
 
-            auto_flag = random.random() < self.auto_assign_rate
+            auto_prob = self._auto_assign_probability(created_at, end_cap)
+            auto_flag = random.random() < auto_prob
             auto_assigned, assignment_time = self._normalize_auto_assignment(ticket, created_at, force=auto_flag)
 
             chosen_tech = next(tech_cycle)
             if not auto_assigned:
-                strategy = self._pick_assignment_strategy()
+                strategy = self._pick_assignment_strategy(created_at=created_at, end_cap=end_cap)
                 assignment_time = created_at + timedelta(minutes=random.randint(5, 45))
                 if strategy == "MANUAL_ASSIGN":
                     actor = random.choice(admins)
@@ -707,7 +746,7 @@ class Command(BaseCommand):
                 status=status,
                 created_at=created_at,
                 priority=priority,
-                tz=tz,
+                end_cap=end_cap,
             )
 
             last_assignment_at = assignment_time or created_at
@@ -740,83 +779,127 @@ class Command(BaseCommand):
             tickets.append(ticket)
         return tickets
 
-    def _build_created_at_schedule(self, total: int, tz):
-        """Genera fechas realistas en 2025 priorizando horario laboral y días hábiles."""
+    def _build_created_at_schedule(self, total: int, tz, start_date, end_date):
+        """Genera fechas realistas entre ``start_date`` y ``end_date``.
 
-        start = timezone.make_aware(datetime(2025, 1, 1, 0, 0), tz)
-        end = timezone.make_aware(datetime(2025, 12, 12, 23, 59, 59), tz)
-        day_span = (end.date() - start.date()).days
+        Aplica una carga de ~8-10 tickets por día hábil y menor volumen en
+        fines de semana, conservando actividad reciente en diciembre.
+        """
+
+        start = timezone.make_aware(datetime(start_date.year, start_date.month, start_date.day, 0, 0), tz)
+        end = timezone.make_aware(datetime(end_date.year, end_date.month, end_date.day, 23, 59, 59), tz)
+
+        days = []
+        current = start
+        while current.date() <= end.date():
+            is_weekday = current.weekday() < 5
+            base = random.randint(8, 10) if is_weekday else random.randint(1, 3)
+            days.append((current, base))
+            current += timedelta(days=1)
+
+        total_raw = sum(count for _, count in days)
+        scale = total / total_raw if total_raw else 1
+        day_buckets = []
+        for day, base in days:
+            scaled = max(1, int(round(base * scale))) if day.weekday() >= 5 else max(7, int(round(base * scale)))
+            day_buckets.append([day, scaled])
+
+        # Ajusta diferencias para alcanzar el total exacto
+        current_total = sum(count for _, count in day_buckets)
+        while current_total < total:
+            target_days = [idx for idx, (day, _) in enumerate(day_buckets) if day.weekday() < 5]
+            idx = random.choice(target_days)
+            day_buckets[idx][1] += 1
+            current_total += 1
+        while current_total > total:
+            candidates = [idx for idx, (day, count) in enumerate(day_buckets) if count > 1]
+            idx = random.choice(candidates)
+            day_buckets[idx][1] -= 1
+            current_total -= 1
 
         schedule = []
-        december_forced = [
-            timezone.make_aware(datetime(2025, 12, 5, 10, 30), tz),
-            timezone.make_aware(datetime(2025, 12, 9, 15, 10), tz),
-            timezone.make_aware(datetime(2025, 12, 11, 11, 45), tz),
+        december_forced = []
+        december_candidates = [
+            datetime(end_date.year, 12, 5, 10, 30),
+            datetime(end_date.year, 12, 9, 15, 10),
+            datetime(end_date.year, 12, 11, 11, 45),
         ]
+        for candidate in december_candidates:
+            if start_date <= candidate.date() <= end_date:
+                december_forced.append(timezone.make_aware(candidate, tz))
 
-        for _ in range(total * 2):  # oversampling para seleccionar los mejores slots
-            day_offset = random.randint(0, day_span)
-            date_candidate = start + timedelta(days=day_offset)
-            weekday = date_candidate.weekday()
-            is_weekday = weekday < 5
-            if not is_weekday and random.random() < 0.8:
-                continue
-
-            if random.random() < 0.9:
-                hour = random.randint(8, 19)
-            else:
-                hour = random.randint(0, 23)
-            minute = random.randint(0, 59)
-            second = random.randint(0, 59)
-            created_at = timezone.make_aware(
-                datetime(
-                    date_candidate.year,
-                    date_candidate.month,
-                    date_candidate.day,
-                    hour,
-                    minute,
-                    second,
-                ),
-                tz,
-            )
-            if created_at > end:
-                created_at = end - timedelta(hours=random.uniform(0.5, 6))
-            schedule.append(created_at)
+        for day, count in day_buckets:
+            for _ in range(count):
+                if random.random() < 0.9:
+                    hour = random.randint(8, 19)
+                else:
+                    hour = random.randint(0, 23)
+                minute = random.randint(0, 59)
+                second = random.randint(0, 59)
+                created_at = timezone.make_aware(
+                    datetime(day.year, day.month, day.day, hour, minute, second), tz
+                )
+                created_at = min(created_at, end)
+                schedule.append(created_at)
 
         schedule.extend(december_forced)
-        while len(schedule) < total:
-            schedule.append(start + timedelta(days=random.randint(0, day_span), hours=random.randint(6, 18)))
-
         schedule = sorted(schedule)
         forced_set = set(december_forced)
         while len(schedule) > total:
-            if schedule[0] in forced_set:
-                for idx, dt in enumerate(schedule[1:], start=1):
-                    if dt not in forced_set:
-                        schedule.pop(idx)
-                        break
-                else:
-                    schedule.pop()
-            else:
-                schedule.pop(0)
-        schedule = schedule[:total]
-        return schedule
+            removable = [idx for idx, dt in enumerate(schedule) if dt not in forced_set and schedule[idx].weekday() >= 5]
+            if not removable:
+                removable = [idx for idx, dt in enumerate(schedule) if dt not in forced_set]
+            if not removable:
+                schedule.pop()
+                continue
+            schedule.pop(removable[0])
+        return schedule[:total]
 
     def _choose_status_by_age(self, *, created_at, end_cap):
         days_old = (end_cap.date() - created_at.date()).days
 
         if days_old <= 3:
-            choices = [(Ticket.OPEN, 0.35), (Ticket.IN_PROGRESS, 0.35), (Ticket.RESOLVED, 0.18), (Ticket.CLOSED, 0.12)]
+            choices = [
+                (Ticket.OPEN, 0.4),
+                (Ticket.IN_PROGRESS, 0.35),
+                (Ticket.RESOLVED, 0.15),
+                (Ticket.CLOSED, 0.1),
+            ]
         elif days_old <= 7:
-            choices = [(Ticket.OPEN, 0.25), (Ticket.IN_PROGRESS, 0.35), (Ticket.RESOLVED, 0.25), (Ticket.CLOSED, 0.15)]
-        elif days_old <= 14:
-            choices = [(Ticket.OPEN, 0.12), (Ticket.IN_PROGRESS, 0.38), (Ticket.RESOLVED, 0.3), (Ticket.CLOSED, 0.2)]
+            choices = [
+                (Ticket.OPEN, 0.28),
+                (Ticket.IN_PROGRESS, 0.38),
+                (Ticket.RESOLVED, 0.2),
+                (Ticket.CLOSED, 0.14),
+            ]
+        elif days_old <= 10:
+            choices = [
+                (Ticket.OPEN, 0.2),
+                (Ticket.IN_PROGRESS, 0.45),
+                (Ticket.RESOLVED, 0.23),
+                (Ticket.CLOSED, 0.12),
+            ]
         elif days_old <= 30:
-            choices = [(Ticket.IN_PROGRESS, 0.18), (Ticket.RESOLVED, 0.45), (Ticket.CLOSED, 0.37)]
-        elif days_old <= 45:
-            choices = [(Ticket.RESOLVED, 0.45), (Ticket.CLOSED, 0.55)]
+            choices = [
+                (Ticket.OPEN, 0.08),
+                (Ticket.IN_PROGRESS, 0.24),
+                (Ticket.RESOLVED, 0.38),
+                (Ticket.CLOSED, 0.3),
+            ]
+        elif days_old <= 60:
+            choices = [
+                (Ticket.OPEN, 0.04),
+                (Ticket.IN_PROGRESS, 0.12),
+                (Ticket.RESOLVED, 0.36),
+                (Ticket.CLOSED, 0.48),
+            ]
         else:
-            choices = [(Ticket.RESOLVED, 0.2), (Ticket.CLOSED, 0.8)]
+            choices = [
+                (Ticket.OPEN, 0.02),
+                (Ticket.IN_PROGRESS, 0.06),
+                (Ticket.RESOLVED, 0.32),
+                (Ticket.CLOSED, 0.6),
+            ]
 
         roll = random.random()
         cumulative = 0
@@ -826,15 +909,25 @@ class Command(BaseCommand):
                 return status
         return choices[-1][0]
 
-    def _pick_assignment_strategy(self):
-        roll = random.random()
-        manual_cutoff = self.manual_assign_rate
-        self_cutoff = manual_cutoff + self.self_assign_rate
-        if roll < manual_cutoff:
+    def _pick_assignment_strategy(self, *, created_at, end_cap):
+        days_from_end = (end_cap.date() - created_at.date()).days
+        unassigned_target = random.uniform(0.25, 0.4) if days_from_end <= 10 else random.uniform(0.1, 0.2)
+
+        manual = self.manual_assign_rate
+        self_assign = self.self_assign_rate
+        total = manual + self_assign + unassigned_target
+        roll = random.random() * total
+        if roll < manual:
             return "MANUAL_ASSIGN"
-        if roll < self_cutoff:
+        if roll < manual + self_assign:
             return "TECH_SELF_ASSIGN"
         return "UNASSIGNED"
+
+    def _auto_assign_probability(self, created_at, end_cap):
+        days_from_end = (end_cap.date() - created_at.date()).days
+        if days_from_end <= 10:
+            return 0.4
+        return self.auto_assign_rate
 
     def _normalize_auto_assignment(self, ticket, created_at, *, force=True):
         if not force:
@@ -857,31 +950,40 @@ class Command(BaseCommand):
             return True, auto_time
         return auto_assigned, None
 
-    def _build_resolution_timestamps(self, *, status, created_at, priority, tz):
-        """Crea timestamps de resolución/cierre dentro o fuera de SLA según proporciones."""
+    def _should_breach_closed(self):
+        total = max(self.sla_counters["closed_total"], 1)
+        breach = self.sla_counters["closed_breach"] / total
+        if breach < 0.08:
+            return random.random() < 0.15
+        if breach < 0.1:
+            return random.random() < 0.12
+        if breach < 0.12:
+            return random.random() < 0.08
+        return random.random() < 0.03
+
+    def _build_resolution_timestamps(self, *, status, created_at, priority, end_cap):
+        """Crea timestamps de resolución/cierre controlando proporción de SLA."""
 
         if status not in (Ticket.RESOLVED, Ticket.CLOSED):
             return None, None
 
-        end_cap = timezone.make_aware(datetime(2025, 12, 12, 23, 59, 59), tz)
+        self.sla_counters["closed_total"] += 1
+        due_at = created_at + timedelta(hours=priority.sla_hours)
+        out_of_sla = self._should_breach_closed()
 
-        within_sla_rate = random.uniform(0.88, 0.95)
-        breach_rate = random.uniform(0.05, 0.12)
-        out_of_sla = random.random() < breach_rate
-        on_time = random.random() < within_sla_rate and not out_of_sla
-
-        if on_time:
-            factor = random.uniform(0.6, 0.95)
-        elif out_of_sla:
+        if out_of_sla:
+            self.sla_counters["closed_breach"] += 1
             factor = random.uniform(1.05, 1.8)
         else:
-            factor = random.uniform(0.95, 1.2)
+            factor = random.uniform(0.5, 0.95)
 
         resolved_at = created_at + timedelta(hours=priority.sla_hours * factor)
+        if not out_of_sla and resolved_at > due_at:
+            resolved_at = due_at - timedelta(hours=random.uniform(0.1, max(priority.sla_hours * 0.2, 0.5)))
         if resolved_at < created_at:
-            resolved_at = created_at
+            resolved_at = created_at + timedelta(hours=random.uniform(0.2, 2))
         if resolved_at > end_cap:
-            resolved_at = end_cap - timedelta(hours=random.uniform(0.2, 4))
+            resolved_at = end_cap - timedelta(hours=random.uniform(0.2, 6))
 
         closed_at = None
         if status == Ticket.CLOSED:
@@ -914,6 +1016,32 @@ class Command(BaseCommand):
             last_at = reassign_time
 
         return last_at
+
+    def _maybe_mark_open_overdue(self, *, created_at, priority, end_cap, start_cap):
+        """Marca pocos tickets abiertos/en progreso como vencidos de forma controlada."""
+
+        self.sla_counters["open_total"] += 1
+        ratio = self.sla_counters["open_breach"] / max(self.sla_counters["open_total"], 1)
+        if ratio < 0.01:
+            probability = 0.03
+        elif ratio < 0.02:
+            probability = 0.02
+        elif ratio < 0.03:
+            probability = 0.01
+        else:
+            probability = 0.005
+
+        due_at = created_at + timedelta(hours=priority.sla_hours)
+        mark = random.random() < probability
+        if mark and due_at >= end_cap:
+            shift_hours = (due_at - end_cap).total_seconds() / 3600 + random.uniform(1, max(priority.sla_hours * 0.6, 1))
+            created_at = max(start_cap, created_at - timedelta(hours=shift_hours))
+            due_at = created_at + timedelta(hours=priority.sla_hours)
+
+        if mark and due_at < end_cap:
+            self.sla_counters["open_breach"] += 1
+
+        return created_at
 
     def _create_audit_trail(self, *, ticket, created_at, resolved_at, closed_at, actor):
         """Genera auditorías y comentarios en la línea de tiempo del ticket."""
@@ -1028,10 +1156,23 @@ class Command(BaseCommand):
 
     def _create_featured_tickets(self, *, templates, areas, categories, priorities, requesters, tech_cycle, admins):
         tz = timezone.get_current_timezone()
-        end_cap = timezone.make_aware(datetime(2025, 12, 12, 23, 59, 59), tz)
+        end_cap = timezone.make_aware(
+            datetime(self.end_date.year, self.end_date.month, self.end_date.day, 23, 59, 59), tz
+        )
+        start_cap = timezone.make_aware(
+            datetime(self.start_date.year, self.start_date.month, self.start_date.day, 0, 0, 0), tz
+        )
         tickets = []
         for spec in templates:
             created_at = end_cap - timedelta(hours=spec.get("created_offset_hours", 6))
+            if spec.get("status") in (Ticket.OPEN, Ticket.IN_PROGRESS):
+                created_at = self._maybe_mark_open_overdue(
+                    created_at=created_at,
+                    priority=spec.get("priority") or random.choice(priorities),
+                    end_cap=end_cap,
+                    start_cap=start_cap,
+                )
+
             ticket = Ticket.objects.create(
                 code="",
                 title=spec["title"],
@@ -1044,10 +1185,11 @@ class Command(BaseCommand):
                 status=spec.get("status", Ticket.OPEN),
                 kind=Ticket.INCIDENT,
             )
-            auto_flag = random.random() < self.auto_assign_rate
+            auto_prob = self._auto_assign_probability(created_at, end_cap)
+            auto_flag = random.random() < auto_prob
             auto_assigned, assignment_time = self._normalize_auto_assignment(ticket, created_at, force=auto_flag)
             if not auto_assigned:
-                strategy = self._pick_assignment_strategy()
+                strategy = self._pick_assignment_strategy(created_at=created_at, end_cap=end_cap)
                 if strategy == "MANUAL_ASSIGN":
                     admin_actor = random.choice(admins)
                     self._assign_ticket(
@@ -1075,7 +1217,7 @@ class Command(BaseCommand):
                 status=spec.get("status", Ticket.OPEN),
                 created_at=created_at,
                 priority=spec.get("priority") or random.choice(priorities),
-                tz=tz,
+                end_cap=end_cap,
             )
 
             last_assignment_at = assignment_time or created_at
