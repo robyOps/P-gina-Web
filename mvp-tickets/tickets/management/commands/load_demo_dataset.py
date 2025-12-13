@@ -1100,14 +1100,19 @@ class Command(BaseCommand):
 
         self.sla_counters["open_total"] += 1
         ratio = self.sla_counters["open_breach"] / max(self.sla_counters["open_total"], 1)
-        if ratio < 0.01:
-            probability = 0.03
-        elif ratio < 0.02:
+        target_ratio = 0.08
+        if ratio < 0.04:
+            probability = 0.18
+        elif ratio < 0.06:
+            probability = 0.12
+        elif ratio < target_ratio:
+            probability = 0.08
+        elif ratio < 0.1:
+            probability = 0.04
+        elif ratio < 0.12:
             probability = 0.02
-        elif ratio < 0.03:
-            probability = 0.01
         else:
-            probability = 0.005
+            probability = 0.01
 
         mark = random.random() < probability
         if not mark:
