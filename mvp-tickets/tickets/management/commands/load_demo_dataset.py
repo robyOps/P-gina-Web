@@ -1098,23 +1098,39 @@ class Command(BaseCommand):
     def _maybe_mark_open_overdue(self, *, created_at, priority, end_cap, start_cap):
         """Marca pocos tickets abiertos/en progreso como vencidos de forma controlada."""
 
+        target_active = 53
+        target_breach = 6
+
         self.sla_counters["open_total"] += 1
         ratio = self.sla_counters["open_breach"] / max(self.sla_counters["open_total"], 1)
-        target_ratio = 0.08
-        if ratio < 0.04:
-            probability = 0.18
-        elif ratio < 0.06:
-            probability = 0.12
-        elif ratio < target_ratio:
-            probability = 0.08
-        elif ratio < 0.1:
-            probability = 0.04
-        elif ratio < 0.12:
-            probability = 0.02
-        else:
-            probability = 0.01
 
-        mark = random.random() < probability
+        mark = False
+        if self.sla_counters["open_total"] <= target_active:
+            remaining_slots = target_active - self.sla_counters["open_total"]
+            remaining_breaches = max(target_breach - self.sla_counters["open_breach"], 0)
+
+            if remaining_breaches and remaining_slots < remaining_breaches:
+                mark = True
+            elif remaining_breaches:
+                probability = max(0.15, min(0.55, remaining_breaches / max(remaining_slots + 1, 1)))
+                mark = random.random() < probability
+        else:
+            target_ratio = target_breach / target_active
+            if ratio < 0.04:
+                probability = 0.18
+            elif ratio < 0.06:
+                probability = 0.12
+            elif ratio < target_ratio:
+                probability = 0.08
+            elif ratio < 0.1:
+                probability = 0.04
+            elif ratio < 0.12:
+                probability = 0.02
+            else:
+                probability = 0.01
+
+            mark = random.random() < probability
+
         if not mark:
             return created_at
 
@@ -1125,7 +1141,7 @@ class Command(BaseCommand):
             "BAJA": 72,
         }.get((priority.name or "").upper(), 48)
 
-        overdue_hours = random.uniform(0.5, max_overdue_hours)
+        overdue_hours = random.uniform(0.5, min(max_overdue_hours, priority.sla_hours * 0.35))
         target_due = end_cap - timedelta(hours=overdue_hours)
         created_at = target_due - timedelta(hours=priority.sla_hours)
         created_at = max(created_at, end_cap - timedelta(days=21))
