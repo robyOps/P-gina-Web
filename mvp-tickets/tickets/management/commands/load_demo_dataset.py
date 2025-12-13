@@ -165,10 +165,22 @@ class Command(BaseCommand):
             )
         )
         closed_total = max(self.sla_counters["closed_total"], 1)
-        open_total = max(self.sla_counters["open_total"], 1)
+        open_total = max(counts[Ticket.OPEN] + counts[Ticket.IN_PROGRESS], 1)
         closed_breach_pct = (self.sla_counters["closed_breach"] / closed_total) * 100
         open_breach_pct = (self.sla_counters["open_breach"] / open_total) * 100
         unassigned_count = Ticket.objects.filter(assigned_to__isnull=True).count()
+
+        total = len(tickets)
+        pct = lambda val: (val / total) * 100 if total else 0
+        self.stdout.write(
+            self.style.WARNING(
+                "Distribución por estado: "
+                f"OPEN {counts[Ticket.OPEN]} ({pct(counts[Ticket.OPEN]):.1f}%) | "
+                f"IN_PROGRESS {counts[Ticket.IN_PROGRESS]} ({pct(counts[Ticket.IN_PROGRESS]):.1f}%) | "
+                f"RESOLVED {counts[Ticket.RESOLVED]} ({pct(counts[Ticket.RESOLVED]):.1f}%) | "
+                f"CLOSED {counts[Ticket.CLOSED]} ({pct(counts[Ticket.CLOSED]):.1f}%)"
+            )
+        )
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -182,6 +194,47 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.WARNING(
                 "Usuarios demo creados (password: Demo1234!) para roles de administración, técnicos y solicitantes."
+            )
+        )
+
+        tz = timezone.get_current_timezone()
+        end_cap = timezone.make_aware(
+            datetime(self.end_date.year, self.end_date.month, self.end_date.day, 23, 59, 59), tz
+        )
+        stale_open = Ticket.objects.filter(
+            status__in=[Ticket.OPEN, Ticket.IN_PROGRESS], created_at__lt=end_cap - timedelta(days=21)
+        ).count()
+        critical_old = Ticket.objects.filter(
+            status__in=[Ticket.OPEN, Ticket.IN_PROGRESS],
+            priority__name="CRÍTICA",
+            created_at__lt=end_cap - timedelta(days=3),
+        ).count()
+        high_old = Ticket.objects.filter(
+            status__in=[Ticket.OPEN, Ticket.IN_PROGRESS],
+            priority__name="ALTA",
+            created_at__lt=end_cap - timedelta(days=7),
+        ).count()
+
+        urgent_overdue = Ticket.objects.filter(
+            status__in=[Ticket.OPEN, Ticket.IN_PROGRESS], priority__name__in=["CRÍTICA", "ALTA"]
+        )
+        max_overdue = 0
+        for t in urgent_overdue:
+            due_at = t.created_at + timedelta(hours=t.priority.sla_hours)
+            if due_at < end_cap:
+                overdue_hours = (end_cap - due_at).total_seconds() / 3600
+                max_overdue = max(max_overdue, overdue_hours)
+
+        self.stdout.write(
+            self.style.NOTICE(
+                f"OPEN/IN_PROGRESS >21 días: {stale_open} | "
+                f"CRÍTICA >3d activos: {critical_old} | ALTA >7d activos: {high_old} | "
+                f"Máx overdue urgentes (h): {max_overdue:.1f}"
+            )
+        )
+        self.stdout.write(
+            self.style.NOTICE(
+                f"Closed fuera de SLA: {closed_breach_pct:.1f}% | Vencidos abiertos: {open_breach_pct:.1f}%"
             )
         )
 
@@ -695,6 +748,10 @@ class Command(BaseCommand):
                 created_at = self._maybe_mark_open_overdue(
                     created_at=created_at, priority=priority, end_cap=end_cap, start_cap=start_cap
                 )
+
+            status = self._enforce_status_recency(
+                status=status, created_at=created_at, end_cap=end_cap, priority=priority
+            )
             title = f"Ticket demo {idx:03d} en {category.name.title()}"
             description = (
                 f"Ticket demo #{idx} para probar reportes y autoasignación. "
@@ -855,50 +912,71 @@ class Command(BaseCommand):
             schedule.pop(removable[0])
         return schedule[:total]
 
+    def _enforce_status_recency(self, *, status, created_at, end_cap, priority):
+        """Evita tickets activos muy antiguos y urgentes envejecidos."""
+
+        if status not in (Ticket.OPEN, Ticket.IN_PROGRESS):
+            return status
+
+        age_days = (end_cap.date() - created_at.date()).days
+        forced_weights = (Ticket.RESOLVED, Ticket.CLOSED)
+        forced_prob = (0.35, 0.65)
+
+        if age_days > 21:
+            return random.choices(forced_weights, weights=forced_prob, k=1)[0]
+
+        priority_name = (priority.name or "").upper()
+        if priority_name == "CRÍTICA" and age_days > 3:
+            return random.choices(forced_weights, weights=(0.45, 0.55), k=1)[0]
+        if priority_name == "ALTA" and age_days > 7:
+            return random.choices(forced_weights, weights=(0.4, 0.6), k=1)[0]
+
+        return status
+
     def _choose_status_by_age(self, *, created_at, end_cap):
         days_old = (end_cap.date() - created_at.date()).days
 
         if days_old <= 3:
             choices = [
-                (Ticket.OPEN, 0.4),
-                (Ticket.IN_PROGRESS, 0.35),
+                (Ticket.OPEN, 0.35),
+                (Ticket.IN_PROGRESS, 0.4),
                 (Ticket.RESOLVED, 0.15),
                 (Ticket.CLOSED, 0.1),
             ]
         elif days_old <= 7:
             choices = [
                 (Ticket.OPEN, 0.28),
-                (Ticket.IN_PROGRESS, 0.38),
-                (Ticket.RESOLVED, 0.2),
-                (Ticket.CLOSED, 0.14),
+                (Ticket.IN_PROGRESS, 0.32),
+                (Ticket.RESOLVED, 0.22),
+                (Ticket.CLOSED, 0.18),
             ]
-        elif days_old <= 10:
+        elif days_old <= 14:
             choices = [
-                (Ticket.OPEN, 0.2),
-                (Ticket.IN_PROGRESS, 0.45),
-                (Ticket.RESOLVED, 0.23),
-                (Ticket.CLOSED, 0.12),
+                (Ticket.OPEN, 0.1),
+                (Ticket.IN_PROGRESS, 0.25),
+                (Ticket.RESOLVED, 0.35),
+                (Ticket.CLOSED, 0.3),
             ]
         elif days_old <= 30:
             choices = [
-                (Ticket.OPEN, 0.08),
-                (Ticket.IN_PROGRESS, 0.24),
-                (Ticket.RESOLVED, 0.38),
-                (Ticket.CLOSED, 0.3),
+                (Ticket.OPEN, 0.05),
+                (Ticket.IN_PROGRESS, 0.12),
+                (Ticket.RESOLVED, 0.33),
+                (Ticket.CLOSED, 0.5),
             ]
         elif days_old <= 60:
             choices = [
-                (Ticket.OPEN, 0.04),
-                (Ticket.IN_PROGRESS, 0.12),
-                (Ticket.RESOLVED, 0.36),
-                (Ticket.CLOSED, 0.48),
+                (Ticket.OPEN, 0.01),
+                (Ticket.IN_PROGRESS, 0.03),
+                (Ticket.RESOLVED, 0.35),
+                (Ticket.CLOSED, 0.61),
             ]
         else:
             choices = [
-                (Ticket.OPEN, 0.02),
-                (Ticket.IN_PROGRESS, 0.06),
+                (Ticket.OPEN, 0.001),
+                (Ticket.IN_PROGRESS, 0.007),
                 (Ticket.RESOLVED, 0.32),
-                (Ticket.CLOSED, 0.6),
+                (Ticket.CLOSED, 0.672),
             ]
 
         roll = random.random()
@@ -1031,14 +1109,25 @@ class Command(BaseCommand):
         else:
             probability = 0.005
 
-        due_at = created_at + timedelta(hours=priority.sla_hours)
         mark = random.random() < probability
-        if mark and due_at >= end_cap:
-            shift_hours = (due_at - end_cap).total_seconds() / 3600 + random.uniform(1, max(priority.sla_hours * 0.6, 1))
-            created_at = max(start_cap, created_at - timedelta(hours=shift_hours))
-            due_at = created_at + timedelta(hours=priority.sla_hours)
+        if not mark:
+            return created_at
 
-        if mark and due_at < end_cap:
+        max_overdue_hours = {
+            "CRÍTICA": 6,
+            "ALTA": 24,
+            "MEDIA": 48,
+            "BAJA": 72,
+        }.get((priority.name or "").upper(), 48)
+
+        overdue_hours = random.uniform(0.5, max_overdue_hours)
+        target_due = end_cap - timedelta(hours=overdue_hours)
+        created_at = target_due - timedelta(hours=priority.sla_hours)
+        created_at = max(created_at, end_cap - timedelta(days=21))
+        created_at = max(created_at, start_cap)
+
+        due_at = created_at + timedelta(hours=priority.sla_hours)
+        if due_at < end_cap:
             self.sla_counters["open_breach"] += 1
 
         return created_at
@@ -1110,7 +1199,7 @@ class Command(BaseCommand):
                 "area": area_index.get("RIESGO Y CONTINUIDAD") or area_index.get("TECNOLOGÍA"),
                 "status": Ticket.IN_PROGRESS,
                 "requester": critical_requester,
-                "created_offset_hours": 10,
+                "created_offset_hours": random.uniform(2, 18),
             },
             {
                 "title": "Escalamiento ejecutivo por canal digital",
@@ -1120,7 +1209,7 @@ class Command(BaseCommand):
                 "area": area_index.get("EXPERIENCIA CLIENTE"),
                 "status": Ticket.OPEN,
                 "requester": critical_requester,
-                "created_offset_hours": 4,
+                "created_offset_hours": random.uniform(6, 36),
             },
             {
                 "title": "Caso en modelo de datos financiero",
@@ -1164,14 +1253,22 @@ class Command(BaseCommand):
         )
         tickets = []
         for spec in templates:
+            status = spec.get("status", Ticket.OPEN)
+            priority_obj = spec.get("priority") or random.choice(priorities)
             created_at = end_cap - timedelta(hours=spec.get("created_offset_hours", 6))
-            if spec.get("status") in (Ticket.OPEN, Ticket.IN_PROGRESS):
+            if status in (Ticket.OPEN, Ticket.IN_PROGRESS):
                 created_at = self._maybe_mark_open_overdue(
                     created_at=created_at,
-                    priority=spec.get("priority") or random.choice(priorities),
+                    priority=priority_obj,
                     end_cap=end_cap,
                     start_cap=start_cap,
                 )
+            status = self._enforce_status_recency(
+                status=status,
+                created_at=created_at,
+                end_cap=end_cap,
+                priority=priority_obj,
+            )
 
             ticket = Ticket.objects.create(
                 code="",
@@ -1180,9 +1277,9 @@ class Command(BaseCommand):
                 requester=spec["requester"],
                 category=spec.get("category") or random.choice(categories),
                 subcategory=spec.get("subcategory"),
-                priority=spec.get("priority") or random.choice(priorities),
+                priority=priority_obj,
                 area=spec.get("area") or random.choice(areas),
-                status=spec.get("status", Ticket.OPEN),
+                status=status,
                 kind=Ticket.INCIDENT,
             )
             auto_prob = self._auto_assign_probability(created_at, end_cap)
@@ -1214,9 +1311,9 @@ class Command(BaseCommand):
                     assignment_time = None
 
             resolved_at, closed_at = self._build_resolution_timestamps(
-                status=spec.get("status", Ticket.OPEN),
+                status=status,
                 created_at=created_at,
-                priority=spec.get("priority") or random.choice(priorities),
+                priority=priority_obj,
                 end_cap=end_cap,
             )
 
