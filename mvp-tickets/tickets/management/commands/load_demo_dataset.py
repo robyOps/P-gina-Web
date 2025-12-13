@@ -24,7 +24,7 @@ from django.utils import timezone
 
 from accounts.roles import ROLE_ADMIN, ROLE_REQUESTER, ROLE_TECH
 from catalog.models import Area, Category, Priority, Subcategory
-from tickets.models import AutoAssignRule, AuditLog, FAQ, Ticket, TicketAssignment
+from tickets.models import AutoAssignRule, AuditLog, FAQ, Ticket, TicketAssignment, TicketComment
 from tickets.services import apply_auto_assign
 
 User = get_user_model()
@@ -69,16 +69,16 @@ class Command(BaseCommand):
 
         featured_specs = self._featured_ticket_templates(categories, areas, priorities, requesters)
         base_total = max(total_tickets - len(featured_specs), 0)
-        status_plan = self._build_status_plan(base_total)
         tech_cycle = cycle(techs)
 
         tickets = self._create_tickets(
-            status_plan=status_plan,
+            total=base_total,
             priorities=priorities,
             areas=areas,
             categories=categories,
             requesters=requesters,
             tech_cycle=tech_cycle,
+            admins=admins,
         )
         tickets.extend(
             self._create_featured_tickets(
@@ -88,6 +88,7 @@ class Command(BaseCommand):
                 priorities=priorities,
                 requesters=requesters,
                 tech_cycle=tech_cycle,
+                admins=admins,
             )
         )
         counts = Counter([t.status for t in tickets])
@@ -186,6 +187,130 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
     # Usuarios
     # ------------------------------------------------------------------
+    def _requester_seed_data(self):
+        base_requesters = [
+            ("req_camila", "Camila", "Ossandon", "DIRECCIÓN EJECUTIVA", True),
+            ("req_diego", "Diego", "Leiva", "FINANZAS", False),
+            ("req_elena", "Elena", "Campos", "EXPERIENCIA CLIENTE", False),
+            ("req_francisco", "Francisco", "Toro", "OPERACIONES", False),
+            ("req_gracia", "Gracia", "Duarte", "RIESGO Y CONTINUIDAD", True),
+        ]
+        extra_first_names = [
+            "Irene",
+            "Javier",
+            "Karla",
+            "Luis",
+            "Maria",
+            "Nicolas",
+            "Olga",
+            "Pablo",
+            "Rodrigo",
+            "Sofia",
+            "Tamara",
+            "Ulises",
+            "Valeria",
+            "Walter",
+            "Ximena",
+            "Yolanda",
+            "Zoe",
+            "Andres",
+            "Beatriz",
+            "Carmen",
+            "Daniel",
+            "Esteban",
+            "Fernanda",
+            "German",
+            "Hilda",
+            "Ivan",
+            "Julia",
+            "Kevin",
+            "Lucia",
+            "Manuel",
+            "Natalia",
+            "Oscar",
+            "Patricia",
+            "Rafael",
+            "Sara",
+            "Tomas",
+            "Victoria",
+            "Wendy",
+            "Xavier",
+            "Yael",
+            "Antonella",
+            "Bruno",
+            "Claudia",
+            "Dante",
+            "Elsa",
+            "Felipe",
+            "Gonzalo",
+            "Helena",
+            "Ismael",
+            "Jonas",
+            "Karen",
+            "Leonor",
+            "Matias",
+            "Noelia",
+            "Orlando",
+            "Paula",
+            "Quentin",
+            "Rocio",
+        ]
+        extra_last_names = [
+            "Aguilar",
+            "Baeza",
+            "Contreras",
+            "Dominguez",
+            "Escobar",
+            "Fuentes",
+            "Gonzalez",
+            "Hernandez",
+            "Ibarra",
+            "Jimenez",
+            "Keller",
+            "Lagos",
+            "Maldonado",
+            "Navarro",
+            "Ortega",
+            "Paredes",
+            "Quinteros",
+            "Ramos",
+            "Salinas",
+            "Tapia",
+            "Ulloa",
+            "Vargas",
+            "Weiss",
+            "Xiques",
+            "Yanez",
+            "Zuñiga",
+            "Arriagada",
+            "Bravo",
+            "Carrasco",
+            "Donoso",
+            "Espinoza",
+            "Figueroa",
+            "Garrido",
+            "Huerta",
+            "Inostroza",
+            "Jara",
+            "Kurtz",
+            "Leal",
+            "Muñoz",
+            "Nieto",
+            "Ochoa",
+            "Palma",
+            "Quezada",
+            "Riquelme",
+            "Saavedra",
+            "Toledo",
+            "Uribe",
+            "Valdes",
+            "Warner",
+            "Xelhuantzi",
+            "Yepez",
+            "Zuleta",
+        ]
+        return base_requesters, extra_first_names, extra_last_names
+
     def _create_users(self, areas):
         admin_group = Group.objects.get(name=ROLE_ADMIN)
         tech_group = Group.objects.get(name=ROLE_TECH)
@@ -298,45 +423,41 @@ class Command(BaseCommand):
                 area=area_lookup["SOPORTE AL CLIENTE"] or areas[5],
             ),
         ]
-        requesters = [
-            build_user(
-                "req_camila",
-                "Camila",
-                "Ossandón",
-                requester_group,
-                is_critical=True,
-                area=area_lookup["DIRECCIÓN EJECUTIVA"],
-            ),
-            build_user(
-                "req_diego",
-                "Diego",
-                "Leiva",
-                requester_group,
-                area=area_lookup["FINANZAS"] or areas[3],
-            ),
-            build_user(
-                "req_elena",
-                "Elena",
-                "Campos",
-                requester_group,
-                area=area_lookup["EXPERIENCIA CLIENTE"],
-            ),
-            build_user(
-                "req_francisco",
-                "Francisco",
-                "Toro",
-                requester_group,
-                area=area_lookup["OPERACIONES"],
-            ),
-            build_user(
-                "req_gracia",
-                "Gracia",
-                "Duarte",
-                requester_group,
-                is_critical=True,
-                area=area_lookup["RIESGO Y CONTINUIDAD"],
-            ),
-        ]
+        base_requesters, extra_first_names, extra_last_names = self._requester_seed_data()
+
+        total_requesters = 60
+        critical_sample = set(random.sample(range(total_requesters), k=5))
+        area_keys = list(area_lookup.keys())
+
+        generated_requesters = []
+        for idx in range(total_requesters - len(base_requesters)):
+            first = extra_first_names[idx % len(extra_first_names)]
+            last = extra_last_names[(idx * 3) % len(extra_last_names)]
+            username = f"req_{first.lower()}_{idx + 1:02d}"
+            area_key = area_keys[idx % len(area_keys)]
+            generated_requesters.append(
+                (
+                    username,
+                    first,
+                    last,
+                    area_key,
+                    idx in critical_sample,
+                )
+            )
+
+        requester_specs = base_requesters + generated_requesters
+        requesters = []
+        for username, first, last, area_key, is_critical in requester_specs:
+            requesters.append(
+                build_user(
+                    username,
+                    first,
+                    last,
+                    requester_group,
+                    is_critical=is_critical,
+                    area=area_lookup.get(area_key) or random.choice(areas),
+                )
+            )
 
         return techs, requesters, admins
 
@@ -495,29 +616,17 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
     # Tickets
     # ------------------------------------------------------------------
-    def _build_status_plan(self, total: int):
-        proportions = [
-            (Ticket.OPEN, 0.27),
-            (Ticket.IN_PROGRESS, 0.27),
-            (Ticket.RESOLVED, 0.24),
-            (Ticket.CLOSED, 0.22),
-        ]
-        plan: list[str] = []
-        for status, pct in proportions:
-            plan.extend([status] * int(total * pct))
-        while len(plan) < total:
-            plan.append(Ticket.IN_PROGRESS if len(plan) % 2 else Ticket.OPEN)
-        return plan[:total]
-
-    def _create_tickets(self, *, status_plan, priorities, areas, categories, requesters, tech_cycle):
+    def _create_tickets(self, *, total, priorities, areas, categories, requesters, tech_cycle, admins):
         tickets = []
         tz = timezone.get_current_timezone()
-        created_schedule = self._build_created_at_schedule(len(status_plan), tz)
+        end_cap = timezone.make_aware(datetime(2025, 12, 12, 23, 59, 59), tz)
+        created_schedule = self._build_created_at_schedule(total, tz)
 
-        priority_cycle = priorities * ((len(status_plan) // len(priorities)) + 1)
-        area_cycle = areas * ((len(status_plan) // len(areas)) + 1)
+        priority_cycle = priorities * ((len(created_schedule) // len(priorities)) + 1)
+        area_cycle = areas * ((len(created_schedule) // len(areas)) + 1)
 
-        for idx, status in enumerate(status_plan, start=1):
+        for idx, created_at in enumerate(created_schedule, start=1):
+            status = self._choose_status_by_age(created_at=created_at, end_cap=end_cap)
             requester = requesters[idx % len(requesters)]
             category = categories[idx % len(categories)]
             sub_qs = list(category.subcategories.all()) or list(Subcategory.objects.filter(category=category))
@@ -525,7 +634,6 @@ class Command(BaseCommand):
             priority = priority_cycle[idx % len(priority_cycle)]
             area = area_cycle[idx % len(area_cycle)]
 
-            created_at = created_schedule[idx - 1]
             if status in (Ticket.OPEN, Ticket.IN_PROGRESS) and random.random() < random.uniform(0.0, 0.03):
                 created_at = max(
                     created_at - timedelta(hours=priority.sla_hours * random.uniform(1.1, 2.0)),
@@ -550,13 +658,31 @@ class Command(BaseCommand):
                 kind=Ticket.INCIDENT if idx % 3 == 0 else Ticket.REQUEST,
             )
 
-            apply_auto_assign(ticket, actor=requester)
+            auto_assigned, assignment_time = self._normalize_auto_assignment(ticket, created_at)
 
             chosen_tech = next(tech_cycle)
-            first_assignment_time = created_at + timedelta(minutes=random.randint(5, 45))
-            self._assign_ticket(ticket, to_user=chosen_tech, created_at=first_assignment_time, actor=requester)
-
-            ticket.assignments.update(created_at=first_assignment_time)
+            if not auto_assigned:
+                strategy = self._pick_assignment_strategy()
+                assignment_time = created_at + timedelta(minutes=random.randint(5, 45))
+                if strategy == "MANUAL_ASSIGN":
+                    actor = random.choice(admins)
+                    self._assign_ticket(
+                        ticket,
+                        to_user=chosen_tech,
+                        created_at=assignment_time,
+                        actor=actor,
+                        reason="MANUAL_ASSIGN",
+                    )
+                elif strategy == "TECH_SELF_ASSIGN":
+                    self._assign_ticket(
+                        ticket,
+                        to_user=chosen_tech,
+                        created_at=assignment_time,
+                        actor=chosen_tech,
+                        reason="TECH_SELF_ASSIGN",
+                    )
+                else:
+                    assignment_time = None
 
             resolved_at, closed_at = self._build_resolution_timestamps(
                 status=status,
@@ -565,13 +691,14 @@ class Command(BaseCommand):
                 tz=tz,
             )
 
+            last_assignment_at = assignment_time or created_at
             last_assignment_at = self._maybe_reassign(
                 ticket=ticket,
                 created_at=created_at,
                 resolved_at=resolved_at,
                 closed_at=closed_at,
                 tech_cycle=tech_cycle,
-                actor=requester,
+                admins=admins,
             )
 
             audit_latest = self._create_audit_trail(
@@ -637,6 +764,56 @@ class Command(BaseCommand):
         schedule = sorted(schedule)[:total]
         return schedule
 
+    def _choose_status_by_age(self, *, created_at, end_cap):
+        days_old = (end_cap.date() - created_at.date()).days
+
+        if days_old <= 3:
+            choices = [(Ticket.OPEN, 0.35), (Ticket.IN_PROGRESS, 0.35), (Ticket.RESOLVED, 0.18), (Ticket.CLOSED, 0.12)]
+        elif days_old <= 7:
+            choices = [(Ticket.OPEN, 0.25), (Ticket.IN_PROGRESS, 0.35), (Ticket.RESOLVED, 0.25), (Ticket.CLOSED, 0.15)]
+        elif days_old <= 14:
+            choices = [(Ticket.OPEN, 0.12), (Ticket.IN_PROGRESS, 0.38), (Ticket.RESOLVED, 0.3), (Ticket.CLOSED, 0.2)]
+        elif days_old <= 30:
+            choices = [(Ticket.IN_PROGRESS, 0.18), (Ticket.RESOLVED, 0.45), (Ticket.CLOSED, 0.37)]
+        elif days_old <= 45:
+            choices = [(Ticket.RESOLVED, 0.45), (Ticket.CLOSED, 0.55)]
+        else:
+            choices = [(Ticket.RESOLVED, 0.2), (Ticket.CLOSED, 0.8)]
+
+        roll = random.random()
+        cumulative = 0
+        for status, weight in choices:
+            cumulative += weight
+            if roll <= cumulative:
+                return status
+        return choices[-1][0]
+
+    def _pick_assignment_strategy(self):
+        roll = random.random()
+        if roll < 0.65:
+            return "MANUAL_ASSIGN"
+        if roll < 0.8:
+            return "TECH_SELF_ASSIGN"
+        return "UNASSIGNED"
+
+    def _normalize_auto_assignment(self, ticket, created_at):
+        auto_assigned = apply_auto_assign(ticket, actor=None)
+        assignment = ticket.assignments.order_by("-created_at", "-pk").first()
+        if ticket.assigned_to_id and assignment:
+            auto_time = created_at + timedelta(minutes=random.randint(3, 30))
+            TicketAssignment.objects.filter(pk=assignment.pk).update(
+                created_at=auto_time, from_user=None, reason="AUTO_ASSIGN_RULE"
+            )
+            audit = AuditLog.objects.filter(ticket=ticket, action="ASSIGN").order_by("-created_at", "-pk").first()
+            if audit:
+                meta = audit.meta or {}
+                meta.update({"reason": "AUTO_ASSIGN_RULE"})
+                audit.meta = meta
+                audit.created_at = auto_time
+                audit.save(update_fields=["meta", "created_at"])
+            return True, auto_time
+        return auto_assigned, None
+
     def _build_resolution_timestamps(self, *, status, created_at, priority, tz):
         """Crea timestamps de resolución/cierre dentro o fuera de SLA según proporciones."""
 
@@ -645,8 +822,8 @@ class Command(BaseCommand):
 
         end_cap = timezone.make_aware(datetime(2025, 12, 12, 23, 59, 59), tz)
 
-        within_sla_rate = random.uniform(0.85, 0.95)
-        breach_rate = random.uniform(0.05, 0.15)
+        within_sla_rate = random.uniform(0.88, 0.95)
+        breach_rate = random.uniform(0.05, 0.12)
         out_of_sla = random.random() < breach_rate
         on_time = random.random() < within_sla_rate and not out_of_sla
 
@@ -671,7 +848,7 @@ class Command(BaseCommand):
 
         return resolved_at, closed_at
 
-    def _maybe_reassign(self, *, ticket, created_at, resolved_at, closed_at, tech_cycle, actor):
+    def _maybe_reassign(self, *, ticket, created_at, resolved_at, closed_at, tech_cycle, admins):
         """Agrega re-asignaciones distribuidas en el tiempo."""
 
         last_assignment = ticket.assignments.order_by("-created_at").first()
@@ -681,15 +858,15 @@ class Command(BaseCommand):
         if not span_end:
             span_end = created_at + timedelta(hours=random.uniform(1, 12))
 
-        if random.random() < 0.25:
+        if random.random() < 0.15:
             reassign_time = created_at + timedelta(hours=random.uniform(0.5, max((span_end - created_at).total_seconds() / 3600, 1)))
             reassign_time = min(reassign_time, span_end)
             self._assign_ticket(
                 ticket,
                 to_user=next(tech_cycle),
                 created_at=reassign_time,
-                actor=actor,
-                reason="re-asignación demo",
+                actor=random.choice(admins),
+                reason="REASSIGN",
             )
             last_at = reassign_time
 
@@ -698,10 +875,13 @@ class Command(BaseCommand):
     def _create_audit_trail(self, *, ticket, created_at, resolved_at, closed_at, actor):
         """Genera auditorías y comentarios en la línea de tiempo del ticket."""
 
+        create_log = AuditLog.objects.create(ticket=ticket, actor=actor, action="CREATE", meta={"auto": True})
+        AuditLog.objects.filter(pk=create_log.pk).update(created_at=created_at)
+
         events_end = closed_at or resolved_at or created_at + timedelta(hours=random.uniform(2, 24))
-        comment_count = random.randint(1, 3) if events_end != created_at else 1
+        comment_logs = random.randint(1, 3) if events_end != created_at else 1
         latest = created_at
-        for _ in range(comment_count):
+        for _ in range(comment_logs):
             offset_hours = random.uniform(0.1, max((events_end - created_at).total_seconds() / 3600, 1))
             event_time = created_at + timedelta(hours=offset_hours)
             event_time = min(event_time, events_end)
@@ -713,6 +893,24 @@ class Command(BaseCommand):
             )
             AuditLog.objects.filter(pk=log.pk).update(created_at=event_time)
             latest = max(latest, event_time)
+
+            if random.random() < 0.4:
+                comment = TicketComment.objects.create(
+                    ticket=ticket,
+                    author=actor,
+                    body="Seguimiento automático del ticket demo",
+                    is_internal=random.random() < 0.5,
+                )
+                TicketComment.objects.filter(pk=comment.pk).update(created_at=event_time)
+
+        if random.random() < 0.4:
+            status_time = created_at + timedelta(hours=random.uniform(0.2, max((events_end - created_at).total_seconds() / 3600, 1)))
+            status_time = min(status_time, events_end)
+            status_log = AuditLog.objects.create(
+                ticket=ticket, actor=actor, action="STATUS", meta={"to": Ticket.IN_PROGRESS}
+            )
+            AuditLog.objects.filter(pk=status_log.pk).update(created_at=status_time)
+            latest = max(latest, status_time)
 
         if closed_at:
             status_log = AuditLog.objects.create(ticket=ticket, actor=actor, action="STATUS", meta={"to": Ticket.CLOSED})
@@ -765,7 +963,7 @@ class Command(BaseCommand):
             },
         ]
 
-    def _create_featured_tickets(self, *, templates, areas, categories, priorities, requesters, tech_cycle):
+    def _create_featured_tickets(self, *, templates, areas, categories, priorities, requesters, tech_cycle, admins):
         tz = timezone.get_current_timezone()
         end_cap = timezone.make_aware(datetime(2025, 12, 12, 23, 59, 59), tz)
         tickets = []
@@ -783,21 +981,47 @@ class Command(BaseCommand):
                 status=spec.get("status", Ticket.OPEN),
                 kind=Ticket.INCIDENT,
             )
-            apply_auto_assign(ticket, actor=spec["requester"])
-            self._assign_ticket(
-                ticket,
-                to_user=next(tech_cycle),
-                created_at=created_at,
-                actor=spec["requester"],
-                reason="distribución destacada",
-            )
-            ticket.assignments.update(created_at=created_at)
+            auto_assigned, assignment_time = self._normalize_auto_assignment(ticket, created_at)
+            if not auto_assigned:
+                strategy = self._pick_assignment_strategy()
+                if strategy == "MANUAL_ASSIGN":
+                    admin_actor = random.choice(admins)
+                    self._assign_ticket(
+                        ticket,
+                        to_user=next(tech_cycle),
+                        created_at=created_at,
+                        actor=admin_actor,
+                        reason="MANUAL_ASSIGN",
+                    )
+                    assignment_time = created_at
+                elif strategy == "TECH_SELF_ASSIGN":
+                    tech = next(tech_cycle)
+                    self._assign_ticket(
+                        ticket,
+                        to_user=tech,
+                        created_at=created_at,
+                        actor=tech,
+                        reason="TECH_SELF_ASSIGN",
+                    )
+                    assignment_time = created_at
+                else:
+                    assignment_time = None
 
             resolved_at, closed_at = self._build_resolution_timestamps(
                 status=spec.get("status", Ticket.OPEN),
                 created_at=created_at,
                 priority=spec.get("priority") or random.choice(priorities),
                 tz=tz,
+            )
+
+            last_assignment_at = assignment_time or created_at
+            last_assignment_at = self._maybe_reassign(
+                ticket=ticket,
+                created_at=created_at,
+                resolved_at=resolved_at,
+                closed_at=closed_at,
+                tech_cycle=tech_cycle,
+                admins=admins,
             )
 
             audit_latest = self._create_audit_trail(
@@ -807,7 +1031,7 @@ class Command(BaseCommand):
                 closed_at=closed_at,
                 actor=spec["requester"],
             )
-            updated_at_candidates = [created_at, resolved_at, closed_at, audit_latest]
+            updated_at_candidates = [created_at, resolved_at, closed_at, audit_latest, last_assignment_at]
             updated_at = max([dt for dt in updated_at_candidates if dt]) if any(updated_at_candidates) else created_at
 
             Ticket.objects.filter(pk=ticket.pk).update(
@@ -862,6 +1086,13 @@ class Command(BaseCommand):
         User.objects.filter(username__in=self._demo_usernames()).delete()
 
     def _demo_usernames(self):
+        base_requesters, extra_first_names, _ = self._requester_seed_data()
+        requester_usernames = [username for username, *_ in base_requesters]
+        total_requesters = 60
+        for idx in range(total_requesters - len(base_requesters)):
+            first = extra_first_names[idx % len(extra_first_names)]
+            requester_usernames.append(f"req_{first.lower()}_{idx + 1:02d}")
+
         return [
             "admin_ana",
             "admin_bruno",
@@ -876,9 +1107,5 @@ class Command(BaseCommand):
             "tech_hugo",
             "tech_isa",
             "tech_juan",
-            "req_camila",
-            "req_diego",
-            "req_elena",
-            "req_francisco",
-            "req_gracia",
+            *requester_usernames,
         ]
