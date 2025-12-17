@@ -855,6 +855,9 @@ def tickets_home(request):
     subcategory = (request.GET.get("subcategory") or "").strip()
     priority = (request.GET.get("priority") or "").strip()
     area = (request.GET.get("area") or "").strip()
+    assignment = (request.GET.get("assignment") or "").strip()
+    if assignment not in {"unassigned"}:
+        assignment = ""
     date_from_raw = (request.GET.get("date_from") or "").strip()
     date_to_raw = (request.GET.get("date_to") or "").strip()
     alerts_only = request.GET.get("alerts") == "1"
@@ -868,6 +871,8 @@ def tickets_home(request):
 
     if status:
         qs = qs.filter(status=status)
+    elif assignment:
+        qs = qs.filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
     if category:
         qs = qs.filter(category_id=category)
     if subcategory:
@@ -900,6 +905,9 @@ def tickets_home(request):
         qs = qs.filter(created_at__date__gte=date_from)
     if date_to:
         qs = qs.filter(created_at__date__lte=date_to)
+
+    if assignment == "unassigned":
+        qs = qs.filter(assigned_to__isnull=True)
 
     # Búsqueda
     q = (request.GET.get("q") or "").strip()
@@ -1005,21 +1013,30 @@ def tickets_home(request):
             bool(date_from_raw),
             bool(date_to_raw),
             alerts_only,
+            bool(assignment),
             hide_closed == "0",
         ]
     )
 
     # Resumen exclusivo para técnicos: permite decidir si autoasignarse.
     tech_counters = None
+    tech_counter_links = None
     if is_tech(u):
+        active_statuses = [Ticket.OPEN, Ticket.IN_PROGRESS]
+        base_active_qs = base_qs.filter(status__in=active_statuses)
+        personal_qs = base_active_qs.filter(assigned_to=u)
+        can_browse_general = is_admin(u) or can_view_all
+        general_qs = base_active_qs if can_browse_general else personal_qs
+        unassigned_qs = (
+            base_active_qs.filter(assigned_to__isnull=True)
+            if can_browse_general
+            else base_active_qs.none()
+        )
+
         tech_counters = {
-            "assigned": Ticket.objects.exclude(status=Ticket.CLOSED)
-            .filter(assigned_to=u)
-            .count(),
-            "total": Ticket.objects.exclude(status=Ticket.CLOSED).count(),
-            "unassigned": Ticket.objects.exclude(status=Ticket.CLOSED)
-            .filter(assigned_to__isnull=True)
-            .count(),
+            "assigned": personal_qs.count(),
+            "total": general_qs.count(),
+            "unassigned": unassigned_qs.count(),
         }
 
     # Para el combo de estados (clave y nombre en español)
@@ -1044,13 +1061,19 @@ def tickets_home(request):
     qs_no_sort = qdict_no_sort.urlencode()
     qs_no_sort = f"&{qs_no_sort}" if qs_no_sort else ""
 
-    def _inbox_query(value: str) -> str:
+    def _inbox_query(value: str, extra: dict | None = None) -> str:
         params = request.GET.copy()
         params.pop("page", None)
         if value:
             params["inbox"] = value
         else:
             params.pop("inbox", None)
+        if extra:
+            for key, val in extra.items():
+                if val is None:
+                    params.pop(key, None)
+                else:
+                    params[key] = val
         encoded = params.urlencode()
         return f"?{encoded}" if encoded else "?"
 
@@ -1058,6 +1081,18 @@ def tickets_home(request):
         {"value": value, "label": label, "url": _inbox_query(value)}
         for value, label in inbox_options
     ]
+
+    if is_tech(u):
+        tech_counter_links = {
+            "assigned": _inbox_query("personal", {"assignment": None}),
+            "total": _inbox_query(
+                "general" if (is_admin(u) or can_view_all) else "personal",
+                {"assignment": None},
+            ),
+            "unassigned": _inbox_query("general", {"assignment": "unassigned"})
+            if (is_admin(u) or can_view_all)
+            else None,
+        }
 
     ctx = {
         "tickets": page_obj.object_list,
@@ -1071,6 +1106,7 @@ def tickets_home(request):
             "subcategory": subcategory,
             "priority": priority,
             "area": area,
+            "assignment": assignment,
             "date_from": date_from_raw,
             "date_to": date_to_raw,
             "alerts": "1" if alerts_only else "",
@@ -1087,6 +1123,7 @@ def tickets_home(request):
         "current_inbox": inbox,
         "inbox_links": inbox_links,
         "has_active_filters": has_active_filters,
+        "tech_counter_links": tech_counter_links,
     }
     return TemplateResponse(request, "tickets/list.html", ctx)
 

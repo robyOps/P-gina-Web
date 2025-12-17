@@ -172,5 +172,5 @@ AI_CHAT_MODEL = "llama3"
 
 # URLs de autenticación utilizadas por ``LoginRequiredMixin`` y helpers de Django.
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "dashboard"
+LOGIN_REDIRECT_URL = "tickets_home"
 LOGOUT_REDIRECT_URL = "login"

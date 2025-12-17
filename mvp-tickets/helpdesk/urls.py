@@ -40,10 +40,11 @@ urlpatterns = [
     path("account/password/", account_views.password_change, name="account_password_change"),
 
     # --- UI (server-rendered) ---
-    # Tablero inicial con indicadores del estado de la mesa de ayuda.
-    path("", ticket_views.dashboard, name="dashboard"),
-    # Listado con filtros de tickets visibles para el usuario.
+    # Página inicial: listado con filtros de tickets visibles para el usuario.
+    path("", ticket_views.tickets_home, name="home"),
     path("tickets/", ticket_views.tickets_home, name="tickets_home"),
+    # Tablero con indicadores del estado de la mesa de ayuda.
+    path("dashboard/", ticket_views.dashboard, name="dashboard"),
     # Formulario de creación de ticket mediante POST validado.
     path("tickets/new/", ticket_views.ticket_create, name="ticket_create"),
     # Detalle completo del ticket identificado por ``pk``.

@@ -22,7 +22,7 @@ def _resolve_safe_redirect(request: HttpRequest) -> str:
     ):
         return referer
 
-    return reverse("dashboard")
+    return reverse("tickets_home")
 
 
 def redirect_to_safe_location(request: HttpRequest, exception=None):
