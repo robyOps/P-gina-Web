@@ -859,12 +859,15 @@ def tickets_home(request):
     date_to_raw = (request.GET.get("date_to") or "").strip()
     alerts_only = request.GET.get("alerts") == "1"
     hide_closed = request.GET.get("hide_closed", "1")
+    unassigned_only = request.GET.get("unassigned") == "1"
     if hide_closed not in {"0", "1"}:
         hide_closed = "1"
 
     # Oculta tickets resueltos/cerrados por defecto; se muestran solo cuando se filtra
     if hide_closed == "1" and not status:
         qs = qs.exclude(status__in=[Ticket.RESOLVED, Ticket.CLOSED])
+
+    counter_qs = qs
 
     if status:
         qs = qs.filter(status=status)
@@ -885,6 +888,8 @@ def tickets_home(request):
             qs = qs.filter(area_id=area)
         else:
             qs = qs.filter(area__name__iexact=area)
+    if unassigned_only:
+        qs = qs.filter(assigned_to__isnull=True)
 
     def _parse_date(value: str):
         if not value:
@@ -1006,20 +1011,21 @@ def tickets_home(request):
             bool(date_to_raw),
             alerts_only,
             hide_closed == "0",
+            unassigned_only,
         ]
     )
 
     # Resumen exclusivo para técnicos: permite decidir si autoasignarse.
     tech_counters = None
+    tech_counter_links: dict[str, str] = {}
     if is_tech(u):
+        active_qs = counter_qs.exclude(status__in=[Ticket.RESOLVED, Ticket.CLOSED])
         tech_counters = {
-            "assigned": Ticket.objects.exclude(status=Ticket.CLOSED)
-            .filter(assigned_to=u)
-            .count(),
-            "total": Ticket.objects.exclude(status=Ticket.CLOSED).count(),
-            "unassigned": Ticket.objects.exclude(status=Ticket.CLOSED)
-            .filter(assigned_to__isnull=True)
-            .count(),
+            "assigned": active_qs.filter(assigned_to=u).count(),
+            "total": active_qs.count()
+            if can_view_all
+            else active_qs.filter(assigned_to=u).count(),
+            "unassigned": active_qs.filter(assigned_to__isnull=True).count(),
         }
 
     # Para el combo de estados (clave y nombre en español)
@@ -1044,20 +1050,34 @@ def tickets_home(request):
     qs_no_sort = qdict_no_sort.urlencode()
     qs_no_sort = f"&{qs_no_sort}" if qs_no_sort else ""
 
-    def _inbox_query(value: str) -> str:
+    def _query_with(**updates) -> str:
         params = request.GET.copy()
         params.pop("page", None)
-        if value:
-            params["inbox"] = value
-        else:
-            params.pop("inbox", None)
+        for key, value in updates.items():
+            if value is None:
+                params.pop(key, None)
+            else:
+                params[key] = value
         encoded = params.urlencode()
         return f"?{encoded}" if encoded else "?"
+
+    def _inbox_query(value: str) -> str:
+        return _query_with(inbox=value or None)
 
     inbox_links = [
         {"value": value, "label": label, "url": _inbox_query(value)}
         for value, label in inbox_options
     ]
+
+    if is_tech(u):
+        personal_inbox = "personal" if inbox_options else inbox
+        tech_counter_links = {
+            "assigned": _inbox_query(personal_inbox),
+            "total": _inbox_query("general" if can_view_all else personal_inbox),
+            "unassigned": _query_with(
+                inbox="general" if can_view_all else personal_inbox, unassigned="1"
+            ),
+        }
 
     ctx = {
         "tickets": page_obj.object_list,
@@ -1075,6 +1095,7 @@ def tickets_home(request):
             "date_to": date_to_raw,
             "alerts": "1" if alerts_only else "",
             "hide_closed": hide_closed,
+            "unassigned": "1" if unassigned_only else "",
         },
         "statuses": statuses,
         "qs_no_page": qs_no_page,  # opcional para los links de paginación
@@ -1087,6 +1108,7 @@ def tickets_home(request):
         "current_inbox": inbox,
         "inbox_links": inbox_links,
         "has_active_filters": has_active_filters,
+        "tech_counter_links": tech_counter_links,
     }
     return TemplateResponse(request, "tickets/list.html", ctx)
 

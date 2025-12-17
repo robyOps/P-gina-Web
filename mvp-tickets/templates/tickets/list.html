@@ -105,30 +105,36 @@
   {% if tech_counters %}
   <section aria-labelledby="resumen-tecnico" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
     <h2 id="resumen-tecnico" class="sr-only">Resumen para técnicos</h2>
-    <article class="flex flex-col gap-1.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Asignados a ti</span>
-        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-indigo-600"><i class="bi bi-person-workspace"></i></span>
-      </div>
-      <p class="text-3xl font-semibold text-slate-900">{{ tech_counters.assigned }}</p>
-      <p class="text-xs text-slate-500">Casos que dependen directamente de ti.</p>
-    </article>
-    <article class="flex flex-col gap-1.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Tickets activos</span>
-        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-600"><i class="bi bi-activity"></i></span>
-      </div>
-      <p class="text-3xl font-semibold text-slate-900">{{ tech_counters.total }}</p>
-      <p class="text-xs text-slate-500">Todo lo que está en movimiento hoy.</p>
-    </article>
-    <article class="flex flex-col gap-1.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Por asignar</span>
-        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100 text-amber-600"><i class="bi bi-hourglass-split"></i></span>
-      </div>
-      <p class="text-3xl font-semibold text-slate-900">{{ tech_counters.unassigned }}</p>
-      <p class="text-xs text-slate-500">Toma los pendientes para que nadie se quede sin atención.</p>
-    </article>
+    <a href="{{ tech_counter_links.assigned|default:'#' }}" class="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+      <article class="flex h-full flex-col gap-1.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md group-focus-visible:border-indigo-300">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Asignados a ti</span>
+          <span class="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-indigo-600"><i class="bi bi-person-workspace"></i></span>
+        </div>
+        <p class="text-3xl font-semibold text-slate-900">{{ tech_counters.assigned }}</p>
+        <p class="text-xs text-slate-500">Casos que dependen directamente de ti.</p>
+      </article>
+    </a>
+    <a href="{{ tech_counter_links.total|default:'#' }}" class="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+      <article class="flex h-full flex-col gap-1.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md group-focus-visible:border-indigo-300">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Tickets activos</span>
+          <span class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-600"><i class="bi bi-activity"></i></span>
+        </div>
+        <p class="text-3xl font-semibold text-slate-900">{{ tech_counters.total }}</p>
+        <p class="text-xs text-slate-500">Todo lo que está en movimiento hoy.</p>
+      </article>
+    </a>
+    <a href="{{ tech_counter_links.unassigned|default:'#' }}" class="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+      <article class="flex h-full flex-col gap-1.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md group-focus-visible:border-indigo-300">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Por asignar</span>
+          <span class="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100 text-amber-600"><i class="bi bi-hourglass-split"></i></span>
+        </div>
+        <p class="text-3xl font-semibold text-slate-900">{{ tech_counters.unassigned }}</p>
+        <p class="text-xs text-slate-500">Toma los pendientes para que nadie se quede sin atención.</p>
+      </article>
+    </a>
   </section>
   {% endif %}
 
