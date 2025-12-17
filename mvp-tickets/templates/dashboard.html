@@ -269,37 +269,49 @@
           </div>
         </div>
         <section class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <article class="flex flex-col gap-3 rounded-3xl border border-sky-300 bg-sky-200 p-4 shadow-sm sm:p-5">
+          <a
+            href="{{ status_links.open }}"
+            class="flex flex-col gap-3 rounded-3xl border border-sky-300 bg-sky-200 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 sm:p-5"
+          >
             <div class="flex items-center justify-between">
               <span class="text-base font-semibold text-sky-900 sm:text-lg">Abiertos</span>
               <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg text-sky-600 shadow-sm"><i class="bi bi-life-preserver"></i></span>
             </div>
             <p class="text-3xl font-semibold text-slate-900 sm:text-4xl">{{ counts.open }}</p>
-          </article>
+          </a>
 
-          <article class="flex flex-col gap-3 rounded-3xl border border-amber-300 bg-amber-200 p-4 shadow-sm sm:p-5">
+          <a
+            href="{{ status_links.in_progress }}"
+            class="flex flex-col gap-3 rounded-3xl border border-amber-300 bg-amber-200 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 sm:p-5"
+          >
             <div class="flex items-center justify-between">
               <span class="text-base font-semibold text-amber-900 sm:text-lg">En progreso</span>
               <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg text-amber-600 shadow-sm"><i class="bi bi-gear-wide-connected"></i></span>
             </div>
             <p class="text-3xl font-semibold text-slate-900 sm:text-4xl">{{ counts.in_progress }}</p>
-          </article>
+          </a>
 
-          <article class="flex flex-col gap-3 rounded-3xl border border-emerald-300 bg-emerald-200 p-4 shadow-sm sm:p-5">
+          <a
+            href="{{ status_links.resolved }}"
+            class="flex flex-col gap-3 rounded-3xl border border-emerald-300 bg-emerald-200 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 sm:p-5"
+          >
             <div class="flex items-center justify-between">
-              <span class="text-base font-semibold text-emerald-900 sm:text-lg">Resueltos {% if mode == 'monthly' %}(mes){% else %}(histórico){% endif %}</span>
+              <span class="text-base font-semibold text-emerald-900 sm:text-lg">Resueltos {% if mode == 'monthly' %}(mes){% else %}(año){% endif %}</span>
               <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg text-emerald-600 shadow-sm"><i class="bi bi-check-circle"></i></span>
             </div>
             <p class="text-3xl font-semibold text-slate-900 sm:text-4xl">{{ counts.resolved }}</p>
-          </article>
+          </a>
 
-          <article class="flex flex-col gap-3 rounded-3xl border border-rose-300 bg-rose-200 p-4 shadow-sm sm:p-5">
+          <a
+            href="{{ status_links.closed }}"
+            class="flex flex-col gap-3 rounded-3xl border border-rose-300 bg-rose-200 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 sm:p-5"
+          >
             <div class="flex items-center justify-between">
-              <span class="text-base font-semibold text-rose-900 sm:text-lg">Cerrados {% if mode == 'monthly' %}(mes){% else %}(histórico){% endif %}</span>
+              <span class="text-base font-semibold text-rose-900 sm:text-lg">Cerrados {% if mode == 'monthly' %}(mes){% else %}(año){% endif %}</span>
               <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg text-rose-600 shadow-sm"><i class="bi bi-shield-lock"></i></span>
             </div>
             <p class="text-3xl font-semibold text-slate-900 sm:text-4xl">{{ counts.closed }}</p>
-          </article>
+          </a>
         </section>
 
         <section class="grid gap-5 lg:grid-cols-[1.05fr_1fr]">
@@ -1011,17 +1023,48 @@
       techPriorityEmpty.classList.add('hidden');
       techPriorityList.classList.remove('hidden');
 
-      priorities.forEach((item) => {
+      const sortedPriorities = [...priorities].sort((left, right) => {
+        const leftSla = Number.isFinite(left?.sla_hours) ? left.sla_hours : Number.POSITIVE_INFINITY;
+        const rightSla = Number.isFinite(right?.sla_hours) ? right.sla_hours : Number.POSITIVE_INFINITY;
+
+        if (leftSla !== rightSla) {
+          return leftSla - rightSla;
+        }
+
+        const leftTotal = Number.isFinite(left?.total) ? left.total : 0;
+        const rightTotal = Number.isFinite(right?.total) ? right.total : 0;
+        if (leftTotal !== rightTotal) {
+          return rightTotal - leftTotal;
+        }
+
+        return (left?.priority || '').localeCompare(right?.priority || '');
+      });
+
+      const priorityPalette = [
+        { bg: '#fff1f2', border: '#fecdd3', chip: '#ffe4e6', text: '#9f1239' },
+        { bg: '#fffbeb', border: '#fef3c7', chip: '#fef9c3', text: '#92400e' },
+        { bg: '#ecfeff', border: '#bae6fd', chip: '#e0f2fe', text: '#0f172a' },
+        { bg: '#ecfdf3', border: '#bbf7d0', chip: '#dcfce7', text: '#065f46' },
+        { bg: '#eef2ff', border: '#c7d2fe', chip: '#e0e7ff', text: '#3730a3' },
+      ];
+
+      sortedPriorities.forEach((item, index) => {
+        const colors = priorityPalette[index % priorityPalette.length];
         const row = document.createElement('div');
-        row.className = 'flex items-center justify-between rounded-xl border border-indigo-50 bg-indigo-50/60 px-3 py-2';
+        row.className = 'flex items-center justify-between rounded-xl border px-3 py-2 shadow-sm';
+        row.style.backgroundColor = colors.bg;
+        row.style.borderColor = colors.border;
 
         const label = document.createElement('span');
         label.className = 'priority-chip';
         label.textContent = item.priority;
+        label.style.backgroundColor = colors.chip;
+        label.style.color = colors.text;
 
         const value = document.createElement('span');
-        value.className = 'text-sm font-semibold text-indigo-700';
-        value.textContent = `${item.total} tickets`;
+        value.className = 'text-sm font-semibold';
+        value.style.color = colors.text;
+        value.textContent = `${item.total ?? 0} tickets`;
 
         row.append(label, value);
         techPriorityList.appendChild(row);

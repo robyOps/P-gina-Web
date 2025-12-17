@@ -29,7 +29,7 @@ from .models import AutoAssignRule, FAQ
 from catalog.models import Category, Subcategory
 
 # --- Stdlib ---
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from functools import cmp_to_key
 import calendar
 import json
@@ -357,6 +357,7 @@ def dashboard(request):
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     month_end = (month_start + timedelta(days=32)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     month_end_display = month_end - timedelta(seconds=1)
+    start_of_year = month_start.replace(month=1, day=1)
 
     monthly_qs = qs.filter(created_at__gte=month_start, created_at__lt=month_end)
 
@@ -388,16 +389,22 @@ def dashboard(request):
 
     open_count = qs.filter(status=Ticket.OPEN).count()
     in_progress_count = qs.filter(status=Ticket.IN_PROGRESS).count()
+    completion_since = month_start if mode == "monthly" else start_of_year
+    completion_until = month_end if mode == "monthly" else history_end
+
     if mode == "monthly":
-        resolved_count = qs.filter(resolved_at__gte=month_start, resolved_at__lt=month_end).count()
-        closed_count = qs.filter(closed_at__gte=month_start, closed_at__lt=month_end).count()
         resolved_label = "Resueltos (mes)"
         closed_label = "Cerrados (mes)"
     else:
-        resolved_count = qs.filter(resolved_at__isnull=False).count()
-        closed_count = qs.filter(closed_at__isnull=False).count()
-        resolved_label = "Resueltos (histórico)"
-        closed_label = "Cerrados (histórico)"
+        resolved_label = "Resueltos (año)"
+        closed_label = "Cerrados (año)"
+
+    completion_until_lookup = "lt" if mode == "monthly" else "lte"
+    resolved_filter_kwargs = {f"resolved_at__{completion_until_lookup}": completion_until} if completion_until else {}
+    closed_filter_kwargs = {f"closed_at__{completion_until_lookup}": completion_until} if completion_until else {}
+
+    resolved_count = qs.filter(resolved_at__gte=completion_since, **resolved_filter_kwargs).count()
+    closed_count = qs.filter(closed_at__gte=completion_since, **closed_filter_kwargs).count()
 
     counts = {
         "open": open_count,
@@ -604,9 +611,9 @@ def dashboard(request):
     )
 
     priorities_by_tech = (
-        recent_done_qs.values("assigned_to__username", "priority__name")
+        recent_done_qs.values("assigned_to__username", "priority__name", "priority__sla_hours")
         .annotate(total=Count("id"))
-        .order_by("assigned_to__username", "priority__name")
+        .order_by("assigned_to__username", "priority__sla_hours", "priority__name")
     )
     top_weekly_techs_priorities: dict[str, list[dict[str, str | int]]] = {}
     for row in priorities_by_tech:
@@ -614,7 +621,20 @@ def dashboard(request):
         if tech not in top_weekly_techs_priorities:
             top_weekly_techs_priorities[tech] = []
         top_weekly_techs_priorities[tech].append(
-            {"priority": row.get("priority__name") or "Sin prioridad", "total": row.get("total", 0)}
+            {
+                "priority": row.get("priority__name") or "Sin prioridad",
+                "total": row.get("total", 0),
+                "sla_hours": row.get("priority__sla_hours", 0),
+            }
+        )
+
+    for tech, items in top_weekly_techs_priorities.items():
+        items.sort(
+            key=lambda item: (
+                item.get("sla_hours") if item.get("sla_hours") is not None else 10**6,
+                -item.get("total", 0),
+                item.get("priority", ""),
+            )
         )
 
     (
@@ -634,6 +654,29 @@ def dashboard(request):
     )
 
     tech_priority_payload = json.dumps(top_weekly_techs_priorities)
+
+    tickets_base_url = reverse("tickets_home")
+
+    def _status_link(status_value: str, *, include_closed: bool = False, done_range: tuple[date | None, date | None] | None = None) -> str:
+        params = QueryDict(mutable=True)
+        params["status"] = status_value
+        if include_closed:
+            params["hide_closed"] = "0"
+
+        if done_range:
+            done_from, done_to = done_range
+            if done_from:
+                params["done_from"] = done_from.isoformat()
+            if done_to:
+                params["done_to"] = done_to.isoformat()
+
+        return f"{tickets_base_url}?{params.urlencode()}" if params else tickets_base_url
+
+    completion_end_for_links = completion_until - timedelta(seconds=1) if completion_until and mode == "monthly" else completion_until
+    completion_range = (
+        completion_since.date(),
+        timezone.localtime(completion_end_for_links).date() if completion_end_for_links else None,
+    )
 
     ctx = {
         "counts": counts,
@@ -657,6 +700,12 @@ def dashboard(request):
         "assignments_today": assignments_today,
         "assignments_today_breakdown": assignments_today_breakdown,
         "top_weekly_techs_priorities": tech_priority_payload,
+        "status_links": {
+            "open": _status_link(Ticket.OPEN),
+            "in_progress": _status_link(Ticket.IN_PROGRESS),
+            "resolved": _status_link(Ticket.RESOLVED, include_closed=True, done_range=completion_range),
+            "closed": _status_link(Ticket.CLOSED, include_closed=True, done_range=completion_range),
+        },
     }
     return render(request, "dashboard.html", ctx)
 
@@ -859,6 +908,8 @@ def tickets_home(request):
     area = (request.GET.get("area") or "").strip()
     date_from_raw = (request.GET.get("date_from") or "").strip()
     date_to_raw = (request.GET.get("date_to") or "").strip()
+    done_from_raw = (request.GET.get("done_from") or "").strip()
+    done_to_raw = (request.GET.get("done_to") or "").strip()
     alerts_only = request.GET.get("alerts") == "1"
     hide_closed = request.GET.get("hide_closed", "1")
     unassigned_only = request.GET.get("unassigned") == "1"
@@ -893,20 +944,21 @@ def tickets_home(request):
     if unassigned_only:
         qs = qs.filter(assigned_to__isnull=True)
 
-    def _parse_date(value: str):
-        if not value:
-            return None
-        try:
-            return datetime.strptime(value, "%Y-%m-%d").date()
-        except ValueError:
-            return None
-
-    date_from = _parse_date(date_from_raw)
-    date_to = _parse_date(date_to_raw)
+    date_from = _parse_date_param(date_from_raw)
+    date_to = _parse_date_param(date_to_raw)
+    done_from = _parse_date_param(done_from_raw)
+    done_to = _parse_date_param(done_to_raw)
     if date_from:
         qs = qs.filter(created_at__date__gte=date_from)
     if date_to:
         qs = qs.filter(created_at__date__lte=date_to)
+
+    if done_from or done_to:
+        qs = qs.annotate(done_at=_done_at_expression())
+        if done_from:
+            qs = qs.filter(done_at__date__gte=done_from)
+        if done_to:
+            qs = qs.filter(done_at__date__lte=done_to)
 
     # Búsqueda
     q = (request.GET.get("q") or "").strip()
@@ -1011,6 +1063,8 @@ def tickets_home(request):
             bool(area),
             bool(date_from_raw),
             bool(date_to_raw),
+            bool(done_from_raw),
+            bool(done_to_raw),
             alerts_only,
             hide_closed == "0",
             unassigned_only,
