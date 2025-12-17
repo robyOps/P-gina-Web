@@ -12,6 +12,7 @@ from django.http import (
     HttpResponseForbidden,
     HttpResponseBadRequest,
     HttpResponse,
+    QueryDict,
 )
 
 from django.shortcuts import get_object_or_404, redirect
@@ -821,6 +822,7 @@ def tickets_home(request):
 
     inbox = (request.GET.get("inbox") or "").strip().lower()
     inbox_options: list[tuple[str, str]] = []
+    counter_base_qs = base_qs if can_view_all else base_qs.filter(assigned_to=u)
     if is_admin(u) or can_view_all:
         default_inbox = "general"
         if inbox not in {"general", "personal"}:
@@ -867,7 +869,7 @@ def tickets_home(request):
     if hide_closed == "1" and not status:
         qs = qs.exclude(status__in=[Ticket.RESOLVED, Ticket.CLOSED])
 
-    counter_qs = qs
+    counter_qs = counter_base_qs
 
     if status:
         qs = qs.filter(status=status)
@@ -1050,8 +1052,8 @@ def tickets_home(request):
     qs_no_sort = qdict_no_sort.urlencode()
     qs_no_sort = f"&{qs_no_sort}" if qs_no_sort else ""
 
-    def _query_with(**updates) -> str:
-        params = request.GET.copy()
+    def _query_with(*, clear_filters: bool = False, **updates) -> str:
+        params = QueryDict(mutable=True) if clear_filters else request.GET.copy()
         params.pop("page", None)
         for key, value in updates.items():
             if value is None:
@@ -1072,10 +1074,15 @@ def tickets_home(request):
     if is_tech(u):
         personal_inbox = "personal" if inbox_options else inbox
         tech_counter_links = {
-            "assigned": _inbox_query(personal_inbox),
-            "total": _inbox_query("general" if can_view_all else personal_inbox),
+            "assigned": _query_with(clear_filters=True, inbox=personal_inbox),
+            "total": _query_with(
+                clear_filters=True,
+                inbox="general" if can_view_all else personal_inbox,
+            ),
             "unassigned": _query_with(
-                inbox="general" if can_view_all else personal_inbox, unassigned="1"
+                clear_filters=True,
+                inbox="general" if can_view_all else personal_inbox,
+                unassigned="1",
             ),
         }
 
