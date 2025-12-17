@@ -10,10 +10,11 @@ Crea un dataset de demostración rico en tickets, catálogos, usuarios y reglas.
 
 from __future__ import annotations
 
+import math
 import random
 from collections import Counter
-from itertools import cycle
 from datetime import datetime, timedelta
+from itertools import cycle
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -77,7 +78,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--end",
             type=str,
-            default="2025-12-12",
+            default="2025-12-18",
             help="Fecha final del dataset (YYYY-MM-DD).",
         )
 
@@ -154,6 +155,15 @@ class Command(BaseCommand):
                 admins=admins,
             )
         )
+
+        tz = timezone.get_current_timezone()
+        start_cap = timezone.make_aware(
+            datetime(self.start_date.year, self.start_date.month, self.start_date.day, 0, 0, 0), tz
+        )
+        end_cap = timezone.make_aware(
+            datetime(self.end_date.year, self.end_date.month, self.end_date.day, 23, 59, 59), tz
+        )
+        self._calibrate_urgent_pool(end_cap=end_cap, start_cap=start_cap, target_total=5, overdue_target=3)
         counts = Counter([t.status for t in tickets])
 
         self.stdout.write(self.style.SUCCESS("Dataset demo generado con éxito"))
@@ -1031,13 +1041,20 @@ class Command(BaseCommand):
     def _should_breach_closed(self):
         total = max(self.sla_counters["closed_total"], 1)
         breach = self.sla_counters["closed_breach"] / total
-        if breach < 0.08:
-            return random.random() < 0.15
-        if breach < 0.1:
-            return random.random() < 0.12
-        if breach < 0.12:
-            return random.random() < 0.08
-        return random.random() < 0.03
+        target_ratio = 0.05
+
+        if breach < target_ratio * 0.6:
+            probability = 0.12
+        elif breach < target_ratio:
+            probability = 0.08
+        elif breach < target_ratio * 1.4:
+            probability = 0.04
+        elif breach < target_ratio * 1.8:
+            probability = 0.02
+        else:
+            probability = 0.01
+
+        return random.random() < probability
 
     def _build_resolution_timestamps(self, *, status, created_at, priority, end_cap):
         """Crea timestamps de resolución/cierre controlando proporción de SLA."""
@@ -1098,38 +1115,27 @@ class Command(BaseCommand):
     def _maybe_mark_open_overdue(self, *, created_at, priority, end_cap, start_cap):
         """Marca pocos tickets abiertos/en progreso como vencidos de forma controlada."""
 
-        target_active = 53
-        target_breach = 6
+        target_ratio = 0.05
 
         self.sla_counters["open_total"] += 1
         ratio = self.sla_counters["open_breach"] / max(self.sla_counters["open_total"], 1)
+        allowed_breaches = max(math.floor(self.sla_counters["open_total"] * target_ratio), 1)
 
         mark = False
-        if self.sla_counters["open_total"] <= target_active:
-            remaining_slots = target_active - self.sla_counters["open_total"]
-            remaining_breaches = max(target_breach - self.sla_counters["open_breach"], 0)
-
-            if remaining_breaches and remaining_slots < remaining_breaches:
-                mark = True
-            elif remaining_breaches:
-                probability = max(0.15, min(0.55, remaining_breaches / max(remaining_slots + 1, 1)))
-                mark = random.random() < probability
+        if self.sla_counters["open_breach"] >= allowed_breaches:
+            probability = 0.015
+        elif ratio < target_ratio * 0.6:
+            gap = allowed_breaches - self.sla_counters["open_breach"]
+            remaining = max(self.sla_counters["open_total"] - self.sla_counters["open_breach"], 1)
+            probability = min(0.22, max(0.06, gap / remaining))
+        elif ratio < target_ratio:
+            probability = 0.08
+        elif ratio < target_ratio * 1.4:
+            probability = 0.04
         else:
-            target_ratio = target_breach / target_active
-            if ratio < 0.04:
-                probability = 0.18
-            elif ratio < 0.06:
-                probability = 0.12
-            elif ratio < target_ratio:
-                probability = 0.08
-            elif ratio < 0.1:
-                probability = 0.04
-            elif ratio < 0.12:
-                probability = 0.02
-            else:
-                probability = 0.01
+            probability = 0.02
 
-            mark = random.random() < probability
+        mark = random.random() < probability
 
         if not mark:
             return created_at
@@ -1152,6 +1158,44 @@ class Command(BaseCommand):
             self.sla_counters["open_breach"] += 1
 
         return created_at
+
+    def _calibrate_urgent_pool(self, *, end_cap, start_cap, target_total=5, overdue_target=3):
+        open_qs = Ticket.objects.filter(status__in=[Ticket.OPEN, Ticket.IN_PROGRESS])
+        candidates = list(
+            open_qs.select_related("priority").order_by("-priority__sla_hours", "created_at")
+        )
+        if not candidates:
+            return
+
+        desired_breaches = max(math.ceil(self.sla_counters["open_total"] * 0.05), 1)
+        max_extra_breaches = max(desired_breaches - self.sla_counters["open_breach"], 0)
+
+        selected = candidates[: target_total or 5]
+        for idx, ticket in enumerate(selected):
+            sla_hours = getattr(ticket.priority, "sla_hours", 8) or 8
+            if idx < overdue_target:
+                created_at = end_cap - timedelta(hours=sla_hours * 1.15)
+                breach_increment = 1 if max_extra_breaches > 0 else 0
+                max_extra_breaches = max(max_extra_breaches - breach_increment, 0)
+            else:
+                created_at = end_cap - timedelta(hours=sla_hours * 0.85)
+                breach_increment = 0
+
+            created_at = max(created_at, start_cap)
+            updated_at = min(end_cap - timedelta(hours=0.5), end_cap)
+
+            Ticket.objects.filter(pk=ticket.pk).update(
+                created_at=created_at,
+                resolved_at=None,
+                closed_at=None,
+                updated_at=updated_at,
+            )
+
+            if breach_increment:
+                self.sla_counters["open_breach"] = min(
+                    self.sla_counters["open_breach"] + breach_increment,
+                    desired_breaches,
+                )
 
     def _create_audit_trail(self, *, ticket, created_at, resolved_at, closed_at, actor):
         """Genera auditorías y comentarios en la línea de tiempo del ticket."""
