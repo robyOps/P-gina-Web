@@ -208,13 +208,14 @@ def _assignments_today_metrics(qs):
         total = assignments_today_qs.count()
         auto_assigned_today = assignments_today_qs.filter(from_user=F("to_user")).count()
         reassigned_today = assignments_today_qs.annotate(
-            has_previous=Exists(
+            has_previous_today=Exists(
                 TicketAssignment.objects.filter(
                     ticket=OuterRef("ticket"),
+                    created_at__date=today,
                     created_at__lt=OuterRef("created_at"),
                 )
             )
-        ).filter(has_previous=True).count()
+        ).filter(has_previous_today=True).count()
     else:
         audit_qs = AuditLog.objects.filter(
             ticket__in=qs,
