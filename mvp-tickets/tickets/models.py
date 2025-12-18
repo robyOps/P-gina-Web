@@ -149,14 +149,20 @@ class Ticket(models.Model):
     def save(self, *args, **kwargs):
         """Genera un código secuencial basado en el ID primario."""
         creating = self.pk is None
+        code_field = self._meta.get_field("code")
+        max_code_length = getattr(code_field, "max_length", 20) or 20
         if creating and not self.code:
             # Evita colisiones con el unique index usando un valor temporal único
-            self.code = f"_TMP-{uuid.uuid4().hex}"
+            suffix_length = max(max_code_length - len("_TMP-"), 4)
+            temp_suffix = uuid.uuid4().hex[:suffix_length]
+            self.code = f"_TMP-{temp_suffix}"
 
         super().save(*args, **kwargs)
 
         if creating:
             desired = str(self.pk)
+            if len(desired) > max_code_length:
+                desired = desired[-max_code_length:]
             if self.code != desired:
                 type(self).objects.filter(pk=self.pk).update(code=desired)
                 self.code = desired
