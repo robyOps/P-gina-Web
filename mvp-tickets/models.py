@@ -69,7 +69,7 @@ class AccountsUserProfile(models.Model):
 
 class TicketsTicket(models.Model):
     id = models.BigAutoField(primary_key=True)
-    code = models.CharField(max_length=20, unique=True)
+    code = models.CharField(max_length=32, unique=True)
     title = models.CharField(max_length=200)
     description = models.TextField()
     status = models.CharField(max_length=20)
@@ -321,4 +321,3 @@ class TicketsTicketComment(models.Model):
 
     class Meta:
         db_table = 'tickets_ticketcomment'
-

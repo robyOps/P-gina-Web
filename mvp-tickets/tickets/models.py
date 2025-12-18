@@ -57,7 +57,7 @@ class Ticket(models.Model):
     ]
 
     # Código legible del ticket (único). Ej: TCK-AB12CD34
-    code = models.CharField(max_length=20, unique=True)
+    code = models.CharField(max_length=32, unique=True)
 
     # Campos básicos: título y descripción
     title = models.CharField(max_length=200)
@@ -151,6 +151,13 @@ class Ticket(models.Model):
         creating = self.pk is None
         code_field = self._meta.get_field("code")
         max_code_length = getattr(code_field, "max_length", 20) or 20
+
+        if self.code:
+            normalized_code = str(self.code).strip()
+            if len(normalized_code) > max_code_length:
+                normalized_code = normalized_code[-max_code_length:]
+            self.code = normalized_code
+
         if creating and not self.code:
             # Evita colisiones con el unique index usando un valor temporal único
             suffix_length = max(max_code_length - len("_TMP-"), 4)
