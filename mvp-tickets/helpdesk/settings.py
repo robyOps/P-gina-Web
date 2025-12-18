@@ -45,6 +45,7 @@ DEBUG = True
 ALLOWED_HOSTS: list[str] = _split_env_list(os.getenv("DJANGO_ALLOWED_HOSTS")) or [
     "localhost",
     "127.0.0.1",
+    "coyahuehelpdesk.duckdns.org",
 ]
 
 # Apps: orden define prioridades de carga y personalizaciones de cada módulo Django.
