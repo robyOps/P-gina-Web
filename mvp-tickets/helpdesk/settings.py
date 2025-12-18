@@ -29,12 +29,23 @@ import os
 # Rutas base: punto de referencia para construir paths relativos a todo el proyecto.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+def _split_env_list(value: str | None) -> list[str]:
+    """Convierte una cadena separada por comas en lista, ignorando espacios y vacíos."""
+
+    if not value:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
 # ⚠️ Clave secreta; debe reemplazarse vía variable de entorno en producción para proteger sesiones y CSRF.
 SECRET_KEY = "dev-insecure-change-me"
 # Indicador de depuración que habilita mensajes detallados y renderers extra; se asume entorno local.
 DEBUG = True
-# Lista de hostnames autorizados; vacía para permitir localhost únicamente.
-ALLOWED_HOSTS: list[str] = []
+# Lista de hostnames autorizados; configurable por variable de entorno.
+ALLOWED_HOSTS: list[str] = _split_env_list(os.getenv("DJANGO_ALLOWED_HOSTS")) or [
+    "localhost",
+    "127.0.0.1",
+]
 
 # Apps: orden define prioridades de carga y personalizaciones de cada módulo Django.
 INSTALLED_APPS = [
@@ -147,7 +158,11 @@ SIMPLE_JWT = {
 }
 
 # CORS (en prod, restringe dominios)
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "true").lower() == "true"
+
+if not CORS_ALLOW_ALL_ORIGINS:
+    CORS_ALLOWED_ORIGINS = _split_env_list(os.getenv("CORS_ALLOWED_ORIGINS"))
+    CORS_ALLOWED_ORIGIN_REGEXES = _split_env_list(os.getenv("CORS_ALLOWED_ORIGIN_REGEXES"))
 
 # Field automático para claves primarias si los modelos no lo definen.
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
