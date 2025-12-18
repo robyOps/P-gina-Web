@@ -42,7 +42,10 @@ SECRET_KEY = "dev-insecure-change-me"
 # Indicador de depuración que habilita mensajes detallados y renderers extra; se asume entorno local.
 DEBUG = True
 # Lista de hostnames autorizados; configurable por variable de entorno.
-ALLOWED_HOSTS: list[str] = _split_env_list(os.getenv("DJANGO_ALLOWED_HOSTS")) or [
+_env_hosts = _split_env_list(os.getenv("DJANGO_ALLOWED_HOSTS")) or _split_env_list(
+    os.getenv("ALLOWED_HOSTS")
+)
+ALLOWED_HOSTS: list[str] = _env_hosts or [
     "localhost",
     "127.0.0.1",
     "coyahuehelpdesk.duckdns.org",

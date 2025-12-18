@@ -60,7 +60,7 @@ helpdesk.urls --> views HTML (tickets/catalog)
 |----------|-------------|-------------------|
 | `SECRET_KEY` | Clave secreta Django | `dev-insecure-change-me` |
 | `DEBUG` | Modo depuración | `True` |
-| `ALLOWED_HOSTS` | Hosts permitidos | `[]` |
+| `DJANGO_ALLOWED_HOSTS` / `ALLOWED_HOSTS` | Hosts permitidos (coma separados) | `localhost,127.0.0.1,coyahuehelpdesk.duckdns.org` |
 | `TICKET_LABEL_SUGGESTION_THRESHOLD` | Umbral mínimo de sugerencias | `0.35` |
 | `AI_CHAT_API_URL` | Endpoint externo del proveedor de IA utilizado por el chatbot interno | `None` |
 | `AI_CHAT_API_KEY` | Clave Bearer para autenticar las solicitudes hacia la API de IA | `None` |
